@@ -483,8 +483,10 @@ function useReroll(){
   socket.emit('utiliser_relance',{code:G.roomCode});
 }
 function doPick(type){
+  console.log('doPick called:', type, 'roomCode:', G.roomCode, 'monId:', G.monId);
   if(!G.roomCode){toast('Erreur: pas de code room','r');return;}
   socket.emit('faire_pick',{code:G.roomCode,type});
+  console.log('faire_pick emitted');
 }
 
 function renderProgress(){
@@ -516,6 +518,7 @@ function renderPropositions(data){
   const room=G.room, nb=room.joueurs.length;
   const tourNum=Math.floor(tourGlobal/nb)+1;
   const estMoi=joueurId===G.monId;
+  console.log('renderPropositions: joueurId=', joueurId, 'G.monId=', G.monId, 'estMoi=', estMoi);
 
   document.getElementById('d-sub').textContent=`Tour ${tourNum}/3 — ${joueurNom} choisit`;
   const whoEl=document.getElementById('d-who');
@@ -541,7 +544,10 @@ function renderPropositions(data){
       <div class="c-year">${prop.annee}</div>
       <div class="c-nom">${prop.item.nom}</div>
       ${!dispo?'<div style="margin-top:6px;font-size:10px;color:#374151">Déjà sélectionné</div>':''}`;
-    if(estMoi&&dispo)card.addEventListener('click',()=>doPick(prop.type));
+    if(estMoi&&dispo){
+      console.log('Attaching click to', prop.type, prop.item.nom);
+      card.addEventListener('click',()=>doPick(prop.type));
+    }
     grid.appendChild(card);
   }
   renderProgress(); renderPicksMini();
@@ -759,8 +765,12 @@ function router(room){
     const estMoi=room.joueurs[room.tourIndex%room.joueurs.length]?.id===G.monId;
     const btn=document.getElementById('btn-reroll');
     if(btn)btn.disabled=!estMoi||!j?.relanceDisponible;
-    // Re-render propositions if we have them (fixes player 2 not seeing clickable cards)
-    if(G._lastPropositions) renderPropositions(G._lastPropositions);
+    // Re-render propositions only if joueur actif changed or no cards shown
+    const cardsShown = document.getElementById('cards-grid').children.length > 0;
+    const activeId = room.joueurs[room.tourIndex % room.joueurs.length]?.id;
+    if(G._lastPropositions && (!cardsShown || G._lastPropositions.joueurId === activeId)) {
+      renderPropositions(G._lastPropositions);
+    }
   }
   else if(room.phase==='equipes'){renderEquipes();show('equipes');}
   else if(room.phase==='strategie'){
