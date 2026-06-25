@@ -404,6 +404,7 @@ io.on('connection', (socket) => {
   // L'hôte configure puis clique "Lancer la room" -> ouvrir_room génère le code
   socket.on('ouvrir_room', ({ nom, avecRivaux, anneesSelectionnees }) => {
     const code = genererCode();
+    const nomTronque = (nom || 'Hôte').trim().slice(0, 5);
     const anneesFiltrees = Array.isArray(anneesSelectionnees) && anneesSelectionnees.length > 0
       ? anneesSelectionnees.filter(a => ANNEES_DISPONIBLES.includes(a))
       : [...ANNEES_DISPONIBLES];
@@ -423,7 +424,7 @@ io.on('connection', (socket) => {
       derniersResultats: null,
       propositionsCourantes: null,
     };
-    const joueur = newJoueur(socket.id, nom, true);
+    const joueur = newJoueur(socket.id, nomTronque, true);
     rooms[code].joueurs.push(joueur);
     socket.join(code);
     socket.emit('room_creee', { code });
@@ -437,7 +438,8 @@ io.on('connection', (socket) => {
     if (room.joueurs.length >= MAX_JOUEURS) { socket.emit('erreur', `Room pleine (max ${MAX_JOUEURS} joueurs)`); return; }
     if (room.joueurs.find(j => j.id === socket.id)) return;
 
-    room.joueurs.push(newJoueur(socket.id, nom, false));
+    const nomTronque = (nom || 'Joueur').trim().slice(0, 5);
+    room.joueurs.push(newJoueur(socket.id, nomTronque, false));
     socket.join(code);
     socket.emit('room_rejointe', { code });
     io.to(code).emit('room_update', etatPublic(room));
@@ -608,6 +610,7 @@ function etatPublic(room) {
       aValide: j.aValide, aCliqueSuivant: j.aCliqueSuivant,
       pointsSaison: j.pointsSaison,
     })),
+    pointsRivaux: room.pointsRivaux || {},
   };
 }
 
