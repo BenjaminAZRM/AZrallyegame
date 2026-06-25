@@ -77,8 +77,8 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 /* Slider années */
 .annee-track-wrap{position:relative;margin:10px 4px}
 .annee-labels{display:flex;justify-content:space-between;margin-bottom:6px}
-.annee-lbl{font-size:10px;color:#6b7280;text-align:center;flex:1}
-.annee-lbl.active{color:#fbbf24;font-weight:700}
+.annee-lbl{font-size:11px;color:transparent;text-align:center;flex:1}
+.annee-lbl:first-child,.annee-lbl:last-child{color:#fbbf24;font-weight:700}
 .range-wrap{position:relative;height:28px;display:flex;align-items:center}
 .range-track{position:absolute;height:3px;background:#1f2937;border-radius:3px;width:100%}
 .range-fill{position:absolute;height:3px;background:#dc2626;border-radius:3px;pointer-events:none}
@@ -103,8 +103,7 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 .prog-dot.cur{background:#dc2626;border-color:#ef4444;color:#fff;animation:pulse .9s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
-.verrou-banner{display:none;background:#0a0a1a;border:1px solid #3b82f6;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#93c5fd;display:flex;align-items:center;gap:8px}
-.verrou-year{font-weight:900;font-size:15px;color:#60a5fa;margin-right:4px}
+
 
 .cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
 .draft-card{background:#0f1117;border:2px solid #1f2937;border-radius:10px;padding:14px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
@@ -304,8 +303,8 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 
   <div class="prog-dots" id="prog-dots"></div>
 
-  <div id="verrou-banner" style="display:none;background:#0a0a1a;border:1px solid #3b82f6;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:#93c5fd">
-    🔒 Voitures verrouillées — Saison <span id="verrou-year" style="font-weight:900;color:#60a5fa"></span>
+  <div id="verrou-banner" style="display:none;background:#0a0f1a;border:1px solid #1e3a5f;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:13px;color:#93c5fd;align-items:center;gap:6px;font-weight:600">
+    🔒 &nbsp;Voitures verrouillées — saison &nbsp;<span id="verrou-year" style="color:#60a5fa;font-weight:900"></span>
   </div>
 
   <div class="cards-grid" id="cards-grid"></div>
@@ -402,260 +401,30 @@ let revealTimer=null, revealedEntries=[], revealOrder=[];
 // ── UTILS ──────────────────────────────────────────────────────
 function show(id){ document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on')); document.getElementById('scr-'+id).classList.add('on'); }
 function toast(msg,t=''){const el=document.createElement('div');el.className='toast '+t;el.textContent=msg;document.getElementById('toasts').appendChild(el);setTimeout(()=>el.remove(),3200);}
+function fmtG(s){if(s===0)return"-";if(s>=60){const m=Math.floor(s/60),x=(s%60).toFixed(1);return`+${m}m${x.padStart(4,"0")}s`;}return`+${s.toFixed(1)}s`;}
 function fmtT(s){if(!isFinite(s))return'—';const m=Math.floor(s/60),sc=Math.round(s%60);return`${m}:${String(sc).padStart(2,'0')}`;}
-function fmtGap(s,isFirst){if(!isFinite(s))return'Abandon';if(isFirst)return'✓ Vainqueur';return`+${fmtT(s)}`;}
-function copyCode(){if(!G.roomCode)return;navigator.clipboard.writeText(G.roomCode).then(()=>toast('Code copié !','g'));}
-function moi(){return G.room?.joueurs.find(j=>j.id===G.monId);}
-function isHote(){return G.room?.hoteId===G.monId;}
 
-// ── SLIDER ─────────────────────────────────────────────────────
-function initSlider(){
-  const lbl=document.getElementById('annee-labels');
-  lbl.innerHTML=ANNEES.map(a=>`<span class="annee-lbl">${a}</span>`).join('');
-  const rMin=document.getElementById('rng-min'), rMax=document.getElementById('rng-max');
-  rMin.max=rMax.max=ANNEES.length-1;
-  rMin.value=0; rMax.value=ANNEES.length-1;
-  updateSlider();
-}
-function updateSlider(){
-  const rMin=document.getElementById('rng-min'), rMax=document.getElementById('rng-max');
-  let a=parseInt(rMin.value), b=parseInt(rMax.value);
-  if(a>b){if(document.activeElement===rMin)rMin.value=b;else rMax.value=a;a=parseInt(rMin.value);b=parseInt(rMax.value);}
-  slMin=a; slMax=b;
-  const pct=100/(ANNEES.length-1);
-  const fill=document.getElementById('range-fill');
-  fill.style.left=(a*pct)+'%'; fill.style.width=((b-a)*pct)+'%';
-  // Highlight active labels
-  document.querySelectorAll('.annee-lbl').forEach((el,i)=>el.classList.toggle('active',i>=a&&i<=b));
-  const sel=ANNEES.slice(a,b+1);
-  document.getElementById('annee-result').textContent=
-    sel.length===ANNEES.length?'Toutes les saisons (1997 → 2025)':
-    sel.length===1?`Saison ${sel[0]} uniquement`:
-    `De ${sel[0]} à ${sel[sel.length-1]} (${sel.length} saisons)`;
-}
+let revealTimer=null, revealedEntries=[], revealOrder=[];
+const PTS_SCALE=[25,18,15,12,10,8,6,4,2,1];
 
-// ── CONFIG ─────────────────────────────────────────────────────
-function setRivaux(v){
-  G.avecRivaux=v;
-  document.getElementById('yn-oui').className='yn-card'+(v?' sel-oui':'');
-  document.getElementById('yn-non').className='yn-card'+(!v?' sel-non':'');
-}
-
-function setNbRallyes(n){
-  G.nbRallyes=n;
-  document.querySelectorAll('.nb-card').forEach(el=>{
-    el.classList.toggle('sel-nb', parseInt(el.dataset.nb)===n);
-  });
-}
-
-function setNbRallyes(n){
-  G.nbRallyes=n;
-  document.querySelectorAll('.nb-card').forEach(el=>{
-    el.classList.toggle('sel-nb', parseInt(el.dataset.nb)===n);
-  });
-}
-
-function goConfig(){
-  const nom=document.getElementById('nom-inp').value.trim();
-  if(!nom){toast('Entre ton prénom','r');return;}
-  G.monNom=nom; initSlider(); show('config');
-}
-
-function openRoom(){
-  const sel=ANNEES.slice(slMin,slMax+1);
-  socket.emit('ouvrir_room',{nom:G.monNom,avecRivaux:G.avecRivaux,anneesSelectionnees:sel,nbRallyes:G.nbRallyes});
-}
-
-function joinRoom(){
-  const nom=document.getElementById('nom-inp').value.trim();
-  const code=document.getElementById('code-inp').value.trim().toUpperCase();
-  if(!nom){toast('Entre ton prénom','r');return;}
-  if(code.length!==4){toast('Le code fait 4 caractères','r');return;}
-  G.monNom=nom; socket.emit('rejoindre_room',{code,nom});
-}
-
-document.getElementById('code-inp').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
-document.getElementById('nom-inp').addEventListener('keydown',e=>{if(e.key==='Enter')goConfig();});
-
-// ── LOBBY ──────────────────────────────────────────────────────
-function launchDraft(){socket.emit('lancer_draft',{code:G.roomCode});}
-function renderLobby(){
-  const room=G.room;
-  document.getElementById('lobby-code').textContent=room.code;
-  document.getElementById('nb-j').textContent=`(${room.joueurs.length}/20)`;
-  const list=document.getElementById('player-list'); list.innerHTML='';
-  for(const j of room.joueurs){
-    const r=document.createElement('div'); r.className='player-row';
-    r.innerHTML=`<div class="p-dot"></div><span>${j.nom}</span>${j.id===room.hoteId?'<span class="p-hote">Hôte</span>':''}`;
-    list.appendChild(r);
-  }
-  const isH=isHote();
-  document.getElementById('btn-launch-wrap').style.display=isH?'block':'none';
-  if(isH)document.getElementById('btn-launch').disabled=room.joueurs.length<2;
-}
-
-// ── DRAFT ──────────────────────────────────────────────────────
-function useReroll(){socket.emit('utiliser_relance',{code:G.roomCode});}
-function doPick(type){socket.emit('faire_pick',{code:G.roomCode,type});}
-
-function renderProgress(){
-  const room=G.room, nb=room.joueurs.length, total=nb*3;
-  const el=document.getElementById('prog-dots'); el.innerHTML='';
-  for(let i=0;i<total;i++){
-    const j=room.joueurs[i%nb], d=document.createElement('div');
-    d.className='prog-dot'+(i<room.tourIndex?' done':i===room.tourIndex?' cur':'');
-    d.textContent=j.nom[0].toUpperCase(); d.title=`Tour ${Math.floor(i/nb)+1} — ${j.nom}`;
-    el.appendChild(d);
-  }
-}
-
-function renderPicksMini(){
-  const room=G.room, tb=document.getElementById('picks-mini'); tb.innerHTML='';
-  for(const j of room.joueurs){
-    const tr=document.createElement('tr');
-    const isMe=j.id===G.monId;
-    tr.innerHTML=`
-      <td class="p-name" style="color:${isMe?'#dc2626':'#e5e7eb'}">${j.nom}</td>
-      <td style="color:${j.picks.pilote?'#60a5fa':'#374151'};font-size:11px">${j.picks.pilote?.nom||'— Pilote'}</td>
-      <td style="color:${j.picks.copilote?'#a78bfa':'#374151'};font-size:11px">${j.picks.copilote?.nom||'— Co-pilote'}</td>
-      <td style="color:${j.picks.voiture?'#34d399':'#374151'};font-size:11px">${j.picks.voiture?.nom||'— Voiture'}</td>
-      <td style="font-size:10px;color:#374151">${!j.relanceDisponible?'Relance ✓':''}</td>
-    `;
-    tb.appendChild(tr);
-  }
-}
-
-function renderPropositions(data){
-  const{joueurId,joueurNom,propositions,tourGlobal}=data;
-  const room=G.room, nb=room.joueurs.length;
-  const tourNum=Math.floor(tourGlobal/nb)+1;
-  const estMoi=joueurId===G.monId;
-
-  document.getElementById('d-sub').textContent=`Tour ${tourNum}/3 — ${joueurNom} choisit`;
-  const whoEl=document.getElementById('d-who');
-  whoEl.textContent=estMoi?'À TOI DE JOUER !':`${joueurNom} choisit…`;
-  whoEl.className='draft-who'+(estMoi?' moi':'');
-
-  const j=moi();
-  document.getElementById('btn-reroll').disabled=!estMoi||!j?.relanceDisponible;
-
-  if(room.anneeVerrouillee){
-    document.getElementById('verrou-banner').style.display='flex';
-    document.getElementById('verrou-year').textContent=room.anneeVerrouillee;
-  }
-
-  const grid=document.getElementById('cards-grid'); grid.innerHTML='';
-  for(const prop of propositions){
-    const dispo=prop.disponible;
-    const card=document.createElement('div');
-    card.className='draft-card'+((!dispo)?' grise':'')+(((!estMoi)||!dispo)?' spec':'');
-
-    const statsHtml=(prop.type==='pilote'||prop.type==='voiture')?`
-      <div class="c-stats">
-        ${['asphalte','terre','neige','sec','pluie','rapide','sinueux'].map((s,i)=>
-          prop.item[s]!==undefined?`<div class="c-stat"><span>${['ASP','TER','NEI','SEC','PLU','RAP','SIN'][i]}</span><span>${prop.item[s]}</span></div>`:''
-        ).join('')}
-      </div>`:'';
-    const fiabHtml=prop.item.fiabilite!==undefined?`<div class="c-fiab">Fiabilité: ${Math.round(prop.item.fiabilite*100)}%</div>`:'';
-
-    card.innerHTML=`
-      <div class="c-type ${prop.type}">${prop.type==='pilote'?'🧑 Pilote':prop.type==='copilote'?'👥 Co-pilote':'🚗 Voiture'}</div>
-      <div class="c-year">${prop.annee}</div>
-      <div class="c-nom">${prop.item.nom}</div>
-      ${statsHtml}
-      ${!dispo?'<div style="margin-top:6px;font-size:10px;color:#374151">Déjà sélectionné</div>':''}
-    `;
-    if(estMoi&&dispo)card.addEventListener('click',()=>doPick(prop.type));
-    grid.appendChild(card);
-  }
-  renderProgress(); renderPicksMini();
-}
-
-// ── ÉQUIPES ────────────────────────────────────────────────────
-function renderEquipes(){
-  const room=G.room, grid=document.getElementById('eq-grid'); grid.innerHTML='';
-  document.getElementById('eq-annee').innerHTML=room.anneeVerrouillee
-    ?`<span style="font-size:12px;color:#3b82f6;border:1px solid rgba(59,130,246,.3);padding:2px 10px;border-radius:4px;letter-spacing:.1em">Saison ${room.anneeVerrouillee} — rivaux IA</span>`:'';
-  for(const j of room.joueurs){
-    const card=document.createElement('div');
-    card.className='eq-card'+(j.id===G.monId?' moi':'');
-    card.innerHTML=`
-      <div class="eq-pname">${j.nom}</div>
-      ${j.id===G.monId?'<div style="font-size:9px;color:#7c3aed;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Ton équipage</div>':''}
-      <div class="eq-row"><span class="eq-lbl">Pilote</span><span style="font-size:12px">${j.picks.pilote?.nom||'—'}</span></div>
-      <div class="eq-row"><span class="eq-lbl">Co-pilote</span><span style="font-size:12px">${j.picks.copilote?.nom||'—'}</span></div>
-      <div class="eq-row"><span class="eq-lbl">Voiture</span><span style="font-size:12px">${j.picks.voiture?.nom||'—'}</span></div>
-    `;
-    grid.appendChild(card);
-  }
-  document.getElementById('btn-saison-wrap').style.display=isHote()?'block':'none';
-}
-function launchSaison(){socket.emit('lancer_saison',{code:G.roomCode});}
-
-// ── STRATÉGIE ──────────────────────────────────────────────────
-function pickStrat(s){
-  const j=moi(); if(!j||j.aValide)return;
-  G.stratChoisie=s;
-  ['prudent','normal','attaque'].forEach(x=>{
-    const el=document.getElementById('rc-'+x);
-    el.className='risk-card'+(x===s?' sel-'+s:'');
-  });
-}
-function validerStrat(){
-  if(!G.stratChoisie){toast('Choisis une stratégie','r');return;}
-  socket.emit('valider_strategie',{code:G.roomCode,strategie:G.stratChoisie});
-}
-function renderStrat(){
-  const room=G.room, rallye=room.rallyes[room.rallyeActuel];
-  document.getElementById('s-num').textContent=`Rallye ${room.rallyeActuel+1}/${room.nbRallyes||10}`;
-  document.getElementById('s-nom').textContent=rallye?.nom||'—';
-  document.getElementById('s-surf').textContent=rallye?.surface||'';
-  const pills=document.getElementById('s-pills'); pills.innerHTML='';
-  for(let i=0;i<room.rallyes.length;i++){
-    const p=document.createElement('span');
-    p.className='rpill'+(i<room.rallyeActuel?' done':i===room.rallyeActuel?' cur':'');
-    p.textContent=room.rallyes[i].nom; pills.appendChild(p);
-  }
-  const j=moi(), valide=j?.aValide;
-  ['prudent','normal','attaque'].forEach(x=>{
-    const el=document.getElementById('rc-'+x);
-    // Reset classes — no pre-selection
-    el.className='risk-card'+(valide&&G.stratChoisie===x?' sel-'+x:'')+(valide?' locked':'');
-  });
-  const btn=document.getElementById('btn-valider');
-  btn.disabled=!!valide;
-  btn.textContent=valide?'✓ Validé — attente des autres':'Valider ma stratégie';
-
-  const wait=document.getElementById('wait-strat'); wait.innerHTML='';
-  for(const jj of room.joueurs){
-    const r=document.createElement('div'); r.className='wait-row';
-    r.innerHTML=`<span class="${jj.aValide?'wck':'wpnd'}">${jj.aValide?'✓':'○'}</span> <span>${jj.nom}</span>${jj.aValide?'<span style="font-size:11px;color:#374151;margin-left:6px">Prêt</span>':''}`;
-    wait.appendChild(r);
-  }
-}
-
-// ── RÉSULTATS ──────────────────────────────────────────────────
-function clickNext(){socket.emit('cliquer_suivant',{code:G.roomCode});document.getElementById('btn-next').disabled=true;}
-
-function makeRow(e, provRank, provGap, isFirst){
-  const isP=e.estJoueur, dnf=!isFinite(e.temps);
+function makeRowWithGap(e, provRank, provGap, provPts, allRevealed){
+  const dnf=e.isDNF, isP=e.estJoueur;
+  const hasPen=e.incident&&e.incident!=='Abandon';
+  const isLead=!dnf&&(e.rank===1)&&!!allRevealed;
+  if(provPts===undefined) provPts=dnf?0:(typeof provRank==='number'?PTS_SCALE[provRank-1]||0:0);
   const div=document.createElement('div');
   div.className='result-row';
   div.style.cssText=`background:${isP?'#1a1020':'#0f1117'};border:1px solid ${isP?'#7c3aed':'#1f2937'};opacity:${dnf?.6:1}`;
-  const rang=dnf?'DNF':provRank;
-  const rangColor=provRank===1?'#fbbf24':provRank===2?'#9ca3af':provRank===3?'#cd7f32':'#6b7280';
-  const hasPen=e.incident&&e.incident!=='Abandon';
   div.innerHTML=`
-    <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?'#4b5563':rangColor};flex-shrink:0">${rang}</span>
+    <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?'#4b5563':'#6b7280'};flex-shrink:0">${dnf?'DNF':provRank}</span>
     <div style="flex:1;min-width:0">
-      <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?'#c4b5fd':'#e5e7eb'}">${isP?`<span style="color:#a78bfa">${e.nom}</span>`:e.equipe.split('/')[0].trim()}
-      </div>
-      <div style="font-size:10px;color:#6b7280">${isP?(e.equipe.split('/').slice(1).join('/').trim()||''):''}${e.voiture?' · '+e.voiture:''}</div>
+      <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?'#c4b5fd':'#e5e7eb'}">${isP?`<span style="color:#a78bfa">${e.nom}</span>`:e.equipe?.split('/')[0]?.trim()||e.nom}</div>
+      <div style="font-size:10px;color:#6b7280">${isP?(e.equipe?.split('/')[1]?.trim()||''):''}${e.voiture?' · '+e.voiture:''}</div>
     </div>
     ${hasPen?`<span style="font-size:9px;color:#f97316;background:#1f2937;padding:1px 5px;border-radius:3px;flex-shrink:0">${e.incident}</span>`:''}
-    <div style="text-align:right;min-width:70px;flex-shrink:0">
-      <div style="font-size:11px;font-family:monospace;color:${dnf?'#ef4444':'#9ca3af'}">${dnf?'Abandon':fmtGap(provGap,isFirst)}</div>
-      ${e.points>0?`<div style="font-size:11px;color:#60a5fa;font-weight:600">+${e.points} pts</div>`:''}
+    <div style="text-align:right;min-width:65px;flex-shrink:0">
+      <div style="font-size:11px;font-family:monospace;color:${dnf?'#ef4444':'#9ca3af'}">${dnf?'Abandon':isLead?'✓ Vainqueur':fmtG(provGap)}</div>
+      ${provPts>0?`<div style="font-size:11px;color:#60a5fa;font-weight:600">+${provPts} pts</div>`:''}
     </div>`;
   return div;
 }
@@ -663,35 +432,32 @@ function makeRow(e, provRank, provGap, isFirst){
 function buildRevealOrder(sorted){
   const players=sorted.filter(e=>e.estJoueur);
   const others=sorted.filter(e=>!e.estJoueur);
-  // Shuffle others
   for(let i=others.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[others[i],others[j]]=[others[j],others[i]];}
-  return[...others,...players]; // players appear last for drama
+  return[...others,...players];
 }
 
 function startReveal(resultats, rallye, rallyeNum){
   document.getElementById('r-num').textContent=`Rallye ${rallyeNum}/${G.room?.nbRallyes||10}`;
-  document.getElementById('r-nom').textContent=rallye.nom;
+  document.getElementById('r-nom').textContent=rallye.name||rallye.nom||'—';
   document.getElementById('champ-block').classList.remove('vis');
 
   if(revealTimer)clearInterval(revealTimer);
   revealedEntries=[]; revealOrder=[];
-  const container=document.getElementById('reveal-list'); container.innerHTML='';
+  const container=document.getElementById('reveal-list');
+  container.innerHTML='';
   const ctr=document.getElementById('reveal-counter');
 
-  // Sort: finishers by rank, DNF at end
+  // Sort: finishers by time, DNF at end
   const sorted=[...resultats].sort((a,b)=>{
-    const aInf=!isFinite(a.temps), bInf=!isFinite(b.temps);
-    if(aInf&&!bInf)return 1; if(!aInf&&bInf)return-1;
-    return a.temps-b.temps;
+    const ai=!isFinite(a.temps),bi=!isFinite(b.temps);
+    if(ai&&!bi)return 1;if(!ai&&bi)return-1;return a.temps-b.temps;
   });
-
-  // Assign ranks
   let rank=1;
   const leader=sorted.find(e=>isFinite(e.temps));
   sorted.forEach(e=>{
     e.isDNF=!isFinite(e.temps);
-    if(!e.isDNF){e.rank=rank++;e.gap=leader?e.temps-leader.temps:0;}
-    else e.rank=99;
+    if(!e.isDNF){e.rank=rank++;e.gap=leader?e.temps-leader.temps:0;e.pts=PTS_SCALE[e.rank-1]||0;}
+    else{e.rank=99;e.pts=0;}
   });
 
   revealOrder=buildRevealOrder(sorted);
@@ -701,54 +467,35 @@ function startReveal(resultats, rallye, rallyeNum){
     const e=revealOrder[revealedEntries.length]; if(!e)return;
     revealedEntries.push(e);
 
-    // Rebuild list sorted so far
-    const fin=[...revealedEntries].filter(x=>!x.isDNF).sort((a,b)=>a.rank-b.rank);
+    const finishers=[...revealedEntries].filter(x=>!x.isDNF).sort((a,b)=>a.rank-b.rank);
     const dnfs=[...revealedEntries].filter(x=>x.isDNF);
-    const toShow=[...fin,...dnfs];
+    const toShow=[...finishers,...dnfs];
+    const trueWinnerRevealed=finishers.some(x=>x.rank===1);
+    const provLeader=finishers[0];
+    const allRevealed=revealedEntries.length>=total;
+
     container.innerHTML='';
-    const allDone=revealedEntries.length>=total;
     toShow.forEach((entry,i)=>{
-      const provGap=entry.isDNF?Infinity:entry.gap;
-      const isFirst=!entry.isDNF&&i===0&&allDone;
-      const row=makeRow(entry,entry.isDNF?'DNF':i+1,provGap,isFirst);
-      if(entry===e)row.style.animation='fadeIn .4s ease-out'; else row.style.animation='none';
-      container.appendChild(row);
+      const provRank=entry.isDNF?'DNF':i+1;
+      const provPts=entry.isDNF?0:(PTS_SCALE[i]||0);
+      let displayGap;
+      if(entry.isDNF)displayGap=Infinity;
+      else if(trueWinnerRevealed)displayGap=entry.gap;
+      else displayGap=entry.gap-(provLeader?.gap||0);
+      const div=makeRowWithGap(entry,provRank,displayGap,provPts,allRevealed);
+      if(entry===e)div.style.animation='fadeIn .4s ease-out'; else div.style.animation='none';
+      container.appendChild(div);
     });
 
     const reste=total-revealedEntries.length;
     ctr.textContent=reste>0?`${reste} équipage${reste>1?'s':''} restant${reste>1?'s':''}…`:'';
 
-    if(revealedEntries.length>=total){
+    if(allRevealed){
       clearInterval(revealTimer);revealTimer=null;
       ctr.textContent='';
-      showChamp();
+      setTimeout(()=>document.getElementById('champ-block').classList.add('vis'),400);
     }
   },650);
-}
-
-function showChamp(){
-  // Build championship from room state
-  const room=G.room; if(!room)return;
-  const champ=document.getElementById('champ-list'); champ.innerHTML='';
-  const allPts=[...room.joueurs.map(j=>({nom:j.nom,pts:j.pointsSaison,isP:true}))];
-  // Add rival pts from room
-  if(room.pointsRivaux){
-    for(const[nom,pts] of Object.entries(room.pointsRivaux)){
-      allPts.push({nom,pts,isP:false});
-    }
-  }
-  allPts.sort((a,b)=>b.pts-a.pts);
-  allPts.forEach((e,i)=>{
-    const row=document.createElement('div');
-    row.className='champ-row'+(i===0?' leader':'');
-    row.innerHTML=`
-      <span class="champ-rang" style="color:${i===0?'#fbbf24':i===1?'#9ca3af':i===2?'#cd7f32':'#6b7280'}">${i+1}</span>
-      <span style="flex:1;font-size:13px;font-weight:${e.isP?700:400};color:${e.isP?'#a78bfa':'#e5e7eb'}">${e.nom}</span>
-      <span style="font-size:13px;font-weight:700;color:#60a5fa">${e.pts} pts</span>
-    `;
-    champ.appendChild(row);
-  });
-  setTimeout(()=>document.getElementById('champ-block').classList.add('vis'),400);
 }
 
 function renderAttenteResultats(){
@@ -796,7 +543,14 @@ function router(room){
   document.getElementById('hdr-phase').textContent=phases[room.phase]||'';
 
   if(room.phase==='lobby'){renderLobby();show('lobby');}
-  else if(room.phase==='draft'){renderProgress();renderPicksMini();show('draft');}
+  else if(room.phase==='draft'){
+    renderProgress();renderPicksMini();show('draft');
+    // Always sync reroll button with current player state
+    const j=moi();
+    const estMoi=room.joueurs[room.tourIndex%room.joueurs.length]?.id===G.monId;
+    const btn=document.getElementById('btn-reroll');
+    if(btn){btn.disabled=!estMoi||!j?.relanceDisponible;}
+  }
   else if(room.phase==='equipes'){renderEquipes();show('equipes');}
   else if(room.phase==='strategie'){
     // Reset strat choice on new rally
