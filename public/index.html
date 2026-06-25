@@ -483,10 +483,8 @@ function useReroll(){
   socket.emit('utiliser_relance',{code:G.roomCode});
 }
 function doPick(type){
-  console.log('doPick called:', type, 'roomCode:', G.roomCode, 'monId:', G.monId);
   if(!G.roomCode){toast('Erreur: pas de code room','r');return;}
   socket.emit('faire_pick',{code:G.roomCode,type});
-  console.log('faire_pick emitted');
 }
 
 function renderProgress(){
@@ -518,8 +516,6 @@ function renderPropositions(data){
   const room=G.room, nb=room.joueurs.length;
   const tourNum=Math.floor(tourGlobal/nb)+1;
   const estMoi=joueurId===G.monId;
-  console.log('renderPropositions: joueurId=', joueurId, 'G.monId=', G.monId, 'estMoi=', estMoi);
-
   document.getElementById('d-sub').textContent=`Tour ${tourNum}/3 — ${joueurNom} choisit`;
   const whoEl=document.getElementById('d-who');
   whoEl.textContent=estMoi?'À TOI DE JOUER !':`${joueurNom} choisit…`;
@@ -544,10 +540,7 @@ function renderPropositions(data){
       <div class="c-year">${prop.annee}</div>
       <div class="c-nom">${prop.item.nom}</div>
       ${!dispo?'<div style="margin-top:6px;font-size:10px;color:#374151">Déjà sélectionné</div>':''}`;
-    if(estMoi&&dispo){
-      console.log('Attaching click to', prop.type, prop.item.nom);
-      card.addEventListener('click',()=>doPick(prop.type));
-    }
+    if(estMoi&&dispo)card.addEventListener('click',()=>doPick(prop.type));
     grid.appendChild(card);
   }
   renderProgress(); renderPicksMini();
@@ -765,10 +758,9 @@ function router(room){
     const estMoi=room.joueurs[room.tourIndex%room.joueurs.length]?.id===G.monId;
     const btn=document.getElementById('btn-reroll');
     if(btn)btn.disabled=!estMoi||!j?.relanceDisponible;
-    // Re-render propositions only if joueur actif changed or no cards shown
+    // Only re-render if no cards yet (first join during draft)
     const cardsShown = document.getElementById('cards-grid').children.length > 0;
-    const activeId = room.joueurs[room.tourIndex % room.joueurs.length]?.id;
-    if(G._lastPropositions && (!cardsShown || G._lastPropositions.joueurId === activeId)) {
+    if(G._lastPropositions && !cardsShown) {
       renderPropositions(G._lastPropositions);
     }
   }
@@ -790,7 +782,7 @@ function router(room){
 // ── SOCKETS ────────────────────────────────────────────────────
 socket.on('connect',()=>{G.monId=socket.id;});
 socket.on('room_creee',({code})=>{G.roomCode=code;});
-socket.on('room_rejointe',({code})=>{G.roomCode=code;console.log('Room rejointe:',code);});
+socket.on('room_rejointe',({code})=>{G.roomCode=code;});
 socket.on('erreur',msg=>toast(msg,'r'));
 socket.on('room_update',room=>{
   router(room);
