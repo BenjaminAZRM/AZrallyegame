@@ -401,6 +401,26 @@ let revealTimer=null, revealedEntries=[], revealOrder=[];
 // ── UTILS ──────────────────────────────────────────────────────
 function show(id){ document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on')); document.getElementById('scr-'+id).classList.add('on'); }
 function toast(msg,t=''){const el=document.createElement('div');el.className='toast '+t;el.textContent=msg;document.getElementById('toasts').appendChild(el);setTimeout(()=>el.remove(),3200);}
+function copyCode(){if(!G.roomCode)return;navigator.clipboard.writeText(G.roomCode).then(()=>toast('Code copié !','g'));}
+function moi(){return G.room?.joueurs.find(j=>j.id===G.monId);}
+function isHote(){return G.room?.hoteId===G.monId;}
+
+function goConfig(){
+  const nom=document.getElementById('nom-inp').value.trim();
+  if(!nom){toast('Entre ton prénom','r');return;}
+  G.monNom=nom; initSlider(); show('config');
+}
+
+function joinRoom(){
+  const nom=document.getElementById('nom-inp').value.trim();
+  const code=document.getElementById('code-inp').value.trim().toUpperCase();
+  if(!nom){toast('Entre ton prénom','r');return;}
+  if(code.length!==4){toast('Le code fait 4 caractères','r');return;}
+  G.monNom=nom; socket.emit('rejoindre_room',{code,nom});
+}
+
+document.getElementById('code-inp').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
+document.getElementById('nom-inp').addEventListener('keydown',e=>{if(e.key==='Enter')goConfig();});
 function fmtG(s){if(s===0)return"-";if(s>=60){const m=Math.floor(s/60),x=(s%60).toFixed(1);return`+${m}m${x.padStart(4,"0")}s`;}return`+${s.toFixed(1)}s`;}
 function fmtT(s){if(!isFinite(s))return'—';const m=Math.floor(s/60),sc=Math.round(s%60);return`${m}:${String(sc).padStart(2,'0')}`;}
 
