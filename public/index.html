@@ -44,6 +44,11 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 .toast.g{border-left-color:#22c55e}
 @keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
 
+/* NB RALLYES */
+.nb-card{flex:1;background:#0a0a0f;border:2px solid #1f2937;border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:20px;font-weight:900;font-family:'Exo 2',sans-serif;color:#6b7280;transition:all .15s}
+.nb-card:hover{border-color:#374151;color:#e5e7eb}
+.nb-card.sel-nb{border-color:#dc2626;background:#1a0a0a;color:#fff;box-shadow:0 0 12px rgba(220,38,38,.3)}
+
 /* ═══ HOME ═══ */
 #scr-home{text-align:center;padding-top:60px}
 .home-title{font-family:'Exo 2',sans-serif;font-size:72px;font-weight:900;color:#fff;line-height:.9;margin-bottom:8px;text-transform:uppercase;letter-spacing:-.02em}
@@ -250,6 +255,16 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
     </div>
   </div>
 
+  <div class="section">
+    <div class="sec-title">Nombre de rallyes du championnat</div>
+    <div style="display:flex;gap:10px">
+      <div class="nb-card" data-nb="1" onclick="setNbRallyes(1)">1</div>
+      <div class="nb-card" data-nb="5" onclick="setNbRallyes(5)">5</div>
+      <div class="nb-card sel-nb" data-nb="10" onclick="setNbRallyes(10)" id="nb-10">10</div>
+      <div class="nb-card" data-nb="15" onclick="setNbRallyes(15)">15</div>
+    </div>
+  </div>
+
   <div style="display:flex;gap:10px;align-items:center">
     <button class="btn btn-red" onclick="openRoom()">Lancer la room →</button>
     <button class="btn btn-gray btn-sm" onclick="show('home')">← Retour</button>
@@ -324,19 +339,14 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
     <div class="risk-card" onclick="pickStrat('prudent')" id="rc-prudent">
       <div class="risk-icon">🛡️</div>
       <div class="risk-label" style="color:#60a5fa">Prudent</div>
-      <div class="risk-perf" style="color:#4ade80">Fiab. +15%</div>
-      <div class="risk-perf" style="color:#f87171">Perf. −5%</div>
     </div>
     <div class="risk-card" onclick="pickStrat('normal')" id="rc-normal">
       <div class="risk-icon">🎯</div>
       <div class="risk-label" style="color:#9ca3af">Normal</div>
-      <div class="risk-perf" style="color:#6b7280">—</div>
     </div>
     <div class="risk-card" onclick="pickStrat('attaque')" id="rc-attaque">
       <div class="risk-icon">🔥</div>
       <div class="risk-label" style="color:#ef4444">Attaque</div>
-      <div class="risk-perf" style="color:#4ade80">Perf. +8%</div>
-      <div class="risk-perf" style="color:#f87171">Fiab. −20%</div>
     </div>
   </div>
 
@@ -382,10 +392,10 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 
 <script>
 const socket = io();
-const ANNEES = [1997,1999,2001,2003,2006,2009,2010,2012,2014,2016,2018,2020,2022,2025];
+const ANNEES = [1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
 const PTS = [25,18,15,12,10,8,6,4,2,1];
 
-let G = { monId:null, monNom:'', roomCode:null, room:null, stratChoisie:null, avecRivaux:true };
+let G = { monId:null, monNom:'', roomCode:null, room:null, stratChoisie:null, avecRivaux:true, nbRallyes:10 };
 let slMin=0, slMax=ANNEES.length-1;
 let revealTimer=null, revealedEntries=[], revealOrder=[];
 
@@ -419,7 +429,7 @@ function updateSlider(){
   document.querySelectorAll('.annee-lbl').forEach((el,i)=>el.classList.toggle('active',i>=a&&i<=b));
   const sel=ANNEES.slice(a,b+1);
   document.getElementById('annee-result').textContent=
-    sel.length===ANNEES.length?'Toutes les saisons':
+    sel.length===ANNEES.length?'Toutes les saisons (1997 → 2025)':
     sel.length===1?`Saison ${sel[0]} uniquement`:
     `De ${sel[0]} à ${sel[sel.length-1]} (${sel.length} saisons)`;
 }
@@ -431,6 +441,20 @@ function setRivaux(v){
   document.getElementById('yn-non').className='yn-card'+(!v?' sel-non':'');
 }
 
+function setNbRallyes(n){
+  G.nbRallyes=n;
+  document.querySelectorAll('.nb-card').forEach(el=>{
+    el.classList.toggle('sel-nb', parseInt(el.dataset.nb)===n);
+  });
+}
+
+function setNbRallyes(n){
+  G.nbRallyes=n;
+  document.querySelectorAll('.nb-card').forEach(el=>{
+    el.classList.toggle('sel-nb', parseInt(el.dataset.nb)===n);
+  });
+}
+
 function goConfig(){
   const nom=document.getElementById('nom-inp').value.trim();
   if(!nom){toast('Entre ton prénom','r');return;}
@@ -439,7 +463,7 @@ function goConfig(){
 
 function openRoom(){
   const sel=ANNEES.slice(slMin,slMax+1);
-  socket.emit('ouvrir_room',{nom:G.monNom,avecRivaux:G.avecRivaux,anneesSelectionnees:sel});
+  socket.emit('ouvrir_room',{nom:G.monNom,avecRivaux:G.avecRivaux,anneesSelectionnees:sel,nbRallyes:G.nbRallyes});
 }
 
 function joinRoom(){
@@ -538,7 +562,7 @@ function renderPropositions(data){
       <div class="c-type ${prop.type}">${prop.type==='pilote'?'🧑 Pilote':prop.type==='copilote'?'👥 Co-pilote':'🚗 Voiture'}</div>
       <div class="c-year">${prop.annee}</div>
       <div class="c-nom">${prop.item.nom}</div>
-      ${fiabHtml}${statsHtml}
+      ${statsHtml}
       ${!dispo?'<div style="margin-top:6px;font-size:10px;color:#374151">Déjà sélectionné</div>':''}
     `;
     if(estMoi&&dispo)card.addEventListener('click',()=>doPick(prop.type));
@@ -583,7 +607,7 @@ function validerStrat(){
 }
 function renderStrat(){
   const room=G.room, rallye=room.rallyes[room.rallyeActuel];
-  document.getElementById('s-num').textContent=`Rallye ${room.rallyeActuel+1}/10`;
+  document.getElementById('s-num').textContent=`Rallye ${room.rallyeActuel+1}/${room.nbRallyes||10}`;
   document.getElementById('s-nom').textContent=rallye?.nom||'—';
   document.getElementById('s-surf').textContent=rallye?.surface||'';
   const pills=document.getElementById('s-pills'); pills.innerHTML='';
@@ -645,7 +669,7 @@ function buildRevealOrder(sorted){
 }
 
 function startReveal(resultats, rallye, rallyeNum){
-  document.getElementById('r-num').textContent=`Rallye ${rallyeNum}/10`;
+  document.getElementById('r-num').textContent=`Rallye ${rallyeNum}/${G.room?.nbRallyes||10}`;
   document.getElementById('r-nom').textContent=rallye.nom;
   document.getElementById('champ-block').classList.remove('vis');
 
@@ -736,7 +760,7 @@ function renderAttenteResultats(){
   }
   const btn=document.getElementById('btn-next');
   btn.disabled=!!moi()?.aCliqueSuivant;
-  btn.textContent=room.rallyeActuel>=9?'Voir le classement final →':'Rallye suivant →';
+  btn.textContent=room.rallyeActuel>=(room.nbRallyes||10)-1?'Voir le classement final →':'Rallye suivant →';
 }
 
 // ── FIN ────────────────────────────────────────────────────────
