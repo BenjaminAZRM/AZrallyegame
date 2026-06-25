@@ -554,8 +554,8 @@ function renderPropositions(data){
     card.className='draft-card'+((!dispo)?' grise':'')+((!estMoi||!dispo)?' spec':'');
     card.innerHTML=`
       <div class="c-type ${prop.type}">${prop.type==='pilote'?'🧑 Pilote':prop.type==='copilote'?'👥 Co-pilote':'🚗 Voiture'}</div>
-      <div class="c-year">${prop.annee}</div>
       <div class="c-nom">${prop.item.nom}</div>
+      <div style="font-family:'Exo 2',sans-serif;font-weight:900;font-size:22px;color:#fbbf24;margin-top:6px;letter-spacing:.05em">${prop.annee}</div>
       ${!dispo?'<div style="margin-top:6px;font-size:10px;color:#374151">Déjà sélectionné</div>':''}`;
     if(estMoi&&dispo) card.dataset.type = prop.type;
     grid.appendChild(card);
