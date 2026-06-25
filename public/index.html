@@ -124,9 +124,9 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 .c-stat span{color:#e5e7eb;font-weight:600}
 .c-fiab{font-size:10px;color:#6b7280;margin-top:4px}
 
-.reroll-btn{background:transparent;border:1px solid #f97316;color:#f97316;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .2s}
-.reroll-btn:hover:not(:disabled){background:rgba(249,115,22,.12)}
-.reroll-btn:disabled{opacity:.3;cursor:not-allowed}
+.reroll-btn{background:rgba(249,115,22,.15);border:2px solid #f97316;color:#f97316;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .2s;box-shadow:0 0 10px rgba(249,115,22,.2)}
+.reroll-btn:hover:not(:disabled){background:rgba(249,115,22,.25);box-shadow:0 0 18px rgba(249,115,22,.4)}
+.reroll-btn:disabled{opacity:.25;cursor:not-allowed;border-color:#374151;color:#4b5563;background:transparent;box-shadow:none}
 
 .picks-mini{width:100%;border-collapse:collapse;font-size:12px}
 .picks-mini td{padding:6px 10px;border-bottom:1px solid #1f2937}
@@ -403,7 +403,7 @@ let revealTimer=null, revealedEntries=[], revealOrder=[];
 function show(id){ document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on')); document.getElementById('scr-'+id).classList.add('on'); }
 function toast(msg,t=''){const el=document.createElement('div');el.className='toast '+t;el.textContent=msg;document.getElementById('toasts').appendChild(el);setTimeout(()=>el.remove(),3200);}
 function fmtT(s){if(!isFinite(s))return'—';const m=Math.floor(s/60),sc=Math.round(s%60);return`${m}:${String(sc).padStart(2,'0')}`;}
-function fmtGap(s){if(!isFinite(s))return'Abandon';if(s===0)return'✓ Vainqueur';return`+${fmtT(s)}`;}
+function fmtGap(s,isFirst){if(!isFinite(s))return'Abandon';if(isFirst)return'✓ Vainqueur';return`+${fmtT(s)}`;}
 function copyCode(){if(!G.roomCode)return;navigator.clipboard.writeText(G.roomCode).then(()=>toast('Code copié !','g'));}
 function moi(){return G.room?.joueurs.find(j=>j.id===G.monId);}
 function isHote(){return G.room?.hoteId===G.monId;}
@@ -637,7 +637,7 @@ function renderStrat(){
 // ── RÉSULTATS ──────────────────────────────────────────────────
 function clickNext(){socket.emit('cliquer_suivant',{code:G.roomCode});document.getElementById('btn-next').disabled=true;}
 
-function makeRow(e, provRank, provGap, allDone){
+function makeRow(e, provRank, provGap, isFirst){
   const isP=e.estJoueur, dnf=!isFinite(e.temps);
   const div=document.createElement('div');
   div.className='result-row';
@@ -648,13 +648,13 @@ function makeRow(e, provRank, provGap, allDone){
   div.innerHTML=`
     <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?'#4b5563':rangColor};flex-shrink:0">${rang}</span>
     <div style="flex:1;min-width:0">
-      <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?'#c4b5fd':'#e5e7eb'}">${isP?e.nom:e.equipe.split('/')[0].trim()}${isP?`<span class="you-badge">${e.nom}</span>`:''}
+      <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?'#c4b5fd':'#e5e7eb'}">${isP?`<span style="color:#a78bfa">${e.nom}</span>`:e.equipe.split('/')[0].trim()}
       </div>
       <div style="font-size:10px;color:#6b7280">${isP?(e.equipe.split('/').slice(1).join('/').trim()||''):''}${e.voiture?' · '+e.voiture:''}</div>
     </div>
     ${hasPen?`<span style="font-size:9px;color:#f97316;background:#1f2937;padding:1px 5px;border-radius:3px;flex-shrink:0">${e.incident}</span>`:''}
     <div style="text-align:right;min-width:70px;flex-shrink:0">
-      <div style="font-size:11px;font-family:monospace;color:${dnf?'#ef4444':'#9ca3af'}">${dnf?'Abandon':allDone&&provRank===1?'✓ Vainqueur':fmtGap(provGap)}</div>
+      <div style="font-size:11px;font-family:monospace;color:${dnf?'#ef4444':'#9ca3af'}">${dnf?'Abandon':fmtGap(provGap,isFirst)}</div>
       ${e.points>0?`<div style="font-size:11px;color:#60a5fa;font-weight:600">+${e.points} pts</div>`:''}
     </div>`;
   return div;
@@ -709,7 +709,8 @@ function startReveal(resultats, rallye, rallyeNum){
     const allDone=revealedEntries.length>=total;
     toShow.forEach((entry,i)=>{
       const provGap=entry.isDNF?Infinity:entry.gap;
-      const row=makeRow(entry,entry.isDNF?'DNF':i+1,provGap,allDone);
+      const isFirst=!entry.isDNF&&i===0&&allDone;
+      const row=makeRow(entry,entry.isDNF?'DNF':i+1,provGap,isFirst);
       if(entry===e)row.style.animation='fadeIn .4s ease-out'; else row.style.animation='none';
       container.appendChild(row);
     });
@@ -742,7 +743,7 @@ function showChamp(){
     row.className='champ-row'+(i===0?' leader':'');
     row.innerHTML=`
       <span class="champ-rang" style="color:${i===0?'#fbbf24':i===1?'#9ca3af':i===2?'#cd7f32':'#6b7280'}">${i+1}</span>
-      <span style="flex:1;font-size:13px;font-weight:${e.isP?700:400};color:${e.isP?'#c4b5fd':'#e5e7eb'}">${e.nom}${e.isP?'<span class="you-badge">JOU</span>':''}</span>
+      <span style="flex:1;font-size:13px;font-weight:${e.isP?700:400};color:${e.isP?'#a78bfa':'#e5e7eb'}">${e.nom}</span>
       <span style="font-size:13px;font-weight:700;color:#60a5fa">${e.pts} pts</span>
     `;
     champ.appendChild(row);
