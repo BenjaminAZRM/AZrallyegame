@@ -392,13 +392,6 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 <script>
 const socket = io();
 
-// Délégation d'événement permanente — survit aux re-renders
-document.getElementById('cards-grid').addEventListener('click', (e) => {
-  const card = e.target.closest('.draft-card');
-  if (!card || card.classList.contains('grise') || card.classList.contains('spec')) return;
-  if (!card.dataset.type) return;
-  doPick(card.dataset.type);
-});
 
 // Délégation d'événement permanente sur le conteneur de cartes
 document.addEventListener('DOMContentLoaded', () => {
@@ -495,12 +488,20 @@ function renderLobby(){
 }
 
 // ── DRAFT ──────────────────────────────────────────────────────
+
+// Source de vérité unique pour les propositions courantes
+G.propositionsActuelles = null;
+
 function useReroll(){
   document.getElementById('btn-reroll').disabled=true;
   socket.emit('utiliser_relance',{code:G.roomCode});
 }
+
 function doPick(type){
-  if(!G.roomCode){toast('Erreur: pas de code room','r');return;}
+  if(!G.roomCode) return;
+  if(!G.propositionsActuelles) return;
+  const joueurActifId = G.propositionsActuelles.joueurId;
+  if(joueurActifId !== G.monId) return; // pas mon tour
   socket.emit('faire_pick',{code:G.roomCode,type});
 }
 
@@ -551,7 +552,9 @@ function renderPropositions(data){
   for(const prop of propositions){
     const dispo=prop.disponible;
     const card=document.createElement('div');
-    card.className='draft-card'+((!dispo)?' grise':'')+((!estMoi||!dispo)?' spec':'');
+    const isClickable = estMoi && dispo;
+    card.className='draft-card'+((!dispo)?' grise':'')+(!isClickable?' spec':'');
+    if(isClickable) card.style.cursor='pointer';
     card.innerHTML=`
       <div class="c-type ${prop.type}">${prop.type==='pilote'?'🧑 Pilote':prop.type==='copilote'?'👥 Co-pilote':'🚗 Voiture'}</div>
       <div class="c-nom">${prop.item.nom}</div>
@@ -809,16 +812,22 @@ socket.on('room_update',room=>{
     document.getElementById('lobby-code').textContent=room.code||'';
 });
 socket.on('nouvelles_propositions',data=>{
-  G._lastPropositions = data;
+  G.propositionsActuelles = data; // source de vérité unique
   show('draft');
   renderPropositions(data);
 });
 socket.on('pick_effectue',({joueurNom,type,item})=>{
   toast(`${joueurNom} → ${item.nom}`,'g');
-  document.querySelectorAll('.draft-card').forEach(c=>{
-    if(c.querySelector('.c-nom')?.textContent===item.nom)c.classList.add('shimmer');
+  // Animation shimmer sur la carte choisie
+  document.querySelectorAll('.draft-card').forEach(card=>{
+    if(card.querySelector('.c-nom')?.textContent===item.nom) card.classList.add('shimmer');
   });
-  G._lastPropositions = null;
+  // Rendre toutes les cartes non-cliquables pendant le délai avant les nouvelles propositions
+  document.querySelectorAll('.draft-card').forEach(card=>{
+    card.classList.add('spec');
+    delete card.dataset.type;
+  });
+  G.propositionsActuelles = null;
 });
 socket.on('annee_verrouillee',({annee,joueur})=>toast(`${joueur} a verrouillé la saison ${annee} pour les voitures`));
 socket.on('relance_utilisee',({joueurNom})=>toast(`${joueurNom} utilise sa relance !`));
