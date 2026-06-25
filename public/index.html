@@ -609,6 +609,7 @@ function renderStrat(){
 function makeRowWithGap(e, provRank, provGap, provPts, allRevealed){
   const dnf=e.isDNF, isP=e.estJoueur;
   const hasPen=e.incident&&e.incident!=='Abandon';
+  const hasAbn=e.incident==='Abandon';
   const isLead=!dnf&&(e.rank===1)&&!!allRevealed;
   if(provPts===undefined) provPts=dnf?0:(typeof provRank==='number'?PTS_SCALE[provRank-1]||0:0);
   const div=document.createElement('div');
@@ -620,7 +621,8 @@ function makeRowWithGap(e, provRank, provGap, provPts, allRevealed){
       <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?'#c4b5fd':'#e5e7eb'}">${isP?`<span style="color:#a78bfa">${e.nom}</span>`:e.equipe?.split('/')[0]?.trim()||e.nom}</div>
       <div style="font-size:10px;color:#6b7280">${isP?e.equipe||'':e.equipe?.split('/').slice(1).join('/').trim()||''}${e.voiture?' · '+e.voiture:''}</div>
     </div>
-    ${hasPen?`<span style="font-size:9px;color:#f97316;background:#1f2937;padding:1px 5px;border-radius:3px;flex-shrink:0">${e.incident}</span>`:''}
+    ${hasPen?`<span style="font-size:9px;color:#f97316;background:rgba(249,115,22,.15);padding:1px 5px;border-radius:3px;flex-shrink:0">${e.incident}</span>`:''}
+    ${hasAbn?`<span style="font-size:9px;color:#ef4444;background:rgba(239,68,68,.15);padding:1px 5px;border-radius:3px;flex-shrink:0">Abandon</span>`:''}
     <div style="text-align:right;min-width:65px;flex-shrink:0">
       <div style="font-size:11px;font-family:monospace;color:${dnf?'#ef4444':'#9ca3af'}">${dnf?'Abandon':isLead?'✓ Vainqueur':fmtG(provGap)}</div>
       ${provPts>0?`<div style="font-size:11px;color:#60a5fa;font-weight:600">+${provPts} pts</div>`:''}
