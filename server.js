@@ -40,16 +40,22 @@ function newJoueur(id, nom, estHote) {
 // ─── CALCUL PERF ──────────────────────────────────────────────────────────────
 
 function basePerf(driver, car, rallye) {
-  // Driver stats: asp,ter,nei,sec,plu,rap,sin + copilote stats: casp,cter,cnei,csec,cplu,crap,csin
   const r = rallye;
-  const driverScore = driver.asp*r.asp + driver.ter*r.ter + driver.nei*r.nei +
-                      driver.sec*r.sec + driver.plu*r.plu + driver.rap*r.rap + driver.sin*r.sin;
-  const copScore    = driver.casp*r.asp + driver.cter*r.ter + driver.cnei*r.nei +
-                      driver.csec*r.sec + driver.cplu*r.plu + driver.crap*r.rap + driver.csin*r.sin;
-  const carScore    = car.asp*r.asp + car.ter*r.ter + car.nei*r.nei +
-                      car.sec*r.sec + car.plu*r.plu + car.rap*r.rap + car.sin*r.sin;
+  const dScore = driver.asp*r.asp + driver.ter*r.ter + driver.nei*r.nei +
+                 driver.sec*r.sec + driver.plu*r.plu + driver.rap*r.rap + driver.sin*r.sin;
+  // Copilote stats: use casp/cter/etc if available (rivaux), else use driver stats
+  const casp = driver.casp !== undefined ? driver.casp : driver.asp;
+  const cter = driver.cter !== undefined ? driver.cter : driver.ter;
+  const cnei = driver.cnei !== undefined ? driver.cnei : driver.nei;
+  const csec = driver.csec !== undefined ? driver.csec : driver.sec;
+  const cplu = driver.cplu !== undefined ? driver.cplu : driver.plu;
+  const crap = driver.crap !== undefined ? driver.crap : driver.rap;
+  const csin = driver.csin !== undefined ? driver.csin : driver.sin;
+  const cScore = casp*r.asp + cter*r.ter + cnei*r.nei + csec*r.sec + cplu*r.plu + crap*r.rap + csin*r.sin;
+  const carScore = car.asp*r.asp + car.ter*r.ter + car.nei*r.nei +
+                   car.sec*r.sec + car.plu*r.plu + car.rap*r.rap + car.sin*r.sin;
   const somme = r.asp+r.ter+r.nei+r.sec+r.plu+r.rap+r.sin;
-  return (driverScore + copScore + carScore) / (3 * somme);
+  return (dScore + cScore + carScore) / (3 * somme);
 }
 
 function calcInc(car, rallye, strategie) {
@@ -70,10 +76,10 @@ function simulerRallye(room) {
 
   // Joueurs humains
   for (const j of room.joueurs) {
-    const { pilote, voiture } = j.picks;
+    const { pilote, copilote, voiture } = j.picks;
     const inc = calcInc(voiture, rallye, j.strategie);
     if (inc.type === 'Abandon') {
-      resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${pilote.cop}`, voiture:voiture.nom, temps:Infinity, points:0, incident:'Abandon', estJoueur:true, id:j.id });
+      resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${copilote?.nom||''}`, voiture:voiture.nom, temps:Infinity, points:0, incident:'Abandon', estJoueur:true, id:j.id });
       continue;
     }
     let perf = basePerf(pilote, voiture, rallye);
@@ -82,7 +88,7 @@ function simulerRallye(room) {
     perf *= (0.95 + Math.random()*0.10);
     let temps = 3600 - (perf - 85) * 10;
     if (inc.pen) temps += inc.pen;
-    resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${pilote.cop}`, voiture:voiture.nom, temps, points:0, incident:inc.pen?(inc.type==='Panne'?'+60s Panne':'+30s Crevaison'):null, estJoueur:true, id:j.id });
+    resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${copilote?.nom||''}`, voiture:voiture.nom, temps, points:0, incident:inc.pen?(inc.type==='Panne'?'+60s Panne':'+30s Crevaison'):null, estJoueur:true, id:j.id });
   }
 
   // Rivaux IA
@@ -129,42 +135,42 @@ function simulerRallye(room) {
 
 function creerRivaux(annee) {
   const d = DATA[annee];
-  if (!d) return [];
-  return d.drivers.map(driver => {
-    // Find matching car by voiture field
-    const car = d.cars.find(c => c.nom === driver.voiture) || d.cars[0];
-    return { driver, car };
-  });
+  if (!d || !d.length) return [];
+  return d.map(eq => ({
+    driver: { nom: eq.pilote, cop: eq.copilote, asp: eq.asp, ter: eq.ter, nei: eq.nei, sec: eq.sec, plu: eq.plu, rap: eq.rap, sin: eq.sin, fib: eq.fib, casp: eq.casp, cter: eq.cter, cnei: eq.cnei, csec: eq.csec, cplu: eq.cplu, crap: eq.crap, csin: eq.csin, cfib: eq.cfib },
+    car: { nom: eq.voiture, asp: eq.asp, ter: eq.ter, nei: eq.nei, sec: eq.sec, plu: eq.plu, rap: eq.rap, sin: eq.sin, fib: eq.fib },
+  }));
 }
 
 function proposerItems(room, joueurId) {
   const j = room.joueurs.find(j => j.id === joueurId);
   const anneesDispos = room.anneesSelectionnees.length > 0 ? room.anneesSelectionnees : ANNEES_DISPO;
-
   const rndAnnee = () => anneesDispos[Math.floor(Math.random()*anneesDispos.length)];
+  const rndEq = (annee) => {
+    const pool = DATA[annee] || DATA[ANNEES_DISPO[0]];
+    return pool[Math.floor(Math.random()*pool.length)];
+  };
 
-  // Voiture : année verrouillée si définie
   const anneeVoiture = room.anneeVerrouillee || rndAnnee();
   const anneePilote  = rndAnnee();
+  const anneeCop     = rndAnnee();
 
-  const proposals = [];
   const typesManquants = ['pilote','copilote','voiture'].filter(t => !j.picks[t]);
+  const proposals = [];
 
-  // Pilote (inclut copilote dans les données)
-  const dataPilote = DATA[anneePilote] || DATA[ANNEES_DISPO[0]];
-  const pilote = dataPilote.drivers[Math.floor(Math.random()*dataPilote.drivers.length)];
-  proposals.push({ type:'pilote', item:{ nom:pilote.nom, fib:pilote.fib, asp:pilote.asp, ter:pilote.ter, nei:pilote.nei, sec:pilote.sec, plu:pilote.plu, rap:pilote.rap, sin:pilote.sin, cop:pilote.cop, voiture:pilote.voiture }, annee:anneePilote, disponible:typesManquants.includes('pilote') });
+  // Pilote
+  const eqP = rndEq(anneePilote);
+  proposals.push({ type:'pilote', item:{ nom:eqP.pilote, asp:eqP.asp, ter:eqP.ter, nei:eqP.nei, sec:eqP.sec, plu:eqP.plu, rap:eqP.rap, sin:eqP.sin, fib:eqP.fib }, annee:anneePilote, disponible:typesManquants.includes('pilote') });
 
-  // Copilote (nom du copilote associé au pilote tiré)
-  const anneeCop = rndAnnee();
-  const dataCop = DATA[anneeCop] || DATA[ANNEES_DISPO[0]];
-  const piloteCop = dataCop.drivers[Math.floor(Math.random()*dataCop.drivers.length)];
-  proposals.push({ type:'copilote', item:{ nom:piloteCop.cop, fib:piloteCop.cfib, asp:piloteCop.casp, ter:piloteCop.cter, nei:piloteCop.cnei, sec:piloteCop.csec, plu:piloteCop.cplu, rap:piloteCop.crap, sin:piloteCop.csin }, annee:anneeCop, disponible:typesManquants.includes('copilote') });
+  // Copilote
+  const eqC = rndEq(anneeCop);
+  proposals.push({ type:'copilote', item:{ nom:eqC.copilote, asp:eqC.casp, ter:eqC.cter, nei:eqC.cnei, sec:eqC.csec, plu:eqC.cplu, rap:eqC.crap, sin:eqC.csin, fib:eqC.cfib }, annee:anneeCop, disponible:typesManquants.includes('copilote') });
 
-  // Voiture
-  const dataVoiture = DATA[anneeVoiture] || DATA[ANNEES_DISPO[0]];
-  const voiture = dataVoiture.cars[Math.floor(Math.random()*dataVoiture.cars.length)];
-  proposals.push({ type:'voiture', item:{ nom:voiture.nom, fib:voiture.fib, asp:voiture.asp, ter:voiture.ter, nei:voiture.nei, sec:voiture.sec, plu:voiture.plu, rap:voiture.rap, sin:voiture.sin }, annee:anneeVoiture, disponible:typesManquants.includes('voiture') });
+  // Voiture — unique par annee, dédupliquée
+  const voituresAnnee = [...new Set((DATA[anneeVoiture]||DATA[ANNEES_DISPO[0]]).map(e=>e.voiture))];
+  const voitureNom = voituresAnnee[Math.floor(Math.random()*voituresAnnee.length)];
+  const eqV = (DATA[anneeVoiture]||DATA[ANNEES_DISPO[0]]).find(e=>e.voiture===voitureNom);
+  proposals.push({ type:'voiture', item:{ nom:voitureNom, asp:eqV.asp, ter:eqV.ter, nei:eqV.nei, sec:eqV.sec, plu:eqV.plu, rap:eqV.rap, sin:eqV.sin, fib:eqV.fib }, annee:anneeVoiture, disponible:typesManquants.includes('voiture') });
 
   return proposals;
 }
