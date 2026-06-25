@@ -80,14 +80,14 @@ function simulerRallye(room) {
       resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${copilote?.nom||''}`, voiture:voiture.nom, temps:Infinity, points:0, incident:'Abandon', estJoueur:true, id:j.id });
       continue;
     }
-    let perf = basePerf(pilote, copilote, voiture, rallye);
+    let perf = j.scoresRallyes ? j.scoresRallyes[idx] : precalcScore(pilote, copilote, voiture, rallye);
 
     if (j.strategie === 'prudent') perf *= 0.95;
     if (j.strategie === 'attaque') perf *= 1.08;
     perf *= (0.95 + Math.random()*0.10);
     let temps = 3600 - (perf - 85) * 10;
     if (inc.pen) temps += inc.pen;
-    resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${copilote?.nom||''}`, voiture:voiture.nom, temps, points:0, incident:inc.pen?(inc.type==='Panne'?'+60s Panne':'+30s Crevaison'):null, estJoueur:true, id:j.id });
+    resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${copilote?.nom||''}`, voiture:voiture.nom, temps, points:0, incident:inc.pen?(inc.type==='Panne'?'Panne':'Crevaison'):null, estJoueur:true, id:j.id });
   }
 
   // Rivaux IA
@@ -102,7 +102,7 @@ function simulerRallye(room) {
       }
       const rivCop = { asp:r.driver.casp, ter:r.driver.cter, nei:r.driver.cnei, sec:r.driver.csec, plu:r.driver.cplu, rap:r.driver.crap, sin:r.driver.csin };
       const rivVoit = { asp:r.driver.vasp, ter:r.driver.vter, nei:r.driver.vnei, sec:r.driver.vsec, plu:r.driver.vplu, rap:r.driver.vrap, sin:r.driver.vsin };
-      let perf = basePerf(r.driver, rivCop, rivVoit, rallye);
+      let perf = r.scoresRallyes ? r.scoresRallyes[idx] : precalcScore(r.driver, rivCop, rivVoit, rallye);
       perf *= (0.95 + Math.random()*0.10);
       let temps = 3600 - (perf - 85) * 10;
       if (inc.pen) temps += inc.pen;
