@@ -70,6 +70,7 @@ function precalcScore(pilote, copilote, voiture, rallye) {
 
 function simulerRallye(room) {
   const rallye = room.rallyes[room.rallyeActuel];
+  const idx = room.rallyeActuel;
   const resultats = [];
 
   // Joueurs humains
