@@ -650,10 +650,10 @@ function makeRowWithGap(e, provRank, provGap, provPts, allRevealed){
   return div;
 }
 function buildRevealOrder(sorted){
-  const players=sorted.filter(e=>e.estJoueur);
-  const others=sorted.filter(e=>!e.estJoueur);
-  for(let i=others.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[others[i],others[j]]=[others[j],others[i]];}
-  return[...others,...players];
+  // Ordre de révélation entièrement aléatoire
+  const all=[...sorted];
+  for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]];}
+  return all;
 }
 function startReveal(resultats, rallye, rallyeNum){
   document.getElementById('r-num').textContent=`Rallye ${rallyeNum}/${G.room?.nbRallyes||10}`;
