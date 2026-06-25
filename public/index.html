@@ -424,7 +424,6 @@ document.getElementById('nom-inp').addEventListener('keydown',e=>{if(e.key==='En
 function fmtG(s){if(s===0)return"-";if(s>=60){const m=Math.floor(s/60),x=(s%60).toFixed(1);return`+${m}m${x.padStart(4,"0")}s`;}return`+${s.toFixed(1)}s`;}
 function fmtT(s){if(!isFinite(s))return'—';const m=Math.floor(s/60),sc=Math.round(s%60);return`${m}:${String(sc).padStart(2,'0')}`;}
 
-let revealTimer=null, revealedEntries=[], revealOrder=[];
 const PTS_SCALE=[25,18,15,12,10,8,6,4,2,1];
 
 function makeRowWithGap(e, provRank, provGap, provPts, allRevealed){
