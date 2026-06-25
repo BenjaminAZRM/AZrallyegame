@@ -39,19 +39,7 @@ function newJoueur(id, nom, estHote) {
 
 // ─── CALCUL PERF ──────────────────────────────────────────────────────────────
 
-function scoreObj(e, r) {
-  return (e.asp||80)*r.asp + (e.ter||80)*r.ter + (e.nei||80)*r.nei +
-         (e.sec||80)*r.sec + (e.plu||80)*r.plu + (e.rap||80)*r.rap + (e.sin||80)*r.sin;
-}
-function basePerf(pilote, copilote, voiture, rallye) {
-  // pilote: {asp,ter,nei,sec,plu,rap,sin}
-  // copilote: {asp,ter,nei,sec,plu,rap,sin}
-  // voiture: {asp,ter,nei,sec,plu,rap,sin} (vasp/vter pour les IA, asp/ter pour les joueurs)
-  const r = rallye;
-  const voit = { asp: voiture.vasp||voiture.asp||85, ter: voiture.vter||voiture.ter||85, nei: voiture.vnei||voiture.nei||85, sec: voiture.vsec||voiture.sec||85, plu: voiture.vplu||voiture.plu||85, rap: voiture.vrap||voiture.rap||85, sin: voiture.vsin||voiture.sin||85 };
-  const somme = r.asp+r.ter+r.nei+r.sec+r.plu+r.rap+r.sin;
-  return (scoreObj(pilote, r) + scoreObj(copilote||pilote, r) + scoreObj(voit, r)) / (3 * somme);
-}
+
 
 function calcInc(car, rallye, strategie) {
   let fib = car.fib;
@@ -63,6 +51,21 @@ function calcInc(car, rallye, strategie) {
   if (t < risk * 0.67) return { type:'Panne', pen:60 };
   if (t < risk)        return { type:'Crevaison', pen:30 };
   return { type:'OK', pen:0 };
+}
+
+function scoreObj(e, r) {
+  return (e.asp||80)*r.asp + (e.ter||80)*r.ter + (e.nei||80)*r.nei +
+         (e.sec||80)*r.sec + (e.plu||80)*r.plu + (e.rap||80)*r.rap + (e.sin||80)*r.sin;
+}
+
+function precalcScore(pilote, copilote, voiture, rallye) {
+  // Calcule la note de base (0-100) pour cet équipage sur ce rallye
+  const r = rallye;
+  const somme = r.asp + r.ter + r.nei + r.sec + r.plu + r.rap + r.sin;
+  const sp = scoreObj({ asp:pilote?.asp||80, ter:pilote?.ter||80, nei:pilote?.nei||80, sec:pilote?.sec||80, plu:pilote?.plu||80, rap:pilote?.rap||80, sin:pilote?.sin||80 }, r);
+  const sc = scoreObj({ asp:copilote?.asp||80, ter:copilote?.ter||80, nei:copilote?.nei||80, sec:copilote?.sec||80, plu:copilote?.plu||80, rap:copilote?.rap||80, sin:copilote?.sin||80 }, r);
+  const sv = scoreObj({ asp:voiture?.asp||80, ter:voiture?.ter||80, nei:voiture?.nei||80, sec:voiture?.sec||80, plu:voiture?.plu||80, rap:voiture?.rap||80, sin:voiture?.sin||80 }, r);
+  return (sp + sc + sv) / (3 * somme);
 }
 
 function simulerRallye(room) {
@@ -78,7 +81,7 @@ function simulerRallye(room) {
       continue;
     }
     let perf = basePerf(pilote, copilote, voiture, rallye);
-    console.log(`[DEBUG] ${j.nom}: pilote.asp=${pilote?.asp} cop.asp=${copilote?.asp} voit.asp=${voiture?.asp} perf=${perf.toFixed(2)}`);
+
     if (j.strategie === 'prudent') perf *= 0.95;
     if (j.strategie === 'attaque') perf *= 1.08;
     perf *= (0.95 + Math.random()*0.10);
@@ -94,7 +97,7 @@ function simulerRallye(room) {
       const r = room.rivaux[i];
       const inc = calcInc({ fib: r.driver.vfib || r.driver.fib }, rallye, 'normal');
       if (inc.type === 'Abandon') {
-        resultats.push({ nom:r.driver.nom, equipe:`${r.driver.nom} / ${r.driver.cop}`, voiture:r.car.nom, temps:Infinity, points:0, incident:'Abandon', estJoueur:false });
+        resultats.push({ nom:r.driver.pilote, equipe:`${r.driver.pilote} / ${r.driver.copilote}`, voiture:r.driver.voiture, temps:Infinity, points:0, incident:'Abandon', estJoueur:false });
         continue;
       }
       const rivCop = { asp:r.driver.casp, ter:r.driver.cter, nei:r.driver.cnei, sec:r.driver.csec, plu:r.driver.cplu, rap:r.driver.crap, sin:r.driver.csin };
@@ -103,7 +106,7 @@ function simulerRallye(room) {
       perf *= (0.95 + Math.random()*0.10);
       let temps = 3600 - (perf - 85) * 10;
       if (inc.pen) temps += inc.pen;
-      resultats.push({ nom:r.driver.nom, equipe:`${r.driver.nom} / ${r.driver.cop}`, voiture:r.car.nom, temps, points:0, estJoueur:false });
+      resultats.push({ nom:r.driver.pilote, equipe:`${r.driver.pilote} / ${r.driver.copilote}`, voiture:r.driver.voiture, temps, points:0, estJoueur:false });
     }
   }
 
@@ -124,7 +127,7 @@ function simulerRallye(room) {
       if (j) j.pointsSaison += r.points;
     } else {
       if (!room.pointsRivaux) room.pointsRivaux = {};
-      room.pointsRivaux[r.nom] = (room.pointsRivaux[r.nom]||0) + r.points;
+      room.pointsRivaux[r.nom||r.equipe] = (room.pointsRivaux[r.nom||r.equipe]||0) + r.points;
     }
   }
 
@@ -308,6 +311,18 @@ io.on('connection', (socket) => {
   socket.on('lancer_saison', ({ code }) => {
     const room = rooms[code];
     if (!room || room.hoteId !== socket.id) return;
+
+    // Précalculer les scores de base pour chaque joueur sur chaque rallye
+    for (const j of room.joueurs) {
+      j.scoresRallyes = room.rallyes.map(rallye => precalcScore(j.picks.pilote, j.picks.copilote, j.picks.voiture, rallye));
+    }
+    // Précalculer les scores pour chaque rival
+    for (const r of room.rivaux) {
+      const cop = { asp:r.driver.casp, ter:r.driver.cter, nei:r.driver.cnei, sec:r.driver.csec, plu:r.driver.cplu, rap:r.driver.crap, sin:r.driver.csin };
+      const voit = { asp:r.driver.vasp, ter:r.driver.vter, nei:r.driver.vnei, sec:r.driver.vsec, plu:r.driver.vplu, rap:r.driver.vrap, sin:r.driver.vsin };
+      r.scoresRallyes = room.rallyes.map(rallye => precalcScore(r.driver, cop, voit, rallye));
+    }
+
     room.phase = 'strategie';
     room.joueurs.forEach(j => { j.strategie=null; j.aValide=false; j.aCliqueSuivant=false; });
     io.to(code).emit('room_update', etatPublic(room));
