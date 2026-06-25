@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WRC Fantasy — Multijoueur</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+
+:root {
+  --red: #E8001D;
+  --dark: #0A0A0F;
+  --panel: #12121A;
+  --border: #1E1E2E;
+  --gold: #F5C842;
+  --blue: #3B82F6;
+  --text: #E0E0EE;
+  --muted: #5A5A7A;
+  --green: #22C55E;
+  --orange: #F97316;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--dark); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100vh; }
+
+/* TOPBAR */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px; background: var(--panel);
+  border-bottom: 2px solid var(--red); position: sticky; top: 0; z-index: 100;
+}
+.logo { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: 2px; }
+.logo span { color: var(--red); }
+.code-pill {
+  font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 20px;
+  letter-spacing: 4px; color: var(--gold); background: rgba(245,200,66,0.08);
+  border: 1px solid rgba(245,200,66,0.4); padding: 4px 14px; border-radius: 4px;
+  cursor: pointer; transition: background 0.2s; display: none;
+}
+.code-pill:hover { background: rgba(245,200,66,0.18); }
+.phase-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+
+/* SCREENS */
+.screen { display: none; padding: 20px; max-width: 860px; margin: 0 auto; }
+.screen.active { display: block; }
+
+/* TYPE */
+h1 { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 44px; text-transform: uppercase; line-height: 1; }
+h2 { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 14px; }
+h3 { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
+
+/* BUTTONS */
+.btn {
+  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px;
+  letter-spacing: 2px; text-transform: uppercase; padding: 11px 24px;
+  border: none; border-radius: 4px; cursor: pointer; transition: all 0.15s;
+}
+.btn-primary { background: var(--red); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #ff1f38; transform: translateY(-1px); }
+.btn-secondary { background: var(--border); color: var(--text); border: 1px solid var(--muted); }
+.btn-secondary:hover:not(:disabled) { border-color: var(--text); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+
+/* INPUT */
+.field {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  padding: 11px 14px; font-family: 'Barlow', sans-serif; font-size: 15px;
+  border-radius: 4px; outline: none; width: 100%; transition: border-color 0.2s;
+}
+.field:focus { border-color: var(--red); }
+
+/* PANEL */
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 14px; }
+
+/* DIVIDER */
+.divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin: 6px 0; }
+.divider::before, .divider::after { content:''; flex:1; height:1px; background: var(--border); }
+
+/* ═══ HOME ═══ */
+#screen-home { text-align: center; padding-top: 50px; }
+.home-hero { margin-bottom: 40px; }
+.home-hero h1 { font-size: 60px; margin-bottom: 6px; }
+.home-hero p { color: var(--muted); font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
+.home-form { max-width: 300px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+
+/* ═══ LOBBY ═══ */
+.player-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--border); padding: 9px 14px; border-radius: 5px; margin-bottom: 6px;
+  font-weight: 600;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 5px var(--green); }
+.badge-hote { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--gold); border: 1px solid var(--gold); padding: 1px 6px; border-radius: 3px; margin-left: auto; }
+
+/* Config hôte */
+.config-section { margin-top: 16px; }
+.toggle-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider-toggle {
+  position: absolute; inset: 0; background: var(--border); border-radius: 24px;
+  cursor: pointer; transition: 0.2s;
+}
+.slider-toggle::before {
+  content:''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px;
+  background: #fff; border-radius: 50%; transition: 0.2s;
+}
+input:checked + .slider-toggle { background: var(--green); }
+input:checked + .slider-toggle::before { transform: translateX(20px); }
+.toggle-label { font-size: 14px; font-weight: 600; }
+.toggle-desc { font-size: 12px; color: var(--muted); }
+
+/* Slider années */
+.annee-slider-wrap { margin-top: 4px; }
+.annee-slider-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; font-family: 'Barlow Condensed', sans-serif; letter-spacing: 1px; }
+.range-dual { position: relative; height: 32px; display: flex; align-items: center; }
+.range-track { position: absolute; height: 4px; background: var(--border); border-radius: 4px; width: 100%; }
+.range-fill { position: absolute; height: 4px; background: var(--red); border-radius: 4px; pointer-events: none; }
+.range-input {
+  position: absolute; width: 100%; -webkit-appearance: none; appearance: none;
+  height: 4px; background: transparent; outline: none; pointer-events: none;
+}
+.range-input::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
+  border-radius: 50%; background: #fff; border: 2px solid var(--red);
+  cursor: pointer; pointer-events: all; transition: transform 0.1s;
+}
+.range-input::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.annees-selectionnees { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: var(--gold); margin-top: 6px; letter-spacing: 1px; }
+
+/* ═══ DRAFT ═══ */
+.draft-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.draft-who { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 26px; text-transform: uppercase; }
+.draft-who.moi { color: var(--red); }
+.draft-sub { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+
+.relance-btn {
+  font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px;
+  letter-spacing: 1px; text-transform: uppercase; padding: 7px 16px;
+  background: transparent; border: 1px solid var(--orange); color: var(--orange);
+  border-radius: 4px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.relance-btn:hover:not(:disabled) { background: rgba(249,115,22,0.12); }
+.relance-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Progress dots */
+.draft-progress { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 16px; }
+.prog-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--border); border: 1px solid var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+}
+.prog-dot.fait { background: var(--green); border-color: var(--green); color: #000; }
+.prog-dot.actif { background: var(--red); border-color: var(--red); color: #fff; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+/* Cards propositions */
+.proposals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+.prop-card {
+  background: var(--panel); border: 2px solid var(--border);
+  border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.18s; position: relative;
+}
+.prop-card:hover:not(.grise):not(.spectateur) { border-color: var(--red); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(232,0,29,0.25); }
+.prop-card.grise { opacity: 0.3; cursor: not-allowed; }
+.prop-card.spectateur { cursor: default; }
+.prop-card.choisie { border-color: var(--gold) !important; animation: scintille 1.8s ease; }
+@keyframes scintille {
+  0%,100%{box-shadow:0 0 0 rgba(245,200,66,0)}
+  30%{box-shadow:0 0 28px rgba(245,200,66,0.9)}
+  60%{box-shadow:0 0 10px rgba(245,200,66,0.4)}
+  80%{box-shadow:0 0 28px rgba(245,200,66,0.9)}
+}
+.card-type { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+.card-type.pilote { color: #60A5FA; }
+.card-type.copilote { color: #A78BFA; }
+.card-type.voiture { color: #34D399; }
+.card-annee { font-size: 11px; color: var(--blue); margin-bottom: 3px; font-family: 'Barlow Condensed', sans-serif; letter-spacing: 1px; }
+.card-nom { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15; margin-bottom: 8px; }
+.card-note { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 26px; color: var(--gold); }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 8px; }
+.stat-r { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+.stat-v { color: var(--text); font-weight: 600; }
+.card-fiab { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+/* Picks en cours */
+.picks-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+.picks-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.picks-table tr:last-child td { border-bottom: none; }
+.player-name-cell { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; text-transform: uppercase; white-space: nowrap; }
+.pick-cell { color: var(--text); }
+.pick-cell.empty { color: var(--muted); font-style: italic; }
+.annee-tag { font-size: 10px; color: var(--blue); border: 1px solid rgba(59,130,246,0.4); padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
+
+/* ═══ ÉQUIPES ═══ */
+.equipes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.equipe-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+.equipe-card.moi { border-color: var(--red); }
+.eq-nom { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 20px; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+.eq-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.eq-row:last-child { border-bottom: none; }
+.eq-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* ═══ STRATÉGIE ═══ */
+.rallye-bar { display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 2px solid var(--border); }
+.rallye-num-l { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.rallye-nom-l { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 30px; text-transform: uppercase; }
+.rallye-surface { font-size: 12px; color: var(--muted); }
+
+.rallye-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 18px; }
+.rpill { font-size: 11px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; padding: 2px 9px; border-radius: 20px; background: var(--border); color: var(--muted); border: 1px solid transparent; letter-spacing: 0.5px; }
+.rpill.actuel { background: rgba(232,0,29,0.15); border-color: var(--red); color: #ff6b7a; }
+.rpill.fait { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.3); color: var(--green); }
+
+.strat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+.strat-card {
+  background: var(--panel); border: 2px solid var(--border);
+  border-radius: 8px; padding: 18px; cursor: pointer; text-align: center; transition: all 0.18s;
+}
+.strat-card:hover:not(.locked) { transform: translateY(-2px); }
+.strat-card.sel-prudent { border-color: var(--green); background: rgba(34,197,94,0.08); }
+.strat-card.sel-normal { border-color: var(--blue); background: rgba(59,130,246,0.08); }
+.strat-card.sel-attaque { border-color: var(--red); background: rgba(232,0,29,0.08); }
+.strat-card.locked { cursor: not-allowed; opacity: 0.7; }
+.strat-icon { font-size: 32px; margin-bottom: 8px; }
+.strat-name { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 7px; }
+.strat-desc { font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+.wait-list { display: flex; flex-direction: column; gap: 5px; }
+.wait-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.ck { color: var(--green); } .pnd { color: var(--muted); }
+
+/* ═══ RÉSULTATS ═══ */
+.res-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.res-table th { text-align: left; padding: 7px 10px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); border-bottom: 1px solid var(--border); }
+.res-table td { padding: 9px 10px; border-bottom: 1px solid rgba(30,30,46,0.5); }
+.res-table tr.joueur-row { background: rgba(232,0,29,0.07); }
+.res-table tr.joueur-row td { font-weight: 600; }
+.rang { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 17px; width: 24px; }
+.rang.r1 { color: var(--gold); } .rang.r2 { color: #C0C0C0; } .rang.r3 { color: #CD7F32; }
+.pts-badge { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 15px; color: var(--gold); }
+.inc-tag { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: rgba(249,115,22,0.18); color: var(--orange); }
+.abn-tag { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: rgba(232,0,29,0.18); color: #ff6b7a; }
+.t-mono { font-family: monospace; color: var(--muted); font-size: 11px; }
+.j-label { color: var(--red); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-right: 4px; }
+
+/* ═══ FIN ═══ */
+#screen-fin { text-align: center; padding-top: 30px; }
+.podium { display: flex; justify-content: center; align-items: flex-end; gap: 14px; margin: 28px 0; }
+.pod-place { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pod-nom { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 18px; text-transform: uppercase; }
+.pod-pts { font-size: 13px; color: var(--muted); }
+.pod-block { display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 28px; border-radius: 6px 6px 0 0; width: 72px; }
+.pod-p1 .pod-block { height: 110px; background: var(--gold); color: #000; }
+.pod-p2 .pod-block { height: 75px; background: #888; color: #fff; }
+.pod-p3 .pod-block { height: 52px; background: #7a4a1e; color: #fff; }
+.fin-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; border-radius: 5px; margin-bottom: 5px; background: var(--border); font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; text-transform: uppercase; }
+.fin-row.leader { background: rgba(245,200,66,0.12); border: 1px solid rgba(245,200,66,0.3); }
+
+/* TOAST */
+.toasts { position: fixed; top: 62px; right: 14px; z-index: 999; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.toast { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--gold); padding: 9px 14px; border-radius: 4px; font-size: 13px; animation: slideIn 0.25s ease; max-width: 260px; pointer-events: none; }
+.toast.rouge { border-left-color: var(--red); }
+.toast.vert { border-left-color: var(--green); }
+@keyframes slideIn { from{transform:translateX(110%);opacity:0} to{transform:translateX(0);opacity:1} }
+
+/* ANNEE BADGE */
+.annee-badge { display: inline-block; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.4); color: #93C5FD; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 2px; padding: 2px 9px; border-radius: 4px; }
+
+/* RESPONSIVE */
+@media(max-width:580px){
+  .proposals-grid,.strat-grid{grid-template-columns:1fr}
+  .equipes-grid{grid-template-columns:1fr}
+  h1{font-size:34px} .home-hero h1{font-size:48px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">WRC <span>FANTASY</span></div>
+  <div id="code-pill" class="code-pill" onclick="copierCode()" title="Copier le code"></div>
+  <div id="phase-label" class="phase-label"></div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<!-- ══ HOME ══ -->
+<div class="screen active" id="screen-home">
+  <div class="home-hero">
+    <h1>WRC<br><span style="color:var(--red)">Fantasy</span></h1>
+    <p>Mode Multijoueur</p>
+  </div>
+  <div class="home-form">
+    <input class="field" id="nom-input" placeholder="Ton prénom" maxlength="20">
+    <button class="btn btn-primary" onclick="allerConfig()">Créer une room</button>
+    <div class="divider">ou rejoindre</div>
+    <input class="field" id="code-input" placeholder="Code (ex : W4K9)" maxlength="4" style="text-transform:uppercase;letter-spacing:4px;text-align:center">
+    <button class="btn btn-secondary" onclick="rejoindreRoom()">Rejoindre</button>
+  </div>
+</div>
+
+<!-- ══ CONFIG (hôte) ══ -->
+<div class="screen" id="screen-config">
+  <div style="margin-bottom:24px">
+    <h1 style="font-size:32px">Configuration<br><span style="color:var(--red)">de la room</span></h1>
+    <p style="color:var(--muted);font-size:13px;margin-top:6px;text-transform:uppercase;letter-spacing:1px">Seul l'hôte voit cet écran</p>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-bottom:14px">Options</h3>
+
+    <div class="toggle-row">
+      <label class="toggle">
+        <input type="checkbox" id="toggle-rivaux" checked>
+        <span class="slider-toggle"></span>
+      </label>
+      <div>
+        <div class="toggle-label">Rivaux IA</div>
+        <div class="toggle-desc">Compléter le classement avec les vrais équipages de la saison choisie (max 20 équipages au total)</div>
+      </div>
+    </div>
+
+    <div style="margin-top:6px">
+      <div class="toggle-label" style="margin-bottom:10px">Années disponibles pour la draft</div>
+      <div class="annee-slider-wrap">
+        <div class="annee-slider-labels" id="slider-labels"></div>
+        <div class="range-dual">
+          <div class="range-track"></div>
+          <div class="range-fill" id="range-fill"></div>
+          <input type="range" class="range-input" id="range-min" min="0" step="1" oninput="updateSlider()">
+          <input type="range" class="range-input" id="range-max" min="0" step="1" oninput="updateSlider()">
+        </div>
+        <div class="annees-selectionnees" id="annees-sel-label"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;align-items:center;margin-top:4px">
+    <button class="btn btn-primary" onclick="ouvrirRoom()">Lancer la room →</button>
+    <button class="btn btn-secondary" onclick="show('home')" style="padding:11px 16px">← Retour</button>
+  </div>
+  <p style="font-size:11px;color:var(--muted);margin-top:10px">Le code sera généré après ce clic — tes amis pourront alors rejoindre</p>
+</div>
+
+<!-- ══ LOBBY ══ -->
+<div class="screen" id="screen-lobby">
+  <h2>Salle d'attente</h2>
+
+  <div class="panel" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Partage ce code</div>
+      <div class="code-pill" style="display:inline-block;cursor:pointer" onclick="copierCode()" id="code-lobby-big"></div>
+    </div>
+    <div style="font-size:13px;color:var(--muted)">Tes amis entrent ce code pour rejoindre la room</div>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-bottom:10px">Joueurs <span id="nb-joueurs" style="color:var(--muted);font-size:13px"></span></h3>
+    <div id="player-list"></div>
+  </div>
+
+  <div id="btn-lancer-wrap" style="margin-top:4px;display:none">
+    <button class="btn btn-primary" onclick="lancerDraft()" id="btn-lancer">Lancer la draft</button>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Il faut au moins 2 joueurs · max 20</div>
+  </div>
+</div>
+
+<!-- ══ DRAFT ══ -->
+<div class="screen" id="screen-draft">
+  <div class="draft-header">
+    <div>
+      <div class="draft-sub" id="draft-sub">Tour 1 / 3</div>
+      <div class="draft-who" id="draft-who">—</div>
+    </div>
+    <button class="relance-btn" id="btn-relance" onclick="utiliserRelance()" disabled>🔄 Relance</button>
+  </div>
+
+  <div class="draft-progress" id="draft-progress"></div>
+
+  <div id="annee-verrou-banner" style="display:none;margin-bottom:12px">
+    <span class="annee-badge" id="annee-verrou-val"></span>
+    <span style="font-size:12px;color:var(--muted);margin-left:8px">Voitures verrouillées sur cette saison</span>
+  </div>
+
+  <div class="proposals-grid" id="proposals-grid"></div>
+
+  <div class="panel" style="padding:12px">
+    <table class="picks-table" id="picks-table"></table>
+  </div>
+</div>
+
+<!-- ══ ÉQUIPES ══ -->
+<div class="screen" id="screen-equipes">
+  <h2>Compositions finales</h2>
+  <div style="margin-bottom:14px" id="equipes-annee"></div>
+  <div class="equipes-grid" id="equipes-grid"></div>
+  <div id="btn-saison-wrap" style="display:none;margin-top:6px">
+    <button class="btn btn-primary" onclick="lancerSaison()">Lancer la saison →</button>
+  </div>
+</div>
+
+<!-- ══ STRATÉGIE ══ -->
+<div class="screen" id="screen-strategie">
+  <div class="rallye-bar">
+    <span class="rallye-num-l" id="s-rallye-num">Rallye 1/10</span>
+    <div>
+      <div class="rallye-nom-l" id="s-rallye-nom">—</div>
+      <div class="rallye-surface" id="s-rallye-surface"></div>
+    </div>
+  </div>
+  <div class="rallye-pills" id="s-pills"></div>
+
+  <h2>Ta stratégie</h2>
+  <div class="strat-grid">
+    <div class="strat-card" onclick="choisirStrat('prudent')" id="sc-prudent">
+      <div class="strat-icon">🛡️</div>
+      <div class="strat-name">Prudent</div>
+      <div class="strat-desc">Performance −5%<br>Fiabilité +15%<br><br>On sécurise les points.</div>
+    </div>
+    <div class="strat-card" onclick="choisirStrat('normal')" id="sc-normal">
+      <div class="strat-icon">🎯</div>
+      <div class="strat-name">Normal</div>
+      <div class="strat-desc">Aucun modificateur<br><br>On roule son rythme.</div>
+    </div>
+    <div class="strat-card" onclick="choisirStrat('attaque')" id="sc-attaque">
+      <div class="strat-icon">🔥</div>
+      <div class="strat-name">Attaque</div>
+      <div class="strat-desc">Performance +8%<br>Fiabilité −20%<br><br>On pousse à fond.</div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" id="btn-valider" onclick="validerStrat()" style="margin-bottom:14px">Valider ma stratégie</button>
+
+  <div class="panel">
+    <h3 style="margin-bottom:10px;font-size:13px">Attente des joueurs</h3>
+    <div class="wait-list" id="wait-strat"></div>
+  </div>
+</div>
+
+<!-- ══ RÉSULTATS ══ -->
+<div class="screen" id="screen-resultats">
+  <div class="rallye-bar">
+    <span class="rallye-num-l" id="r-rallye-num">Rallye 1/10</span>
+    <div class="rallye-nom-l" id="r-rallye-nom">—</div>
+  </div>
+
+  <table class="res-table">
+    <thead>
+      <tr>
+        <th>#</th><th>Équipage</th><th>Voiture</th><th>Temps</th><th>Pts</th>
+      </tr>
+    </thead>
+    <tbody id="res-tbody"></tbody>
+  </table>
+
+  <div style="margin-top:18px">
+    <div class="wait-list" id="wait-suivant"></div>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="cliqueSuivant()" id="btn-suivant">Rallye suivant →</button>
+  </div>
+</div>
+
+<!-- ══ FIN ══ -->
+<div class="screen" id="screen-fin">
+  <h2>Fin de saison</h2>
+  <h1>Champion ?</h1>
+  <div class="podium" id="podium"></div>
+  <div class="panel" style="text-align:left">
+    <div id="fin-list"></div>
+  </div>
+  <button class="btn btn-primary" style="margin-top:20px" onclick="location.reload()">Nouvelle partie</button>
+</div>
+
+<script>
+const socket = io();
+const ANNEES = [1997, 1999, 2001, 2003, 2006, 2009];
+
+let G = {
+  monId: null, monNom: '', roomCode: null, room: null,
+  stratChoisie: null,
+};
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function toast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+function fmtTemps(s) {
+  if (!isFinite(s)) return '—';
+  const m = Math.floor(s / 60), sec = Math.round(s % 60);
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function copierCode() {
+  if (!G.roomCode) return;
+  navigator.clipboard.writeText(G.roomCode).then(() => toast('Code copié !', 'vert'));
+}
+
+function moi() { return G.room?.joueurs.find(j => j.id === G.monId); }
+function estHote() { return G.room?.hoteId === G.monId; }
+
+// ── SLIDER ANNÉES ──────────────────────────────────────────────────────────
+
+let sliderMin = 0, sliderMax = ANNEES.length - 1;
+
+function initSlider() {
+  const labelsEl = document.getElementById('slider-labels');
+  labelsEl.innerHTML = ANNEES.map(a => `<span>${a}</span>`).join('');
+
+  const rMin = document.getElementById('range-min');
+  const rMax = document.getElementById('range-max');
+  rMin.max = ANNEES.length - 1;
+  rMax.max = ANNEES.length - 1;
+  rMin.value = 0;
+  rMax.value = ANNEES.length - 1;
+  updateSlider();
+}
+
+function updateSlider() {
+  const rMin = document.getElementById('range-min');
+  const rMax = document.getElementById('range-max');
+  let vMin = parseInt(rMin.value), vMax = parseInt(rMax.value);
+  if (vMin > vMax) { if (rMin === document.activeElement) rMin.value = vMax; else rMax.value = vMin; }
+  vMin = parseInt(rMin.value); vMax = parseInt(rMax.value);
+  sliderMin = vMin; sliderMax = vMax;
+
+  const pct = 100 / (ANNEES.length - 1);
+  const fill = document.getElementById('range-fill');
+  fill.style.left = (vMin * pct) + '%';
+  fill.style.width = ((vMax - vMin) * pct) + '%';
+
+  const sel = ANNEES.slice(vMin, vMax + 1);
+  document.getElementById('annees-sel-label').textContent =
+    sel.length === ANNEES.length ? 'Toutes les saisons (1997 → 2009)'
+    : sel.length === 1 ? `Saison ${sel[0]} uniquement`
+    : `De ${sel[0]} à ${sel[sel.length-1]}`;
+}
+
+// ── HOME ───────────────────────────────────────────────────────────────────
+
+function allerConfig() {
+  const nom = document.getElementById('nom-input').value.trim();
+  if (!nom) { toast('Entre ton prénom', 'rouge'); return; }
+  G.monNom = nom;
+  initSlider();
+  show('config');
+}
+
+function ouvrirRoom() {
+  const sel = ANNEES.slice(sliderMin, sliderMax + 1);
+  socket.emit('ouvrir_room', {
+    nom: G.monNom,
+    avecRivaux: document.getElementById('toggle-rivaux').checked,
+    anneesSelectionnees: sel,
+  });
+}
+
+function rejoindreRoom() {
+  const nom = document.getElementById('nom-input').value.trim();
+  const code = document.getElementById('code-input').value.trim().toUpperCase();
+  if (!nom) { toast('Entre ton prénom', 'rouge'); return; }
+  if (code.length !== 4) { toast('Le code fait 4 caractères', 'rouge'); return; }
+  G.monNom = nom;
+  socket.emit('rejoindre_room', { code, nom });
+}
+
+document.getElementById('code-input').addEventListener('keydown', e => { if (e.key === 'Enter') rejoindreRoom(); });
+document.getElementById('nom-input').addEventListener('keydown', e => { if (e.key === 'Enter') allerConfig(); });
+
+// ── LOBBY ──────────────────────────────────────────────────────────────────
+
+function lancerDraft() {
+  socket.emit('lancer_draft', { code: G.roomCode });
+}
+
+function renderLobby() {
+  const room = G.room;
+  document.getElementById('code-lobby-big').textContent = room.code;
+  document.getElementById('nb-joueurs').textContent = `(${room.joueurs.length}/8)`;
+
+  const list = document.getElementById('player-list');
+  list.innerHTML = '';
+  for (const j of room.joueurs) {
+    const r = document.createElement('div');
+    r.className = 'player-row';
+    r.innerHTML = `<div class="dot"></div><span>${j.nom}</span>${j.id === room.hoteId ? '<span class="badge-hote">Hôte</span>' : ''}`;
+    list.appendChild(r);
+  }
+
+  const isH = estHote();
+  document.getElementById('btn-lancer-wrap').style.display = isH ? 'block' : 'none';
+  if (isH) {
+    document.getElementById('btn-lancer').disabled = room.joueurs.length < 2;
+  }
+}
+
+// ── DRAFT ──────────────────────────────────────────────────────────────────
+
+function utiliserRelance() { socket.emit('utiliser_relance', { code: G.roomCode }); }
+function fairePickType(type) { socket.emit('faire_pick', { code: G.roomCode, type }); }
+
+function renderProgress() {
+  const room = G.room;
+  const nb = room.joueurs.length;
+  const total = nb * 3;
+  const el = document.getElementById('draft-progress');
+  el.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const j = room.joueurs[i % nb];
+    const d = document.createElement('div');
+    d.className = 'prog-dot' + (i < room.tourIndex ? ' fait' : i === room.tourIndex ? ' actif' : '');
+    d.textContent = j.nom[0].toUpperCase();
+    d.title = `Tour ${Math.floor(i/nb)+1} — ${j.nom}`;
+    el.appendChild(d);
+  }
+}
+
+function renderPicksTable() {
+  const room = G.room;
+  const tb = document.getElementById('picks-table');
+  tb.innerHTML = '';
+  for (const j of room.joueurs) {
+    const tr = document.createElement('tr');
+    const piloteStr = j.picks.pilote ? j.picks.pilote.nom : null;
+    const copStr = j.picks.copilote ? j.picks.copilote.nom : null;
+    const voitStr = j.picks.voiture ? j.picks.voiture.nom : null;
+    tr.innerHTML = `
+      <td class="player-name-cell" style="color:${j.id===G.monId?'var(--red)':'var(--text)'}">${j.nom}</td>
+      <td class="${piloteStr?'pick-cell':'pick-cell empty'}" style="color:#93C5FD">${piloteStr||'— Pilote'}</td>
+      <td class="${copStr?'pick-cell':'pick-cell empty'}" style="color:#C4B5FD">${copStr||'— Co-pilote'}</td>
+      <td class="${voitStr?'pick-cell':'pick-cell empty'}" style="color:#6EE7B7">${voitStr||'— Voiture'}</td>
+      ${!j.relanceDisponible?'<td style="font-size:10px;color:var(--muted)">Relance ✓</td>':'<td></td>'}
+    `;
+    tb.appendChild(tr);
+  }
+}
+
+function renderPropositions(data) {
+  const { joueurId, joueurNom, propositions, tourGlobal } = data;
+  const room = G.room;
+  const nb = room.joueurs.length;
+  const tourNum = Math.floor(tourGlobal / nb) + 1;
+  const estMoi = joueurId === G.monId;
+
+  document.getElementById('draft-sub').textContent = `Tour ${tourNum} / 3 — ${joueurNom} choisit`;
+  const whoEl = document.getElementById('draft-who');
+  whoEl.textContent = estMoi ? 'À TOI DE JOUER !' : `${joueurNom} choisit…`;
+  whoEl.className = 'draft-who' + (estMoi ? ' moi' : '');
+
+  const j = moi();
+  const btnR = document.getElementById('btn-relance');
+  btnR.disabled = !estMoi || !j?.relanceDisponible;
+
+  // Bannière année verrouillée
+  if (room.anneeVerrouillee) {
+    document.getElementById('annee-verrou-banner').style.display = 'block';
+    document.getElementById('annee-verrou-val').textContent = `Saison ${room.anneeVerrouillee}`;
+  }
+
+  const grid = document.getElementById('proposals-grid');
+  grid.innerHTML = '';
+
+  for (const prop of propositions) {
+    const card = document.createElement('div');
+    const dispo = prop.disponible;
+    card.className = 'prop-card' + (!dispo ? ' grise' : '') + (!estMoi || !dispo ? ' spectateur' : '');
+
+    const statsHtml = (prop.type === 'pilote' || prop.type === 'voiture') ? `
+      <div class="stats-grid">
+        ${['asphalte','terre','neige','sec','pluie','rapide','sinueux'].map((s,i) =>
+          prop.item[s] !== undefined ? `<div class="stat-r"><span>${['ASP','TER','NEI','SEC','PLU','RAP','SIN'][i]}</span><span class="stat-v">${prop.item[s]}</span></div>` : ''
+        ).join('')}
+      </div>` : '';
+
+    const fiabHtml = prop.item.fiabilite !== undefined
+      ? `<div class="card-fiab">Fiabilité: ${Math.round(prop.item.fiabilite*100)}%</div>` : '';
+
+    card.innerHTML = `
+      <div class="card-type ${prop.type}">${prop.type==='pilote'?'🧑 Pilote':prop.type==='copilote'?'👥 Co-pilote':'🚗 Voiture'}</div>
+      <div class="card-annee">${prop.annee}</div>
+      <div class="card-nom">${prop.item.nom}</div>
+      <span class="card-note">${prop.item.note||'—'}</span>
+      ${fiabHtml}${statsHtml}
+      ${!dispo?'<div style="margin-top:6px;font-size:10px;color:var(--muted)">Déjà sélectionné</div>':''}
+    `;
+
+    if (estMoi && dispo) card.addEventListener('click', () => fairePickType(prop.type));
+    grid.appendChild(card);
+  }
+
+  renderProgress();
+  renderPicksTable();
+}
+
+// ── ÉQUIPES ────────────────────────────────────────────────────────────────
+
+function renderEquipes() {
+  const room = G.room;
+  const grid = document.getElementById('equipes-grid');
+  grid.innerHTML = '';
+
+  document.getElementById('equipes-annee').innerHTML = room.anneeVerrouillee
+    ? `<span class="annee-badge">Saison ${room.anneeVerrouillee}</span><span style="font-size:12px;color:var(--muted);margin-left:10px">Année des rivaux IA</span>` : '';
+
+  for (const j of room.joueurs) {
+    const card = document.createElement('div');
+    card.className = 'equipe-card' + (j.id===G.monId?' moi':'');
+    card.innerHTML = `
+      <div class="eq-nom">${j.nom}</div>
+      ${j.id===G.monId?'<div style="font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Ton équipage</div>':''}
+      <div class="eq-row"><span class="eq-label">Pilote</span><span>${j.picks.pilote?.nom||'—'}</span></div>
+      <div class="eq-row"><span class="eq-label">Co-pilote</span><span>${j.picks.copilote?.nom||'—'}</span></div>
+      <div class="eq-row"><span class="eq-label">Voiture</span><span>${j.picks.voiture?.nom||'—'}</span></div>
+    `;
+    grid.appendChild(card);
+  }
+
+  document.getElementById('btn-saison-wrap').style.display = estHote() ? 'block' : 'none';
+}
+
+function lancerSaison() { socket.emit('lancer_saison', { code: G.roomCode }); }
+
+// ── STRATÉGIE ──────────────────────────────────────────────────────────────
+
+function choisirStrat(s) {
+  const j = moi();
+  if (!j || j.aValide) return;
+  G.stratChoisie = s;
+  ['prudent','normal','attaque'].forEach(x => {
+    document.getElementById('sc-'+x).className = 'strat-card' + (x===s?' sel-'+s:'');
+  });
+}
+
+function validerStrat() {
+  if (!G.stratChoisie) { toast('Choisis une stratégie d\'abord', 'rouge'); return; }
+  socket.emit('valider_strategie', { code: G.roomCode, strategie: G.stratChoisie });
+}
+
+function renderStrategie() {
+  const room = G.room;
+  const rallye = room.rallyes[room.rallyeActuel];
+
+  document.getElementById('s-rallye-num').textContent = `Rallye ${room.rallyeActuel+1}/10`;
+  document.getElementById('s-rallye-nom').textContent = rallye?.nom || '—';
+  document.getElementById('s-rallye-surface').textContent = rallye?.surface || '';
+
+  const pills = document.getElementById('s-pills');
+  pills.innerHTML = '';
+  for (let i = 0; i < room.rallyes.length; i++) {
+    const p = document.createElement('span');
+    p.className = 'rpill' + (i < room.rallyeActuel ? ' fait' : i === room.rallyeActuel ? ' actuel' : '');
+    p.textContent = room.rallyes[i].nom;
+    pills.appendChild(p);
+  }
+
+  const j = moi();
+  const valide = j?.aValide;
+  ['prudent','normal','attaque'].forEach(x => {
+    const el = document.getElementById('sc-'+x);
+    if (valide) el.classList.add('locked'); else el.classList.remove('locked');
+  });
+  const btnV = document.getElementById('btn-valider');
+  btnV.disabled = valide;
+  btnV.textContent = valide ? '✓ Stratégie validée' : 'Valider ma stratégie';
+
+  const wait = document.getElementById('wait-strat');
+  wait.innerHTML = '';
+  for (const jj of room.joueurs) {
+    const r = document.createElement('div');
+    r.className = 'wait-row';
+    r.innerHTML = `<span class="${jj.aValide?'ck':'pnd'}">${jj.aValide?'✓':'○'}</span> <span>${jj.nom}</span>${jj.aValide?'<span style="font-size:11px;color:var(--muted);margin-left:6px">Prêt</span>':''}`;
+    wait.appendChild(r);
+  }
+}
+
+// ── RÉSULTATS ──────────────────────────────────────────────────────────────
+
+function cliqueSuivant() {
+  socket.emit('cliquer_suivant', { code: G.roomCode });
+  document.getElementById('btn-suivant').disabled = true;
+}
+
+function renderResultats(resultats, rallye, rallyeNum) {
+  document.getElementById('r-rallye-num').textContent = `Rallye ${rallyeNum}/10`;
+  document.getElementById('r-rallye-nom').textContent = rallye.nom;
+
+  const tbody = document.getElementById('res-tbody');
+  tbody.innerHTML = '';
+  const leader = resultats.find(r => isFinite(r.temps))?.temps || 0;
+
+  for (const r of resultats) {
+    const tr = document.createElement('tr');
+    if (r.estJoueur) tr.className = 'joueur-row';
+    const rangClass = r.rang===1?'r1':r.rang===2?'r2':r.rang===3?'r3':'';
+    const ecart = !isFinite(r.temps) ? '—' : r.rang===1 ? fmtTemps(r.temps) : `+${fmtTemps(r.temps-leader)}`;
+    const incTag = r.incident==='Abandon' ? `<span class="abn-tag">Abandon</span>`
+                 : r.incident ? `<span class="inc-tag">${r.incident}</span>` : '';
+
+    tr.innerHTML = `
+      <td><span class="rang ${rangClass}">${r.rang >= 90 ? '—' : r.rang}</span></td>
+      <td>${r.estJoueur?`<span class="j-label">JOU</span>`:''}${r.equipe} ${incTag}</td>
+      <td style="font-size:11px;color:var(--muted)">${r.voiture}</td>
+      <td class="t-mono">${ecart}</td>
+      <td><span class="pts-badge">${r.points||'—'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderAttenteResultats() {
+  const room = G.room;
+  const wait = document.getElementById('wait-suivant');
+  wait.innerHTML = '';
+  for (const j of room.joueurs) {
+    const r = document.createElement('div');
+    r.className = 'wait-row';
+    r.innerHTML = `<span class="${j.aCliqueSuivant?'ck':'pnd'}">${j.aCliqueSuivant?'✓':'○'}</span> <span>${j.nom}</span>`;
+    wait.appendChild(r);
+  }
+  const btn = document.getElementById('btn-suivant');
+  btn.disabled = moi()?.aCliqueSuivant;
+  btn.textContent = room.rallyeActuel >= 9 ? 'Voir le classement final →' : 'Rallye suivant →';
+}
+
+// ── FIN ────────────────────────────────────────────────────────────────────
+
+function renderFin() {
+  const room = G.room;
+  const sorted = [...room.joueurs].sort((a,b) => b.pointsSaison - a.pointsSaison);
+
+  const podium = document.getElementById('podium');
+  podium.innerHTML = '';
+  const ordre = sorted.length >= 3 ? [sorted[1],sorted[0],sorted[2]]
+              : sorted.length === 2 ? [sorted[1],sorted[0]] : [sorted[0]];
+  const cls = ['pod-p2','pod-p1','pod-p3'];
+  ordre.forEach((j, i) => {
+    if (!j) return;
+    const pl = sorted.indexOf(j)+1;
+    const d = document.createElement('div');
+    d.className = 'pod-place ' + (cls[i]||'pod-p3');
+    d.innerHTML = `<div class="pod-nom">${j.nom}</div><div class="pod-pts">${j.pointsSaison} pts</div><div class="pod-block">${pl}</div>`;
+    podium.appendChild(d);
+  });
+
+  const list = document.getElementById('fin-list');
+  list.innerHTML = '';
+  sorted.forEach((j, i) => {
+    const r = document.createElement('div');
+    r.className = 'fin-row' + (i===0?' leader':'');
+    r.innerHTML = `<span style="color:var(--muted);margin-right:10px">${i+1}</span><span>${j.nom} — ${j.picks.pilote?.nom||'?'} / ${j.picks.voiture?.nom||'?'}</span><span style="color:var(--gold)">${j.pointsSaison} pts</span>`;
+    list.appendChild(r);
+  });
+}
+
+// ── ROUTER ─────────────────────────────────────────────────────────────────
+
+function router(room) {
+  G.room = room;
+
+  // Topbar
+  const pill = document.getElementById('code-pill');
+  pill.textContent = room.code;
+  pill.style.display = 'inline-block';
+
+  const phaseLabels = {lobby:'Lobby',draft:'Draft',equipes:'Compositions',strategie:'Stratégie',resultats:'Résultats',fin:'Fin de saison'};
+  document.getElementById('phase-label').textContent = phaseLabels[room.phase] || '';
+
+  if (room.phase === 'lobby') { renderLobby(); show('lobby'); }
+  else if (room.phase === 'draft') { renderProgress(); renderPicksTable(); show('draft'); }
+  else if (room.phase === 'equipes') { renderEquipes(); show('equipes'); }
+  else if (room.phase === 'strategie') { G.stratChoisie = null; renderStrategie(); show('strategie'); }
+  else if (room.phase === 'resultats') { renderAttenteResultats(); show('resultats'); }
+  else if (room.phase === 'fin') { renderFin(); show('fin'); }
+
+  if (room.anneeVerrouillee) {
+    document.getElementById('annee-verrou-banner').style.display = 'block';
+    document.getElementById('annee-verrou-val').textContent = `Saison ${room.anneeVerrouillee}`;
+  }
+}
+
+// ── SOCKET ─────────────────────────────────────────────────────────────────
+
+socket.on('connect', () => { G.monId = socket.id; });
+
+socket.on('room_creee', ({ code }) => {
+  G.roomCode = code;
+});
+
+socket.on('room_rejointe', ({ code }) => { G.roomCode = code; });
+
+socket.on('erreur', msg => toast(msg, 'rouge'));
+
+socket.on('room_update', room => { router(room); });
+
+socket.on('nouvelles_propositions', data => {
+  if (G.room?.phase === 'draft' || data) {
+    show('draft');
+    renderPropositions(data);
+  }
+});
+
+socket.on('pick_effectue', ({ joueurNom, type, item }) => {
+  toast(`${joueurNom} → ${item.nom}`, 'vert');
+  // Animation scintille sur la carte choisie
+  document.querySelectorAll('.prop-card').forEach(c => {
+    if (c.querySelector('.card-nom')?.textContent === item.nom) c.classList.add('choisie');
+  });
+});
+
+socket.on('annee_verrouillee', ({ annee, joueur }) => {
+  toast(`${joueur} a verrouillé la saison ${annee} pour les voitures`, '');
+});
+
+socket.on('relance_utilisee', ({ joueurNom }) => {
+  toast(`${joueurNom} utilise sa relance !`, '');
+});
+
+socket.on('strategie_validee', ({ joueurNom }) => {
+  toast(`${joueurNom} est prêt`, 'vert');
+  if (G.room) renderStrategie();
+});
+
+socket.on('resultats_rallye', ({ resultats, rallye, rallyeNum }) => {
+  renderResultats(resultats, rallye, rallyeNum);
+  document.getElementById('btn-suivant').disabled = false;
+});
+
+socket.on('joueur_deconnecte', ({ nom }) => toast(`${nom} a quitté la room`, 'rouge'));
+</script>
+</body>
+</html>
