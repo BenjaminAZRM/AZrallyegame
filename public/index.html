@@ -391,6 +391,23 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 
 <script>
 const socket = io();
+
+// Délégation d'événement permanente — survit aux re-renders
+document.getElementById('cards-grid').addEventListener('click', (e) => {
+  const card = e.target.closest('.draft-card');
+  if (!card || card.classList.contains('grise') || card.classList.contains('spec')) return;
+  if (!card.dataset.type) return;
+  doPick(card.dataset.type);
+});
+
+// Délégation d'événement permanente sur le conteneur de cartes
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cards-grid').addEventListener('click', (e) => {
+    const card = e.target.closest('.draft-card');
+    if (!card || card.classList.contains('grise') || card.classList.contains('spec')) return;
+    doPick(card.dataset.type);
+  });
+});
 const ANNEES = [1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
 const PTS_SCALE = [25,18,15,12,10,8,6,4,2,1];
 
@@ -540,7 +557,7 @@ function renderPropositions(data){
       <div class="c-year">${prop.annee}</div>
       <div class="c-nom">${prop.item.nom}</div>
       ${!dispo?'<div style="margin-top:6px;font-size:10px;color:#374151">Déjà sélectionné</div>':''}`;
-    if(estMoi&&dispo)card.addEventListener('click',()=>doPick(prop.type));
+    if(estMoi&&dispo) card.dataset.type = prop.type;
     grid.appendChild(card);
   }
   renderProgress(); renderPicksMini();
@@ -792,7 +809,7 @@ socket.on('room_update',room=>{
     document.getElementById('lobby-code').textContent=room.code||'';
 });
 socket.on('nouvelles_propositions',data=>{
-  G._lastPropositions = data; // Store for re-render
+  G._lastPropositions = data;
   show('draft');
   renderPropositions(data);
 });
@@ -801,7 +818,7 @@ socket.on('pick_effectue',({joueurNom,type,item})=>{
   document.querySelectorAll('.draft-card').forEach(c=>{
     if(c.querySelector('.c-nom')?.textContent===item.nom)c.classList.add('shimmer');
   });
-  G._lastPropositions = null; // Clear so we don't re-render stale cards
+  G._lastPropositions = null;
 });
 socket.on('annee_verrouillee',({annee,joueur})=>toast(`${joueur} a verrouillé la saison ${annee} pour les voitures`));
 socket.on('relance_utilisee',({joueurNom})=>toast(`${joueurNom} utilise sa relance !`));
