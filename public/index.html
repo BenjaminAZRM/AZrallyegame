@@ -169,6 +169,7 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 
 /* ═══ RÉSULTATS ═══ */
 .result-row{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:3px;border-radius:6px;border:1px solid #1f2937;animation:fadeIn .4s ease-out}
+@keyframes glowMe{from{box-shadow:0 0 4px rgba(124,58,237,.4)}to{box-shadow:0 0 16px rgba(124,58,237,.9)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .you-badge{font-size:9px;background:#7c3aed22;color:#a78bfa;padding:1px 4px;border-radius:3px;margin-left:3px;font-weight:600}
 
@@ -651,7 +652,8 @@ function makeRowWithGap(e, provRank, provGap, provPts, allRevealed){
   if(provPts===undefined) provPts=dnf?0:(typeof provRank==='number'?PTS_SCALE[provRank-1]||0:0);
   const div=document.createElement('div');
   div.className='result-row';
-  div.style.cssText=`background:${isP?'#1a1020':'#0f1117'};border:1px solid ${isP?'#7c3aed':'#1f2937'};opacity:${dnf?.6:1}`;
+  const isMe = isP && e.id === G.monId;
+  div.style.cssText=`background:${isP?'#1a1020':'#0f1117'};border:1px solid ${isP?'#7c3aed':'#1f2937'};opacity:${dnf?.6:1}${isMe?';animation:glowMe 1.5s ease-in-out infinite alternate':''}`;
   div.innerHTML=`
     <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?'#4b5563':'#6b7280'};flex-shrink:0">${dnf?'DNF':provRank}</span>
     <div style="flex:1;min-width:0">
@@ -736,6 +738,8 @@ function showChamp(){
   allPts.forEach((e,i)=>{
     const row=document.createElement('div');
     row.className='champ-row'+(i===0?' leader':'');
+    const isMyRow = e.isP && e.nom === G.monNom;
+    row.style.cssText += isMyRow ? ';animation:glowMe 1.5s ease-in-out infinite alternate' : '';
     row.innerHTML=`
       <span class="champ-rang" style="color:${i===0?'#fbbf24':i===1?'#9ca3af':i===2?'#cd7f32':'#6b7280'}">${i+1}</span>
       <span style="flex:1;font-size:13px;font-weight:${e.isP?700:400};color:${e.isP?'#a78bfa':'#e5e7eb'}">${e.nom}</span>
@@ -762,21 +766,31 @@ function renderAttenteResultats(){
 // ── FIN ────────────────────────────────────────────────────────
 function renderFin(){
   const room=G.room;
-  const sorted=[...room.joueurs].sort((a,b)=>b.pointsSaison-a.pointsSaison);
+  // Podium joueurs seulement
+  const sortedJ=[...room.joueurs].sort((a,b)=>b.pointsSaison-a.pointsSaison);
   const podium=document.getElementById('podium'); podium.innerHTML='';
-  const ordre=sorted.length>=3?[sorted[1],sorted[0],sorted[2]]:sorted.length===2?[sorted[1],sorted[0]]:[sorted[0]];
+  const ordre=sortedJ.length>=3?[sortedJ[1],sortedJ[0],sortedJ[2]]:sortedJ.length===2?[sortedJ[1],sortedJ[0]]:[sortedJ[0]];
   const cls=['pp2','pp1','pp3'];
   ordre.forEach((j,i)=>{
     if(!j)return;
-    const pl=sorted.indexOf(j)+1;
+    const pl=sortedJ.indexOf(j)+1;
     const d=document.createElement('div'); d.className='pod-place '+cls[i];
     d.innerHTML=`<div class="pod-name">${j.nom}</div><div class="pod-pts">${j.pointsSaison} pts</div><div class="pod-block">${pl}</div>`;
     podium.appendChild(d);
   });
+  // Classement complet joueurs + rivaux
+  const allPts=[...room.joueurs.map(j=>({nom:j.nom,pts:j.pointsSaison,isP:true,equipe:`${j.picks.pilote?.nom||'?'} / ${j.picks.voiture?.nom||'?'}`}))];
+  if(room.pointsRivaux){
+    for(const[nom,pts] of Object.entries(room.pointsRivaux)) allPts.push({nom,pts,isP:false,equipe:''});
+  }
+  allPts.sort((a,b)=>b.pts-a.pts);
   const fl=document.getElementById('fin-list'); fl.innerHTML='';
-  sorted.forEach((j,i)=>{
-    const r=document.createElement('div'); r.className='champ-row'+(i===0?' leader':'');
-    r.innerHTML=`<span class="champ-rang">${i+1}</span><span style="flex:1;font-size:13px;font-weight:600">${j.nom} — ${j.picks.pilote?.nom||'?'} / ${j.picks.voiture?.nom||'?'}</span><span style="color:#fbbf24;font-weight:700">${j.pointsSaison} pts</span>`;
+  allPts.forEach((e,i)=>{
+    const r=document.createElement('div');
+    r.className='champ-row'+(i===0?' leader':'');
+    const isMe = e.isP && e.nom === G.monNom;
+    if(isMe) r.style.animation='glowMe 1.5s ease-in-out infinite alternate';
+    r.innerHTML=`<span class="champ-rang" style="color:${i===0?'#fbbf24':i===1?'#9ca3af':i===2?'#cd7f32':'#6b7280'}">${i+1}</span><span style="flex:1;font-size:13px;font-weight:${e.isP?700:400};color:${e.isP?'#a78bfa':'#e5e7eb'}">${e.nom}${e.equipe?' — '+e.equipe:''}</span><span style="color:#fbbf24;font-weight:700">${e.pts} pts</span>`;
     fl.appendChild(r);
   });
 }
