@@ -795,7 +795,7 @@ function renderFin(){
     r.className='champ-row'+(i===0?' leader':'');
     const isMe = e.isP && e.nom === G.monNom;
     if(isMe) r.style.animation='glowMe 1.5s ease-in-out infinite alternate';
-    r.innerHTML=`<span class="champ-rang" style="color:${i===0?'#fbbf24':i===1?'#9ca3af':i===2?'#cd7f32':'#6b7280'}">${i+1}</span><span style="flex:1;font-size:13px;font-weight:${e.isP?700:400};color:${e.isP?'#a78bfa':'#e5e7eb'}">${e.nom}${e.equipe?' — '+e.equipe:''}</span><span style="color:#fbbf24;font-weight:700">${e.pts} pts</span>`;
+    r.innerHTML=`<span class="champ-rang" style="color:${i===0?'#fbbf24':i===1?'#9ca3af':i===2?'#cd7f32':'#6b7280'}">${i+1}</span><span style="flex:1;font-size:13px;font-weight:${e.isP?700:400};color:${e.isP?'#a78bfa':'#e5e7eb'}">${e.nom}</span><span style="color:#fbbf24;font-weight:700">${e.pts} pts</span>`;
     fl.appendChild(r);
   });
 }
