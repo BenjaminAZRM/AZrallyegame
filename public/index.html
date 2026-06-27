@@ -499,8 +499,10 @@ function useReroll(){
 
 function doPick(type){
   if(!G.roomCode) return;
-  if(!G.propositionsActuelles) return;
-  const joueurActifId = G.propositionsActuelles.joueurId;
+  // Vérifier via room state plutôt que propositionsActuelles (plus fiable)
+  if(!G.room) return;
+  const nb = G.room.joueurs.length;
+  const joueurActifId = G.room.joueurs[G.room.tourIndex % nb]?.id;
   if(joueurActifId !== G.monId) return; // pas mon tour
   socket.emit('faire_pick',{code:G.roomCode,type});
 }
