@@ -650,10 +650,8 @@ function makeRowWithGap(e, provRank, provGap, provPts, allRevealed){
   return div;
 }
 function buildRevealOrder(sorted){
-  // Ordre de révélation entièrement aléatoire
-  const all=[...sorted];
-  for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]];}
-  return all;
+  // Utilise l'ordre calculé côté serveur (revealIndex) — même ordre pour tous
+  return [...sorted].sort((a,b)=>(a.revealIndex??0)-(b.revealIndex??0));
 }
 function startReveal(resultats, rallye, rallyeNum){
   document.getElementById('r-num').textContent=`Rallye ${rallyeNum}/${G.room?.nbRallyes||10}`;
@@ -689,9 +687,10 @@ function startReveal(resultats, rallye, rallyeNum){
     const provLeader=finishers[0];
     const allRevealed=revealedEntries.length>=total;
     container.innerHTML='';
-    toShow.forEach((entry,i)=>{
-      const provRank=entry.isDNF?'DNF':i+1;
-      const provPts=entry.isDNF?0:(PTS_SCALE[i]||0);
+    toDisplay.forEach((entry,i)=>{
+      // Pour les DNF, rang = après tous les finishers
+  const provRank=entry.isDNF?'DNF':i+1;
+      const provPts=entry.isDNF?0:(PTS_SCALE[Math.min(i,finishers.length-1)]||0);
       let displayGap;
       if(entry.isDNF)displayGap=Infinity;
       else if(trueWinnerRevealed)displayGap=entry.gap;
