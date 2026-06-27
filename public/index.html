@@ -653,7 +653,7 @@ function makeRowWithGap(e, provRank, provGap, provPts, allRevealed){
   const div=document.createElement('div');
   div.className='result-row';
   const isMe = isP && e.id === G.monId;
-  div.style.cssText=`background:${isP?'#1a1020':'#0f1117'};border:1px solid ${isP?'#7c3aed':'#1f2937'};opacity:${dnf?.6:1}${isMe?';animation:glowMe 1.5s ease-in-out infinite alternate':''}`;
+  div.style.cssText=`background:${isP?'#1a1020':'#0f1117'};border:1px solid ${isMe?'#a78bfa':'#1f2937'};opacity:${dnf?.6:1}${isMe?';animation:glowMe 1.5s ease-in-out infinite alternate':''}`;
   div.innerHTML=`
     <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?'#4b5563':'#6b7280'};flex-shrink:0">${dnf?'DNF':provRank}</span>
     <div style="flex:1;min-width:0">
@@ -766,16 +766,21 @@ function renderAttenteResultats(){
 // ── FIN ────────────────────────────────────────────────────────
 function renderFin(){
   const room=G.room;
-  // Podium joueurs seulement
-  const sortedJ=[...room.joueurs].sort((a,b)=>b.pointsSaison-a.pointsSaison);
+  // Podium top 3 tous confondus (joueurs + rivaux)
+  const allForPodium=[...room.joueurs.map(j=>({nom:j.nom,pts:j.pointsSaison,isP:true}))];
+  if(room.pointsRivaux){
+    for(const[nom,pts] of Object.entries(room.pointsRivaux)) allForPodium.push({nom,pts,isP:false});
+  }
+  allForPodium.sort((a,b)=>b.pts-a.pts);
+  const top3=allForPodium.slice(0,3);
   const podium=document.getElementById('podium'); podium.innerHTML='';
-  const ordre=sortedJ.length>=3?[sortedJ[1],sortedJ[0],sortedJ[2]]:sortedJ.length===2?[sortedJ[1],sortedJ[0]]:[sortedJ[0]];
+  const ordre=top3.length>=3?[top3[1],top3[0],top3[2]]:top3.length===2?[top3[1],top3[0]]:[top3[0]];
   const cls=['pp2','pp1','pp3'];
   ordre.forEach((j,i)=>{
     if(!j)return;
-    const pl=sortedJ.indexOf(j)+1;
+    const pl=allForPodium.indexOf(j)+1;
     const d=document.createElement('div'); d.className='pod-place '+cls[i];
-    d.innerHTML=`<div class="pod-name">${j.nom}</div><div class="pod-pts">${j.pointsSaison} pts</div><div class="pod-block">${pl}</div>`;
+    d.innerHTML=`<div class="pod-name" style="color:${j.isP?'#a78bfa':'#e5e7eb'}">${j.nom}</div><div class="pod-pts">${j.pts} pts</div><div class="pod-block">${pl}</div>`;
     podium.appendChild(d);
   });
   // Classement complet joueurs + rivaux
