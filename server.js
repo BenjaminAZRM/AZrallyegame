@@ -47,7 +47,7 @@ function calcInc(car, rallye, strategie) {
   if (strategie === 'attaque') fib = Math.max(0, fib - 0.20);
   const risk = (1-fib) * (1+rallye.cas);
   const t = Math.random();
-  if (t < risk * 0.33) return { type:'Abandon', pen:Infinity };
+  if (t < risk * 0.33) return { type:'Abandon', pen:999999 };
   if (t < risk * 0.67) return { type:'Panne', pen:60 };
   if (t < risk)        return { type:'Crevaison', pen:30 };
   return { type:'OK', pen:0 };
@@ -77,8 +77,8 @@ function simulerRallye(room) {
   for (const j of room.joueurs) {
     const { pilote, copilote, voiture } = j.picks;
     const inc = calcInc(voiture, rallye, j.strategie);
-    if (inc.type === 'Abandon') {
-      resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${copilote?.nom||''}`, voiture:voiture.nom, temps:Infinity, points:0, incident:'Abandon', estJoueur:true, id:j.id });
+    if (inc.pen >= 999999) {
+      resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${copilote?.nom||''}`, voiture:voiture.nom, temps:999999, points:0, incident:'Abandon', estJoueur:true, id:j.id });
       continue;
     }
     let perf = j.scoresRallyes ? j.scoresRallyes[idx] : precalcScore(pilote, copilote, voiture, rallye);
@@ -97,8 +97,8 @@ function simulerRallye(room) {
     for (let i = 0; i < nbRivaux; i++) {
       const r = room.rivaux[i];
       const inc = calcInc({ fib: r.driver.vfib || r.driver.fib }, rallye, 'normal');
-      if (inc.type === 'Abandon') {
-        resultats.push({ nom:r.driver.pilote, equipe:`${r.driver.pilote} / ${r.driver.copilote}`, voiture:r.driver.voiture, temps:Infinity, points:0, incident:'Abandon', estJoueur:false });
+      if (inc.pen >= 999999) {
+        resultats.push({ nom:r.driver.pilote, equipe:`${r.driver.pilote} / ${r.driver.copilote}`, voiture:r.driver.voiture, temps:999999, points:0, incident:'Abandon', estJoueur:false });
         continue;
       }
       const rivCop = { asp:r.driver.casp, ter:r.driver.cter, nei:r.driver.cnei, sec:r.driver.csec, plu:r.driver.cplu, rap:r.driver.crap, sin:r.driver.csin };
@@ -107,7 +107,7 @@ function simulerRallye(room) {
       perf *= (0.95 + Math.random()*0.10);
       let temps = 3600 - (perf - 85) * 10;
       if (inc.pen) temps += inc.pen;
-      resultats.push({ nom:r.driver.pilote, equipe:`${r.driver.pilote} / ${r.driver.copilote}`, voiture:r.driver.voiture, temps, points:0, estJoueur:false });
+      resultats.push({ nom:r.driver.pilote, equipe:`${r.driver.pilote} / ${r.driver.copilote}`, voiture:r.driver.voiture, temps, points:0, incident:inc.pen?(inc.type==='Panne'?'Panne':'Crevaison'):null, estJoueur:false });
     }
   }
 
@@ -115,7 +115,7 @@ function simulerRallye(room) {
   resultats.sort((a,b) => a.temps - b.temps);
   let rang = 0;
   for (const r of resultats) {
-    if (!isFinite(r.temps)) { r.rang = 99; continue; }
+    if (r.temps >= 999999) { r.rang = 99; continue; }
     r.points = PTS_WRC[rang] || 0;
     r.rang = rang + 1;
     rang++;
