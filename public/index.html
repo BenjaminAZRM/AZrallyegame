@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WRC Fantasy — Choisir un mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt:#0e1013;
+    --asphalt-2:#15181d;
+    --line:#2a2f37;
+    --fog:#8b929c;
+    --paper:#eceef1;
+    --amber:#ff8a00;     /* orange "panneau de service" */
+    --amber-soft:#ffb14d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--asphalt);
+    color:var(--paper);
+    font-family:"Space Mono",monospace;
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+    /* texture asphalte discrète */
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(255,138,0,.06), transparent 40%),
+      radial-gradient(circle at 90% 90%, rgba(255,138,0,.04), transparent 45%);
+  }
+
+  /* ── Bandeau de départ ── */
+  header{
+    border-bottom:1px solid var(--line);
+    padding:18px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .mark{
+    font-family:"Oswald",sans-serif;
+    font-weight:700;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-size:18px;
+  }
+  .mark span{color:var(--amber)}
+  .tc{
+    font-size:12px;
+    color:var(--fog);
+    letter-spacing:.18em;
+    text-transform:uppercase;
+  }
+
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:48px 24px;
+    max-width:980px;
+    width:100%;
+    margin:0 auto;
+  }
+
+  .eyebrow{
+    font-size:12px;
+    letter-spacing:.32em;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin-bottom:14px;
+  }
+  h1{
+    font-family:"Oswald",sans-serif;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    line-height:.98;
+    font-size:clamp(38px,8vw,76px);
+    margin-bottom:10px;
+  }
+  .sub{
+    color:var(--fog);
+    font-size:14px;
+    max-width:46ch;
+    line-height:1.6;
+    margin-bottom:42px;
+  }
+
+  /* ── Les deux modes : cartes "carton de pointage" ── */
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+  }
+  @media (max-width:640px){ .grid{grid-template-columns:1fr} }
+
+  .card{
+    position:relative;
+    display:block;
+    text-decoration:none;
+    color:inherit;
+    background:var(--asphalt-2);
+    border:1px solid var(--line);
+    padding:28px 26px 26px;
+    overflow:hidden;
+    transition:transform .18s ease, border-color .18s ease;
+  }
+  .card::before{ /* liseré de bord de stage */
+    content:"";
+    position:absolute;
+    left:0; top:0; bottom:0;
+    width:4px;
+    background:var(--amber);
+    transform:scaleY(0);
+    transform-origin:top;
+    transition:transform .25s ease;
+  }
+  .card:hover, .card:focus-visible{
+    transform:translateY(-4px);
+    border-color:var(--amber-soft);
+    outline:none;
+  }
+  .card:hover::before, .card:focus-visible::before{ transform:scaleY(1) }
+
+  .num{
+    font-family:"Oswald",sans-serif;
+    font-size:13px;
+    letter-spacing:.2em;
+    color:var(--fog);
+  }
+  .card h2{
+    font-family:"Oswald",sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    font-size:clamp(26px,5vw,38px);
+    letter-spacing:.02em;
+    margin:18px 0 10px;
+  }
+  .card p{
+    color:var(--fog);
+    font-size:13px;
+    line-height:1.6;
+    min-height:3.2em;
+  }
+  .go{
+    margin-top:22px;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    font-family:"Oswald",sans-serif;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-size:14px;
+    color:var(--amber);
+  }
+  .go .chev{ transition:transform .2s ease }
+  .card:hover .go .chev, .card:focus-visible .go .chev{ transform:translateX(6px) }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:16px 24px;
+    text-align:center;
+    color:var(--fog);
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important}
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="mark">AZ<span>RALLYE</span>GAME</div>
+  </header>
+
+  <main>
+    <div class="eyebrow">Prêt à faire des choix ?</div>
+    <h1>Prends le<br>volant</h1>
+    <p class="sub">Grâce à tes connaissances, constitue ton équipage, choisis ta stratégie et enchaîne les spéciales. Seul ou face à tes amis, arriveras-tu à être champion ?</p>
+
+    <div class="grid">
+
+      <!-- ── CARTE SOLO ── -->
+      <!-- 👉 Pour changer le lien du jeu solo, modifie l'adresse dans href="..." ci-dessous -->
+      <a class="card" href="/solo.html">
+        <div class="num">SS1 · SOLO</div>
+        <h2>Carrière solo</h2>
+        <p>Une saison complète à disputer. Draft d'équipage, gestion du risque, pression du résultat.</p>
+        <span class="go">Lancer la saison <span class="chev">→</span></span>
+      </a>
+
+      <!-- ── CARTE MULTIJOUEUR ── -->
+      <!-- 👉 Pour changer le lien du multijoueur, modifie l'adresse dans href="..." ci-dessous -->
+      <a class="card" href="/multi.html">
+        <div class="num">SS2 · MULTI</div>
+        <h2>Défi entre amis</h2>
+        <p>Crée une salle, partage le code à tes amis et affronte-les manche après manche.</p>
+        <span class="go">Créer une salle <span class="chev">→</span></span>
+      </a>
+
+    </div>
+  </main>
+
+  <footer>AZRALLYEGAME — Simulation amateur, non officielle</footer>
+
+</body>
+</html>
