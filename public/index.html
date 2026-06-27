@@ -415,7 +415,7 @@ function copyCode(){if(!G.roomCode)return;navigator.clipboard.writeText(G.roomCo
 function moi(){return G.room?.joueurs.find(j=>j.id===G.monId);}
 function isHote(){return G.room?.hoteId===G.monId;}
 function fmtG(s){if(s===0)return"-";if(s>=60){const m=Math.floor(s/60),x=(s%60).toFixed(1);return`+${m}m${x.padStart(4,"0")}s`;}return`+${s.toFixed(1)}s`;}
-function fmtT(s){if(!isFinite(s))return'—';const m=Math.floor(s/60),sc=Math.round(s%60);return`${m}:${String(sc).padStart(2,'0')}`;}
+function fmtT(s){if(s>=999999||!isFinite(s))return'—';const m=Math.floor(s/60),sc=Math.round(s%60);return`${m}:${String(sc).padStart(2,'0')}`;}
 
 // ── SLIDER ─────────────────────────────────────────────────────
 function initSlider(){
@@ -665,13 +665,13 @@ function startReveal(resultats, rallye, rallyeNum){
   const ctr=document.getElementById('reveal-counter');
 
   const sorted=[...resultats].sort((a,b)=>{
-    const ai=!isFinite(a.temps),bi=!isFinite(b.temps);
+    const ai=a.temps>=999999,bi=b.temps>=999999;
     if(ai&&!bi)return 1;if(!ai&&bi)return-1;return a.temps-b.temps;
   });
   let rank=1;
-  const leader=sorted.find(e=>isFinite(e.temps));
+  const leader=sorted.find(e=>e.temps<999999);
   sorted.forEach(e=>{
-    e.isDNF=!isFinite(e.temps);
+    e.isDNF=e.temps>=999999;
     if(!e.isDNF){e.rank=rank++;e.gap=leader?e.temps-leader.temps:0;e.pts=PTS_SCALE[e.rank-1]||0;}
     else{e.rank=99;e.pts=0;}
   });
@@ -694,7 +694,7 @@ function startReveal(resultats, rallye, rallyeNum){
   const provRank=entry.isDNF?'DNF':i+1;
       const provPts=entry.isDNF?0:(PTS_SCALE[Math.min(i,finishers.length-1)]||0);
       let displayGap;
-      if(entry.isDNF)displayGap=Infinity;
+      if(entry.isDNF)displayGap=999999;
       else if(trueWinnerRevealed)displayGap=entry.gap;
       else displayGap=entry.gap-(provLeader?.gap||0);
       const div=makeRowWithGap(entry,provRank,displayGap,provPts,allRevealed);
