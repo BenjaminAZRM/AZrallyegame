@@ -684,7 +684,7 @@ function startReveal(resultats, rallye, rallyeNum){
     revealedEntries.push(e);
     const finishers=[...revealedEntries].filter(x=>!x.isDNF).sort((a,b)=>a.rank-b.rank);
     const dnfs=[...revealedEntries].filter(x=>x.isDNF);
-    const toShow=[...finishers,...dnfs];
+    const toDisplay=[...finishers,...dnfs];
     const trueWinnerRevealed=finishers.some(x=>x.rank===1);
     const provLeader=finishers[0];
     const allRevealed=revealedEntries.length>=total;
