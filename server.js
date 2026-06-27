@@ -320,22 +320,17 @@ io.on('connection', (socket) => {
 
     // Précalculer les scores de base pour chaque joueur sur chaque rallye
     for (const j of room.joueurs) {
-      j.scoresRallyes = room.rallyes.map(rallye => precalcScore(j.picks.pilote, j.picks.copilote, j.picks.voiture, rallye));
+      if(j.picks.pilote && j.picks.copilote && j.picks.voiture){
+        j.scoresRallyes = room.rallyes.map(rallye => precalcScore(j.picks.pilote, j.picks.copilote, j.picks.voiture, rallye));
+      } else {
+        j.scoresRallyes = room.rallyes.map(()=>80); // fallback si picks incomplets
+      }
     }
     // Précalculer les scores pour chaque rival
     for (const r of room.rivaux) {
       const cop = { asp:r.driver.casp, ter:r.driver.cter, nei:r.driver.cnei, sec:r.driver.csec, plu:r.driver.cplu, rap:r.driver.crap, sin:r.driver.csin };
       const voit = { asp:r.driver.vasp, ter:r.driver.vter, nei:r.driver.vnei, sec:r.driver.vsec, plu:r.driver.vplu, rap:r.driver.vrap, sin:r.driver.vsin };
       r.scoresRallyes = room.rallyes.map(rallye => precalcScore(r.driver, cop, voit, rallye));
-    }
-
-    // Log pour vérifier les scores
-    for(const j of room.joueurs){
-      console.log(`[SCORE] Joueur ${j.nom}: scores=${j.scoresRallyes.map(s=>s.toFixed(1)).join(',')}`);
-      console.log(`[PICKS] pilote.asp=${j.picks.pilote?.asp} cop.asp=${j.picks.copilote?.asp} voit.asp=${j.picks.voiture?.asp}`);
-    }
-    for(const r of room.rivaux.slice(0,3)){
-      console.log(`[RIVAL] ${r.driver.pilote}: scores=${r.scoresRallyes.map(s=>s.toFixed(1)).join(',')}`);
     }
 
     room.phase = 'strategie';
