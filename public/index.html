@@ -387,7 +387,17 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
   <div class="section" style="text-align:left">
     <div id="fin-list"></div>
   </div>
-  <button class="btn btn-red" style="margin-top:20px" onclick="location.reload()">Nouvelle partie</button>
+  <div style="margin-top:24px">
+  <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Résultats des rallyes</div>
+  <div id="fin-rallye-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
+  <div id="fin-rallye-detail"></div>
+</div>
+<div style="margin-top:24px">
+  <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Résultats des rallyes</div>
+  <div id="fin-rallye-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
+  <div id="fin-rallye-detail"></div>
+</div>
+<button class="btn btn-red" style="margin-top:20px" onclick="location.reload()">Nouvelle partie</button>
 </div>
 
 <script>
@@ -797,6 +807,62 @@ function renderFin(){
     if(isMe) r.style.animation='glowMe 1.5s ease-in-out infinite alternate';
     r.innerHTML=`<span class="champ-rang" style="color:${i===0?'#fbbf24':i===1?'#9ca3af':i===2?'#cd7f32':'#6b7280'}">${i+1}</span><span style="flex:1;font-size:13px;font-weight:${e.isP?700:400};color:${e.isP?'#a78bfa':'#e5e7eb'}">${e.nom}</span><span style="color:#fbbf24;font-weight:700">${e.pts} pts</span>`;
     fl.appendChild(r);
+  });
+
+  // Pills des rallyes
+  const pills=document.getElementById('fin-rallye-pills');
+  if(pills){
+    pills.innerHTML='';
+    G.historiqueResultats.forEach((h,i)=>{
+      if(!h) return;
+      const p=document.createElement('span');
+      p.className='rpill';
+      p.style.cssText='cursor:pointer;padding:4px 12px;font-size:12px';
+      p.textContent=h.rallye.name||h.rallye.nom||`Rallye ${i+1}`;
+      p.onclick=()=>showRallyeDetail(i);
+      pills.appendChild(p);
+    });
+    // Pas d'affichage par défaut — l'utilisateur clique sur le rallye de son choix
+  }
+}
+
+function showRallyeDetail(idx){
+  const h=G.historiqueResultats[idx]; if(!h) return;
+  // Highlight active pill
+  document.querySelectorAll('#fin-rallye-pills .rpill').forEach((p,i)=>{
+    p.className='rpill'+(i===idx?' cur':'');
+    p.style.cssText='cursor:pointer;padding:4px 12px;font-size:12px';
+  });
+  const detail=document.getElementById('fin-rallye-detail');
+  detail.innerHTML='';
+  const sorted=[...h.resultats].sort((a,b)=>{
+    if(a.temps>=999999&&b.temps<999999)return 1;
+    if(a.temps<999999&&b.temps>=999999)return-1;
+    return a.temps-b.temps;
+  });
+  const leader=sorted.find(e=>e.temps<999999);
+  sorted.forEach((e,i)=>{
+    const dnf=e.temps>=999999;
+    const isP=e.estJoueur;
+    const isMe=isP&&e.id===G.monId;
+    const div=document.createElement('div');
+    div.className='result-row';
+    div.style.cssText=`background:${isP?'#1a1020':'#0f1117'};border:1px solid ${isMe?'#a78bfa':'#1f2937'};opacity:${dnf?.6:1};animation:none${isMe?';box-shadow:0 0 10px rgba(124,58,237,.5)':''}`;
+    const gap=dnf?'Abandon':i===0?'✓ Vainqueur':fmtG(e.temps-(leader?.temps||0));
+    const hasPen=e.incident&&e.incident!=='Abandon';
+    div.innerHTML=`
+      <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?'#4b5563':'#6b7280'};flex-shrink:0">${dnf?'DNF':i+1}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?'#c4b5fd':'#e5e7eb'}">${isP?`<span style="color:#a78bfa">${e.nom}</span>`:e.equipe?.split('/')[0]?.trim()||e.nom}</div>
+        <div style="font-size:10px;color:#6b7280">${isP?(e.equipe?.split('/').slice(1).join('/').trim()||''):''}${e.voiture?' · '+e.voiture:''}</div>
+      </div>
+      ${hasPen?`<span style="font-size:9px;color:#f97316;background:rgba(249,115,22,.15);padding:1px 5px;border-radius:3px;flex-shrink:0">${e.incident}</span>`:''}
+      ${e.incident==='Abandon'?`<span style="font-size:9px;color:#ef4444;background:rgba(239,68,68,.15);padding:1px 5px;border-radius:3px;flex-shrink:0">Abandon</span>`:''}
+      <div style="text-align:right;min-width:65px;flex-shrink:0">
+        <div style="font-size:11px;font-family:monospace;color:${dnf?'#ef4444':'#9ca3af'}">${gap}</div>
+        ${e.points>0?`<div style="font-size:11px;color:#60a5fa;font-weight:600">+${e.points} pts</div>`:''}
+      </div>`;
+    detail.appendChild(div);
   });
 }
 
