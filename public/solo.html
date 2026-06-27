@@ -1,0 +1,1584 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WRC Fantasy</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif}
+.hdr{background:linear-gradient(135deg,#1a0a0a 0%,#0a0a1a 100%);border-bottom:2px solid #dc2626;padding:16px 20px;position:sticky;top:0;z-index:10}
+.pbar{flex:1;height:4px;border-radius:2px}
+.year-block{background:#dc2626;border-radius:10px;padding:8px 18px;text-align:center;flex-shrink:0}
+.year-lbl{font-size:10px;color:#fca5a5;text-transform:uppercase;letter-spacing:.1em}
+.year-num{font-weight:900;font-size:36px;color:#fff;line-height:1}
+.tirage-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:420px;padding:40px 20px;text-align:center}
+.step-label{font-size:12px;color:#9ca3af;margin-bottom:10px;text-transform:uppercase;letter-spacing:.12em}
+.step-title{font-size:24px;font-weight:800;color:#fff;margin-bottom:32px}
+.tirage-btn{display:inline-block;background:#dc2626;border:2px solid #ef4444;border-radius:12px;padding:16px 44px;font-size:17px;font-weight:900;color:#fff;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 0 28px rgba(220,38,38,.6);transition:all .15s}
+.tirage-btn:hover{background:#ef4444;transform:scale(1.04)}
+.tirage-btn:disabled{background:#374151;border-color:#4b5563;color:#9ca3af;cursor:default;transform:none;box-shadow:none}
+.choose-btn{display:inline-block;background:#7c3aed;border:2px solid #8b5cf6;border-radius:12px;padding:16px 44px;font-size:17px;font-weight:900;color:#fff;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 0 24px rgba(124,58,237,.5);transition:all .15s}
+.choose-btn:hover{background:#8b5cf6;transform:scale(1.04)}
+.tirage-sub{font-size:12px;color:#6b7280;margin-top:14px}
+.year-reveal{font-size:72px;font-weight:900;color:#fff;line-height:1;margin:20px 0}
+.year-reveal.spin{animation:spinIn .6s ease-out forwards}
+@keyframes spinIn{0%{opacity:0;transform:scale(.3) rotate(-10deg);color:#dc2626}60%{transform:scale(1.15) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(0deg);color:#fff}}
+.result-row{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:3px;border-radius:6px;border:1px solid #1f2937;animation:fadeIn .4s ease-out}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.you-badge{font-size:9px;background:#7c3aed22;color:#a78bfa;padding:1px 4px;border-radius:3px;margin-left:3px}
+.nav{padding:12px 20px;display:flex;gap:8px}
+.nav-btn{flex:1;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer}
+.fc-row{display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:3px;border-radius:6px;border:1px solid #1f2937}
+.rallye-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:12px 20px}
+.rally-card{background:#0f1117;border:1px solid #1f2937;border-radius:6px;padding:7px 9px}
+.stats{display:flex;gap:4px;flex-shrink:0}
+.stat{text-align:center;min-width:30px}
+.stat-k{font-size:9px;color:#6b7280}
+.stat-v{font-size:12px;font-weight:700}
+</style></head><body>
+<div id="app"></div>
+<script>
+const RALLYES=[
+  {name:"Acropole",surface:"Terre",asp:0,ter:1,nei:0,sec:0.90,plu:0.10,rap:0.30,sin:0.70,cas:0.633},
+  {name:"Allemagne",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.75,plu:0.25,rap:0.45,sin:0.55,cas:0.233},
+  {name:"Arabie Saoudite",surface:"Terre",asp:0,ter:1,nei:0,sec:0.90,plu:0.10,rap:0.80,sin:0.20,cas:0.533},
+  {name:"Arctique",surface:"Neige",asp:0,ter:0,nei:1,sec:0.85,plu:0.15,rap:0.80,sin:0.20,cas:0.2},
+  {name:"Argentine",surface:"Terre",asp:0,ter:1,nei:0,sec:0.70,plu:0.30,rap:0.50,sin:0.50,cas:0.467},
+  {name:"Australie",surface:"Terre",asp:0,ter:1,nei:0,sec:0.70,plu:0.30,rap:0.55,sin:0.45,cas:0.4},
+  {name:"Belgique",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.60,plu:0.40,rap:0.70,sin:0.30,cas:0.3},
+  {name:"Bulgarie",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.70,plu:0.30,rap:0.55,sin:0.45,cas:0.3},
+  {name:"Catalogne",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.70,plu:0.30,rap:0.40,sin:0.60,cas:0.267},
+  {name:"Catalogne Mixte",surface:"Asp./Terre",asp:0.5,ter:0.5,nei:0,sec:0.75,plu:0.25,rap:0.40,sin:0.60,cas:0.367},
+  {name:"Central Européen",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.65,plu:0.35,rap:0.60,sin:0.40,cas:0.3},
+  {name:"Chili",surface:"Terre",asp:0,ter:1,nei:0,sec:0.70,plu:0.30,rap:0.65,sin:0.35,cas:0.467},
+  {name:"Chine",surface:"Terre",asp:0,ter:1,nei:0,sec:0.65,plu:0.35,rap:0.50,sin:0.50,cas:0.467},
+  {name:"Chypre",surface:"Terre",asp:0,ter:1,nei:0,sec:0.90,plu:0.10,rap:0.30,sin:0.70,cas:0.6},
+  {name:"Corse",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.60,plu:0.40,rap:0.25,sin:0.75,cas:0.333},
+  {name:"Croatie",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.55,plu:0.45,rap:0.55,sin:0.45,cas:0.333},
+  {name:"Estonie",surface:"Terre",asp:0,ter:1,nei:0,sec:0.75,plu:0.25,rap:0.80,sin:0.20,cas:0.3},
+  {name:"Finlande",surface:"Terre",asp:0,ter:1,nei:0,sec:0.80,plu:0.20,rap:0.85,sin:0.15,cas:0.3},
+  {name:"France Alsace",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.65,plu:0.35,rap:0.60,sin:0.40,cas:0.267},
+  {name:"Grande-Bretagne",surface:"Terre",asp:0.1,ter:0.9,nei:0,sec:0.30,plu:0.70,rap:0.45,sin:0.55,cas:0.433},
+  {name:"Iles Canaries",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.85,plu:0.15,rap:0.35,sin:0.65,cas:0.367},
+  {name:"Indonésie",surface:"Terre",asp:0,ter:1,nei:0,sec:0.70,plu:0.30,rap:0.60,sin:0.40,cas:0.5},
+  {name:"Irlande",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.40,plu:0.60,rap:0.60,sin:0.40,cas:0.3},
+  {name:"Japon Asphalte",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.70,plu:0.30,rap:0.40,sin:0.60,cas:0.267},
+  {name:"Japon Terre",surface:"Terre",asp:0,ter:1,nei:0,sec:0.65,plu:0.35,rap:0.40,sin:0.60,cas:0.433},
+  {name:"Jordanie",surface:"Terre",asp:0,ter:1,nei:0,sec:0.90,plu:0.10,rap:0.70,sin:0.30,cas:0.567},
+  {name:"Kenya",surface:"Terre",asp:0,ter:1,nei:0,sec:0.50,plu:0.50,rap:0.75,sin:0.25,cas:0.633},
+  {name:"Lettonie",surface:"Terre",asp:0,ter:1,nei:0,sec:0.70,plu:0.30,rap:0.75,sin:0.25,cas:0.333},
+  {name:"Mexique",surface:"Terre",asp:0,ter:1,nei:0,sec:0.90,plu:0.10,rap:0.45,sin:0.55,cas:0.533},
+  {name:"Monte Carlo",surface:"Asp./Neige",asp:0.7,ter:0,nei:0.3,sec:0.20,plu:0.80,rap:0.35,sin:0.65,cas:0.367},
+  {name:"Monza",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.50,plu:0.50,rap:0.45,sin:0.55,cas:0.2},
+  {name:"Norvège",surface:"Neige",asp:0,ter:0,nei:1,sec:0.85,plu:0.15,rap:0.70,sin:0.30,cas:0.233},
+  {name:"Nouvelle Zélande",surface:"Terre",asp:0,ter:1,nei:0,sec:0.65,plu:0.35,rap:0.50,sin:0.50,cas:0.4},
+  {name:"Paraguay",surface:"Terre",asp:0,ter:1,nei:0,sec:0.75,plu:0.25,rap:0.60,sin:0.40,cas:0.5},
+  {name:"Pologne",surface:"Terre",asp:0,ter:1,nei:0,sec:0.75,plu:0.25,rap:0.75,sin:0.25,cas:0.333},
+  {name:"Portugal",surface:"Terre",asp:0.05,ter:0.95,nei:0,sec:0.75,plu:0.25,rap:0.55,sin:0.45,cas:0.433},
+  {name:"San Remo",surface:"Asphalte",asp:1,ter:0,nei:0,sec:0.65,plu:0.35,rap:0.35,sin:0.65,cas:0.367},
+  {name:"Sardaigne",surface:"Terre",asp:0,ter:1,nei:0,sec:0.80,plu:0.20,rap:0.35,sin:0.65,cas:0.533},
+  {name:"Suède",surface:"Neige",asp:0,ter:0,nei:1,sec:0.90,plu:0.10,rap:0.65,sin:0.35,cas:0.2},
+  {name:"Turquie",surface:"Terre",asp:0,ter:1,nei:0,sec:0.80,plu:0.20,rap:0.45,sin:0.55,cas:0.567}
+];
+const DATA={
+  1997:{
+    drivers:[
+      {pos:1,nom:"Mäkinen Tommi",cop:"Harjanne Seppo",voiture:"Mitsubishi Lancer Evo IV",asp:88,ter:96,nei:97,sec:95,plu:96,rap:97,sin:92,fib:0.93,casp:88,cter:96,cnei:97,csec:95,cplu:96,crap:97,csin:92,cfib:0.93},
+      {pos:2,nom:"McRae Colin",cop:"Grist Nicky",voiture:"Subaru Impreza S5 WRC '97",asp:91,ter:94,nei:82,sec:90,plu:93,rap:96,sin:88,fib:0.81,casp:91,cter:94,cnei:82,csec:90,cplu:93,crap:96,csin:88,cfib:0.81},
+      {pos:3,nom:"Sainz Carlos",cop:"Moya Luis",voiture:"Ford Escort WRC",asp:95,ter:93,nei:80,sec:92,plu:90,rap:89,sin:95,fib:0.88,casp:95,cter:93,cnei:80,csec:92,cplu:90,crap:89,csin:95,cfib:0.88},
+      {pos:4,nom:"Kankkunen Juha",cop:"Repo Juha",voiture:"Ford Escort WRC",asp:87,ter:91,nei:94,sec:90,plu:88,rap:92,sin:87,fib:0.9,casp:87,cter:91,cnei:94,csec:90,cplu:88,crap:92,csin:87,cfib:0.9},
+      {pos:5,nom:"Eriksson Kenneth",cop:"Parmander Staffan",voiture:"Subaru Impreza S5 WRC '97",asp:84,ter:90,nei:92,sec:88,plu:86,rap:91,sin:86,fib:0.88,casp:84,cter:90,cnei:92,csec:88,cplu:86,crap:91,csin:86,cfib:0.88},
+      {pos:6,nom:"Liatti Piero",cop:"Pons Fabrizia",voiture:"Subaru Impreza S5 WRC '97",asp:91,ter:82,nei:86,sec:87,plu:84,rap:85,sin:90,fib:0.87,casp:91,cter:82,cnei:86,csec:87,cplu:84,crap:85,csin:90,cfib:0.87},
+      {pos:7,nom:"Burns Richard",cop:"Reid Robert",voiture:"Mitsubishi Carisma GT Evo IV",asp:86,ter:88,nei:82,sec:87,plu:86,rap:87,sin:89,fib:0.92,casp:86,cter:88,cnei:82,csec:87,cplu:86,crap:87,csin:89,cfib:0.92},
+      {pos:8,nom:"Schwarz Armin",cop:"Giraudet Denis",voiture:"Ford Escort WRC",asp:87,ter:83,nei:81,sec:85,plu:83,rap:84,sin:86,fib:0.81,casp:87,cter:83,cnei:81,csec:85,cplu:83,crap:84,csin:86,cfib:0.81},
+      {pos:9,nom:"Loix Freddy",cop:"Smeets Sven",voiture:"Toyota Celica GT-Four (ST205)",asp:86,ter:81,nei:80,sec:84,plu:83,rap:83,sin:85,fib:0.82,casp:86,cter:81,cnei:80,csec:84,cplu:83,crap:83,csin:85,cfib:0.82},
+      {pos:10,nom:"Auriol Didier",cop:"Andrie Jean-Marc",voiture:"Toyota Corolla WRC",asp:90,ter:82,nei:80,sec:83,plu:81,rap:81,sin:88,fib:0.8,casp:90,cter:82,cnei:80,csec:83,cplu:81,crap:81,csin:88,cfib:0.8},
+      {pos:11,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Toyota Celica GT-Four (ST205)",asp:83,ter:85,nei:86,sec:83,plu:84,rap:86,sin:82,fib:0.8,casp:83,cter:85,cnei:86,csec:83,cplu:84,crap:86,csin:82,cfib:0.8},
+      {pos:12,nom:"Duncan Ian",cop:"Williamson David",voiture:"Toyota Celica GT-Four (ST205)",asp:80,ter:88,nei:80,sec:83,plu:81,rap:84,sin:83,fib:0.86,casp:80,cter:88,cnei:80,csec:83,cplu:81,crap:84,csin:83,cfib:0.86},
+      {pos:13,nom:"Kytölehto Jarmo",cop:"Kapanen Arto",voiture:"Mitsubishi Lancer Evo III",asp:81,ter:83,nei:85,sec:82,plu:82,rap:83,sin:81,fib:0.85,casp:81,cter:83,cnei:85,csec:82,cplu:82,crap:83,csin:81,cfib:0.85},
+      {pos:14,nom:"Rådström Thomas",cop:"Backman Lars",voiture:"Toyota Corolla WRC",asp:80,ter:83,nei:85,sec:81,plu:81,rap:84,sin:81,fib:0.86,casp:80,cter:83,cnei:85,csec:81,cplu:81,crap:84,csin:81,cfib:0.86},
+      {pos:15,nom:"Bourne Peter 'Possum'",cop:"Vincent Craig",voiture:"Subaru Impreza 555",asp:80,ter:84,nei:80,sec:82,plu:80,rap:83,sin:82,fib:0.85,casp:80,cter:84,cnei:80,csec:82,cplu:80,crap:83,csin:82,cfib:0.85},
+      {pos:16,nom:"Nittel Uwe",cop:"Thorner Christina",voiture:"Ford Escort RS Cosworth",asp:82,ter:81,nei:80,sec:81,plu:80,rap:81,sin:83,fib:0.82,casp:82,cter:81,cnei:80,csec:81,cplu:80,crap:81,csin:83,cfib:0.82},
+      {pos:17,nom:"de Mevius Grégoire",cop:"Fortin Jean-Marc",voiture:"Ford Escort RS Cosworth",asp:82,ter:82,nei:80,sec:81,plu:80,rap:81,sin:83,fib:0.83,casp:82,cter:82,cnei:80,csec:81,cplu:80,crap:81,csin:83,cfib:0.83},
+      {pos:18,nom:"Lindholm Sebastian",cop:"Hantunen Timo",voiture:"Mitsubishi Lancer Evo III",asp:80,ter:82,nei:83,sec:80,plu:80,rap:82,sin:81,fib:0.84,casp:80,cter:82,cnei:83,csec:80,cplu:80,crap:82,csin:81,cfib:0.84},
+      {pos:19,nom:"Jansson Tomas",cop:"Svensson Pecka",voiture:"Mitsubishi Lancer Evo III",asp:80,ter:82,nei:83,sec:80,plu:80,rap:82,sin:80,fib:0.83,casp:80,cter:82,cnei:83,csec:80,cplu:80,crap:82,csin:80,cfib:0.83},
+      {pos:20,nom:"Medeghini Angelo",cop:"Medeghini-Capoferri Barbara",voiture:"Ford Escort RS Cosworth",asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.8,casp:80,cter:80,cnei:80,csec:80,cplu:80,crap:80,csin:80,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Mitsubishi Lancer Evo IV",asp:86,ter:95,nei:97,sec:93,plu:94,rap:96,sin:88,fib:0.94},
+      {nom:"Subaru Impreza S5 WRC '97",asp:90,ter:93,nei:88,sec:91,plu:92,rap:95,sin:87,fib:0.8},
+      {nom:"Ford Escort WRC",asp:91,ter:88,nei:83,sec:89,plu:87,rap:88,sin:91,fib:0.87},
+      {nom:"Mitsubishi Carisma GT Evo IV",asp:86,ter:95,nei:97,sec:93,plu:94,rap:96,sin:88,fib:0.94},
+      {nom:"Toyota Celica GT-Four (ST205)",asp:89,ter:86,nei:85,sec:87,plu:86,rap:87,sin:89,fib:0.83},
+      {nom:"Toyota Corolla WRC",asp:88,ter:87,nei:84,sec:87,plu:85,rap:88,sin:88,fib:0.82},
+      {nom:"Mitsubishi Lancer Evo III",asp:83,ter:88,nei:90,sec:87,plu:87,rap:88,sin:83,fib:0.88},
+      {nom:"Subaru Impreza 555",asp:86,ter:88,nei:86,sec:87,plu:86,rap:89,sin:85,fib:0.86},
+      {nom:"Ford Escort RS Cosworth",asp:85,ter:83,nei:81,sec:83,plu:82,rap:83,sin:86,fib:0.85},
+    ],
+  },
+  1998:{
+    drivers:[
+      {pos:1,nom:"Mäkinen Tommi",cop:"Mannisenmäki Risto",voiture:"Mitsubishi Lancer Evo V",asp:87,ter:96,nei:97,sec:95,plu:96,rap:97,sin:91,fib:0.95,casp:87,cter:96,cnei:97,csec:95,cplu:96,crap:97,csin:91,cfib:0.95},
+      {pos:2,nom:"Sainz Carlos",cop:"Moya Luis",voiture:"Toyota Corolla WRC",asp:95,ter:92,nei:81,sec:92,plu:90,rap:88,sin:95,fib:0.89,casp:95,cter:92,cnei:81,csec:92,cplu:90,crap:88,csin:95,cfib:0.89},
+      {pos:3,nom:"McRae Colin",cop:"Grist Nicky",voiture:"Subaru Impreza S5 WRC '98",asp:91,ter:93,nei:83,sec:90,plu:92,rap:95,sin:87,fib:0.82,casp:91,cter:93,cnei:83,csec:90,cplu:92,crap:95,csin:87,cfib:0.82},
+      {pos:4,nom:"Kankkunen Juha",cop:"Repo Juha",voiture:"Toyota Corolla WRC",asp:86,ter:90,nei:93,sec:89,plu:87,rap:91,sin:86,fib:0.9,casp:86,cter:90,cnei:93,csec:89,cplu:87,crap:91,csin:86,cfib:0.9},
+      {pos:5,nom:"Auriol Didier",cop:"Giraudet Denis",voiture:"Toyota Corolla WRC",asp:91,ter:83,nei:80,sec:84,plu:82,rap:82,sin:89,fib:0.84,casp:91,cter:83,cnei:80,csec:84,cplu:82,crap:82,csin:89,cfib:0.84},
+      {pos:6,nom:"Burns Richard",cop:"Reid Robert",voiture:"Subaru Impreza S5 WRC '97",asp:86,ter:87,nei:82,sec:87,plu:86,rap:87,sin:89,fib:0.93,casp:86,cter:87,cnei:82,csec:87,cplu:86,crap:87,csin:89,cfib:0.93},
+      {pos:7,nom:"Liatti Piero",cop:"Pons Fabrizia",voiture:"Seat Cordoba WRC",asp:90,ter:81,nei:85,sec:86,plu:83,rap:84,sin:89,fib:0.86,casp:90,cter:81,cnei:85,csec:86,cplu:83,crap:84,csin:89,cfib:0.86},
+      {pos:8,nom:"Loix Freddy",cop:"Smeets Sven",voiture:"Mitsubishi Carisma GT Evo V",asp:86,ter:81,nei:80,sec:84,plu:83,rap:83,sin:85,fib:0.83,casp:86,cter:81,cnei:80,csec:84,cplu:83,crap:83,csin:85,cfib:0.83},
+      {pos:9,nom:"Thiry Bruno",cop:"Prévot Stéphane",voiture:"Ford Escort WRC",asp:84,ter:82,nei:81,sec:83,plu:81,rap:82,sin:84,fib:0.85,casp:84,cter:82,cnei:81,csec:83,cplu:81,crap:82,csin:84,cfib:0.85},
+      {pos:10,nom:"Vatanen Ari",cop:"Gallagher Fred",voiture:"Subaru Impreza S5 WRC '97",asp:83,ter:84,nei:85,sec:84,plu:83,rap:85,sin:83,fib:0.82,casp:83,cter:84,cnei:85,csec:84,cplu:83,crap:85,csin:83,cfib:0.82},
+      {pos:11,nom:"de Mevius Grégoire",cop:"Fortin Jean-Marc",voiture:"Mitsubishi Carisma GT Evo IV",asp:82,ter:82,nei:80,sec:81,plu:80,rap:81,sin:83,fib:0.83,casp:82,cter:82,cnei:80,csec:81,cplu:80,crap:81,csin:83,cfib:0.83},
+      {pos:12,nom:"Eriksson Kenneth",cop:"Parmander Staffan",voiture:"Subaru Impreza S5 WRC '97",asp:83,ter:89,nei:91,sec:87,plu:85,rap:90,sin:85,fib:0.87,casp:83,cter:89,cnei:91,csec:87,cplu:85,crap:90,csin:85,cfib:0.87},
+      {pos:13,nom:"Rovanperä Harri",cop:"Pietiläinen Risto",voiture:"Seat Cordoba WRC",asp:83,ter:86,nei:88,sec:85,plu:84,rap:87,sin:83,fib:0.82,casp:83,cter:86,cnei:88,csec:85,cplu:84,crap:87,csin:83,cfib:0.82},
+      {pos:14,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Toyota Corolla WRC",asp:84,ter:86,nei:87,sec:84,plu:85,rap:87,sin:83,fib:0.81,casp:84,cter:86,cnei:87,csec:84,cplu:85,crap:87,csin:83,cfib:0.81},
+      {pos:15,nom:"Lindholm Sebastian",cop:"Aho Jukka",voiture:"Mitsubishi Carisma GT Evo IV",asp:80,ter:82,nei:83,sec:80,plu:80,rap:82,sin:81,fib:0.84,casp:80,cter:82,cnei:83,csec:80,cplu:80,crap:82,csin:81,cfib:0.84},
+      {pos:16,nom:"Rådström Thomas",cop:"Bäckman Lars",voiture:"Mitsubishi Carisma GT Evo IV",asp:80,ter:83,nei:85,sec:81,plu:81,rap:84,sin:81,fib:0.86,casp:80,cter:83,cnei:85,csec:81,cplu:81,crap:84,csin:81,cfib:0.86},
+      {pos:17,nom:"Märtin Markko",cop:"Park Michael",voiture:"Ford Escort WRC",asp:84,ter:85,nei:83,sec:84,plu:83,rap:85,sin:84,fib:0.83,casp:84,cter:85,cnei:83,csec:84,cplu:83,crap:85,csin:84,cfib:0.83},
+      {pos:18,nom:"Schwarz Armin",cop:"Hiemer Manfred",voiture:"Ford Escort WRC",asp:85,ter:82,nei:80,sec:82,plu:81,rap:82,sin:84,fib:0.81,casp:85,cter:82,cnei:80,csec:82,cplu:81,crap:82,csin:84,cfib:0.81},
+      {pos:19,nom:"Thiry Bruno",cop:"Prévot Stéphane",voiture:"Ford Escort WRC",asp:84,ter:82,nei:81,sec:83,plu:81,rap:82,sin:84,fib:0.85,casp:84,cter:82,cnei:81,csec:83,cplu:81,crap:82,csin:84,cfib:0.85},
+      {pos:20,nom:"Loix Freddy",cop:"Smeets Sven",voiture:"Ford Escort WRC",asp:86,ter:81,nei:80,sec:84,plu:83,rap:83,sin:85,fib:0.83,casp:86,cter:81,cnei:80,csec:84,cplu:83,crap:83,csin:85,cfib:0.83},
+    ],
+    cars:[
+      {nom:"Mitsubishi Lancer Evo V",asp:87,ter:95,nei:97,sec:93,plu:94,rap:96,sin:88,fib:0.95},
+      {nom:"Toyota Corolla WRC",asp:89,ter:88,nei:85,sec:88,plu:86,rap:89,sin:89,fib:0.87},
+      {nom:"Subaru Impreza S5 WRC '98",asp:91,ter:92,nei:86,sec:91,plu:91,rap:94,sin:87,fib:0.83},
+      {nom:"Subaru Impreza S5 WRC '97",asp:89,ter:90,nei:85,sec:89,plu:89,rap:92,sin:85,fib:0.85},
+      {nom:"Seat Cordoba WRC",asp:87,ter:83,nei:80,sec:84,plu:82,rap:83,sin:87,fib:0.81},
+      {nom:"Mitsubishi Carisma GT Evo V",asp:87,ter:95,nei:97,sec:93,plu:94,rap:96,sin:88,fib:0.95},
+      {nom:"Ford Escort WRC",asp:91,ter:87,nei:82,sec:88,plu:86,rap:87,sin:91,fib:0.86},
+      {nom:"Mitsubishi Carisma GT Evo IV",asp:85,ter:93,nei:95,sec:91,plu:92,rap:93,sin:86,fib:0.93},
+    ],
+  },
+  1999:{
+    drivers:[
+      {pos:1,nom:"Mäkinen Tommi",cop:"Mannisenmäki Risto",voiture:"Mitsubishi Lancer Evo VI",asp:86,ter:96,nei:97,sec:94,plu:96,rap:96,sin:90,fib:0.94,casp:86,cter:96,cnei:97,csec:94,cplu:96,crap:96,csin:90,cfib:0.94},
+      {pos:2,nom:"Burns Richard",cop:"Reid Robert",voiture:"Subaru Impreza S5 WRC '99",asp:86,ter:88,nei:83,sec:87,plu:87,rap:88,sin:89,fib:0.94,casp:86,cter:88,cnei:83,csec:87,cplu:87,crap:88,csin:89,cfib:0.94},
+      {pos:3,nom:"Auriol Didier",cop:"Giraudet Denis",voiture:"Toyota Corolla WRC",asp:91,ter:83,nei:80,sec:84,plu:82,rap:82,sin:89,fib:0.85,casp:91,cter:83,cnei:80,csec:84,cplu:82,crap:82,csin:89,cfib:0.85},
+      {pos:4,nom:"Kankkunen Juha",cop:"Repo Juha",voiture:"Subaru Impreza S5 WRC '98",asp:85,ter:89,nei:92,sec:88,plu:86,rap:90,sin:85,fib:0.9,casp:85,cter:89,cnei:92,csec:88,cplu:86,crap:90,csin:85,cfib:0.9},
+      {pos:5,nom:"Sainz Carlos",cop:"Moya Luis",voiture:"Ford Focus WRC '99",asp:94,ter:91,nei:80,sec:91,plu:89,rap:87,sin:94,fib:0.87,casp:94,cter:91,cnei:80,csec:91,cplu:89,crap:87,csin:94,cfib:0.87},
+      {pos:6,nom:"McRae Colin",cop:"Grist Nicky",voiture:"Ford Focus WRC '99",asp:90,ter:93,nei:82,sec:89,plu:92,rap:94,sin:86,fib:0.81,casp:90,cter:93,cnei:82,csec:89,cplu:92,crap:94,csin:86,cfib:0.81},
+      {pos:7,nom:"Loix Freddy",cop:"Smeets Sven",voiture:"Mitsubishi Carisma GT Evo VI",asp:85,ter:81,nei:80,sec:83,plu:82,rap:82,sin:85,fib:0.83,casp:85,cter:81,cnei:80,csec:83,cplu:82,crap:82,csin:85,cfib:0.83},
+      {pos:8,nom:"Rovanperä Harri",cop:"Pietiläinen Risto",voiture:"Seat Cordoba WRC",asp:83,ter:87,nei:88,sec:85,plu:84,rap:87,sin:83,fib:0.83,casp:83,cter:87,cnei:88,csec:85,cplu:84,crap:87,csin:83,cfib:0.83},
+      {pos:9,nom:"Panizzi Gilles",cop:"Panizzi Hervé",voiture:"Peugeot 206 WRC",asp:93,ter:80,nei:80,sec:83,plu:81,rap:81,sin:91,fib:0.83,casp:93,cter:80,cnei:80,csec:83,cplu:81,crap:81,csin:91,cfib:0.83},
+      {pos:10,nom:"Puras Jesús",cop:"Martí Marc",voiture:"Seat Cordoba WRC Evo2",asp:84,ter:81,nei:80,sec:82,plu:81,rap:81,sin:84,fib:0.82,casp:84,cter:81,cnei:80,csec:82,cplu:81,crap:81,csin:84,cfib:0.82},
+      {pos:11,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Toyota Corolla WRC",asp:84,ter:87,nei:87,sec:85,plu:85,rap:87,sin:83,fib:0.82,casp:84,cter:87,cnei:87,csec:85,cplu:85,crap:87,csin:83,cfib:0.82},
+      {pos:12,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Subaru Impreza S5 WRC '99",asp:82,ter:83,nei:82,sec:82,plu:81,rap:83,sin:82,fib:0.81,casp:82,cter:83,cnei:82,csec:82,cplu:81,crap:83,csin:82,cfib:0.81},
+      {pos:13,nom:"Märtin Markko",cop:"Kitsing Toomas",voiture:"Ford Focus WRC '99",asp:83,ter:83,nei:82,sec:82,plu:82,rap:83,sin:83,fib:0.82,casp:83,cter:83,cnei:82,csec:82,cplu:82,crap:83,csin:83,cfib:0.82},
+      {pos:14,nom:"Thiry Bruno",cop:"Prévot Stéphane",voiture:"Seat Cordoba WRC",asp:84,ter:82,nei:81,sec:83,plu:81,rap:82,sin:84,fib:0.85,casp:84,cter:82,cnei:81,csec:83,cplu:81,crap:82,csin:84,cfib:0.85},
+      {pos:15,nom:"Gardemeister Toni",cop:"Lukander Paavo",voiture:"Škoda Octavia WRC",asp:82,ter:84,nei:85,sec:83,plu:82,rap:84,sin:81,fib:0.83,casp:82,cter:84,cnei:85,csec:83,cplu:82,crap:84,csin:81,cfib:0.83},
+      {pos:16,nom:"Duncan Ian",cop:"Williamson David",voiture:"Toyota Corolla WRC",asp:80,ter:88,nei:80,sec:82,plu:80,rap:83,sin:82,fib:0.86,casp:80,cter:88,cnei:80,csec:82,cplu:80,crap:83,csin:82,cfib:0.86},
+      {pos:17,nom:"Delecour François",cop:"Grataloup Daniel",voiture:"Ford Escort WRC",asp:85,ter:81,nei:80,sec:81,plu:80,rap:82,sin:84,fib:0.81,casp:85,cter:81,cnei:80,csec:81,cplu:80,crap:82,csin:84,cfib:0.81},
+      {pos:18,nom:"Bourne Peter 'Possum'",cop:"Vincent Craig",voiture:"Ford Escort WRC",asp:80,ter:84,nei:80,sec:81,plu:80,rap:83,sin:81,fib:0.85,casp:80,cter:84,cnei:80,csec:81,cplu:80,crap:83,csin:81,cfib:0.85},
+      {pos:19,nom:"Rådström Thomas",cop:"Gallagher Fred",voiture:"Toyota Corolla WRC",asp:80,ter:83,nei:84,sec:81,plu:81,rap:83,sin:80,fib:0.85,casp:80,cter:83,cnei:84,csec:81,cplu:81,crap:83,csin:80,cfib:0.85},
+      {pos:20,nom:"Liatti Piero",cop:"Cassina Carlo",voiture:"Peugeot 206 WRC",asp:89,ter:80,nei:83,sec:85,plu:82,rap:83,sin:88,fib:0.84,casp:89,cter:80,cnei:83,csec:85,cplu:82,crap:83,csin:88,cfib:0.84},
+    ],
+    cars:[
+      {nom:"Mitsubishi Lancer Evo VI",asp:87,ter:95,nei:97,sec:93,plu:94,rap:95,sin:88,fib:0.95},
+      {nom:"Subaru Impreza S5 WRC '99",asp:90,ter:92,nei:86,sec:91,plu:90,rap:93,sin:87,fib:0.85},
+      {nom:"Toyota Corolla WRC",asp:89,ter:87,nei:84,sec:87,plu:85,rap:88,sin:89,fib:0.86},
+      {nom:"Subaru Impreza S5 WRC '98",asp:89,ter:90,nei:84,sec:89,plu:88,rap:91,sin:85,fib:0.84},
+      {nom:"Ford Focus WRC '99",asp:91,ter:89,nei:83,sec:89,plu:88,rap:90,sin:91,fib:0.84},
+      {nom:"Mitsubishi Carisma GT Evo VI",asp:86,ter:93,nei:95,sec:91,plu:91,rap:91,sin:87,fib:0.88},
+      {nom:"Seat Cordoba WRC",asp:87,ter:83,nei:80,sec:84,plu:82,rap:83,sin:87,fib:0.81},
+      {nom:"Peugeot 206 WRC",asp:88,ter:86,nei:82,sec:86,plu:84,rap:86,sin:88,fib:0.8},
+      {nom:"Seat Cordoba WRC Evo2",asp:88,ter:84,nei:81,sec:85,plu:83,rap:84,sin:88,fib:0.82},
+      {nom:"Škoda Octavia WRC",asp:82,ter:82,nei:80,sec:81,plu:80,rap:81,sin:82,fib:0.81},
+      {nom:"Ford Escort WRC",asp:90,ter:86,nei:81,sec:87,plu:85,rap:86,sin:90,fib:0.85},
+    ],
+  },
+  2000:{
+    drivers:[
+      {pos:1,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Peugeot 206 WRC",asp:86,ter:92,nei:90,sec:87,plu:88,rap:92,sin:86,fib:0.88,casp:86,cter:92,cnei:90,csec:87,cplu:88,crap:92,csin:86,cfib:0.88},
+      {pos:2,nom:"Burns Richard",cop:"Reid Robert",voiture:"Subaru Impreza S5 WRC '99",asp:86,ter:88,nei:83,sec:87,plu:87,rap:88,sin:89,fib:0.95,casp:86,cter:88,cnei:83,csec:87,cplu:87,crap:88,csin:89,cfib:0.95},
+      {pos:3,nom:"Sainz Carlos",cop:"Moya Luis",voiture:"Ford Focus WRC '00",asp:95,ter:91,nei:80,sec:91,plu:89,rap:87,sin:95,fib:0.88,casp:95,cter:91,cnei:80,csec:91,cplu:89,crap:87,csin:95,cfib:0.88},
+      {pos:4,nom:"McRae Colin",cop:"Grist Nicky",voiture:"Ford Focus WRC '00",asp:90,ter:93,nei:82,sec:89,plu:93,rap:95,sin:86,fib:0.81,casp:90,cter:93,cnei:82,csec:89,cplu:93,crap:95,csin:86,cfib:0.81},
+      {pos:5,nom:"Mäkinen Tommi",cop:"Mannisenmäki Risto",voiture:"Mitsubishi Lancer Evo VI",asp:85,ter:95,nei:96,sec:93,plu:95,rap:95,sin:89,fib:0.88,casp:85,cter:95,cnei:96,csec:93,cplu:95,crap:95,csin:89,cfib:0.88},
+      {pos:6,nom:"Delecour François",cop:"Grataloup Daniel",voiture:"Ford Focus WRC '00",asp:86,ter:82,nei:80,sec:82,plu:81,rap:83,sin:85,fib:0.83,casp:86,cter:82,cnei:80,csec:82,cplu:81,crap:83,csin:85,cfib:0.83},
+      {pos:7,nom:"Panizzi Gilles",cop:"Panizzi Hervé",voiture:"Peugeot 206 WRC",asp:94,ter:80,nei:80,sec:83,plu:81,rap:81,sin:93,fib:0.84,casp:94,cter:80,cnei:80,csec:83,cplu:81,crap:81,csin:93,cfib:0.84},
+      {pos:8,nom:"Kankkunen Juha",cop:"Repo Juha",voiture:"Subaru Impreza S6 WRC '00",asp:84,ter:88,nei:91,sec:87,plu:85,rap:89,sin:84,fib:0.89,casp:84,cter:88,cnei:91,csec:87,cplu:85,crap:89,csin:84,cfib:0.89},
+      {pos:9,nom:"Rovanperä Harri",cop:"Pietiläinen Risto",voiture:"Peugeot 206 WRC",asp:83,ter:87,nei:88,sec:85,plu:84,rap:87,sin:83,fib:0.83,casp:83,cter:87,cnei:88,csec:85,cplu:84,crap:87,csin:83,cfib:0.83},
+      {pos:10,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Ford Focus WRC '00",asp:83,ter:85,nei:83,sec:83,plu:82,rap:85,sin:83,fib:0.82,casp:83,cter:85,cnei:83,csec:83,cplu:82,crap:85,csin:83,cfib:0.82},
+      {pos:11,nom:"Eriksson Kenneth",cop:"Parmander Staffan",voiture:"Hyundai Accent WRC",asp:82,ter:88,nei:90,sec:86,plu:84,rap:89,sin:83,fib:0.86,casp:82,cter:88,cnei:90,csec:86,cplu:84,crap:89,csin:83,cfib:0.86},
+      {pos:12,nom:"Auriol Didier",cop:"Giraudet Denis",voiture:"Seat Cordoba WRC Evo2",asp:90,ter:82,nei:80,sec:83,plu:81,rap:81,sin:89,fib:0.83,casp:90,cter:82,cnei:80,csec:83,cplu:81,crap:81,csin:89,cfib:0.83},
+      {pos:13,nom:"Gardemeister Toni",cop:"Lukander Paavo",voiture:"Seat Cordoba WRC Evo2",asp:82,ter:84,nei:85,sec:83,plu:82,rap:84,sin:81,fib:0.83,casp:82,cter:84,cnei:85,csec:83,cplu:82,crap:84,csin:81,cfib:0.83},
+      {pos:14,nom:"Arai Toshihiro",cop:"Freeman Roger",voiture:"Toyota Corolla WRC",asp:80,ter:85,nei:82,sec:82,plu:81,rap:83,sin:80,fib:0.84,casp:80,cter:85,cnei:82,csec:82,cplu:81,crap:83,csin:80,cfib:0.84},
+      {pos:15,nom:"Loix Freddy",cop:"Smeets Sven",voiture:"Mitsubishi Carisma GT Evo VI",asp:85,ter:81,nei:80,sec:83,plu:82,rap:82,sin:84,fib:0.82,casp:85,cter:81,cnei:80,csec:83,cplu:82,crap:82,csin:84,cfib:0.82},
+      {pos:16,nom:"Rådström Thomas",cop:"Thörner Christina",voiture:"Toyota Corolla WRC",asp:80,ter:82,nei:84,sec:81,plu:81,rap:83,sin:80,fib:0.85,casp:80,cter:82,cnei:84,csec:81,cplu:81,crap:83,csin:80,cfib:0.85},
+      {pos:17,nom:"Schwarz Armin",cop:"Hiemer Manfred",voiture:"Škoda Octavia WRC",asp:85,ter:82,nei:80,sec:82,plu:81,rap:82,sin:84,fib:0.81,casp:85,cter:82,cnei:80,csec:82,cplu:81,crap:82,csin:84,cfib:0.81},
+      {pos:18,nom:"Thiry Bruno",cop:"Prévot Stéphane",voiture:"Toyota Corolla WRC",asp:83,ter:81,nei:81,sec:82,plu:81,rap:81,sin:83,fib:0.84,casp:83,cter:81,cnei:81,csec:82,cplu:81,crap:81,csin:83,cfib:0.84},
+      {pos:19,nom:"Lindholm Sebastian",cop:"Aho Jukka",voiture:"Peugeot 206 WRC",asp:80,ter:81,nei:82,sec:80,plu:80,rap:81,sin:80,fib:0.83,casp:80,cter:81,cnei:82,csec:80,cplu:80,crap:81,csin:80,cfib:0.83},
+      {pos:20,nom:"Märtin Markko",cop:"Park Michael",voiture:"Toyota Corolla WRC",asp:84,ter:84,nei:83,sec:83,plu:82,rap:84,sin:83,fib:0.82,casp:84,cter:84,cnei:83,csec:83,cplu:82,crap:84,csin:83,cfib:0.82},
+    ],
+    cars:[
+      {nom:"Peugeot 206 WRC",asp:93,ter:91,nei:86,sec:91,plu:90,rap:93,sin:92,fib:0.88},
+      {nom:"Subaru Impreza S5 WRC '99",asp:89,ter:91,nei:85,sec:89,plu:88,rap:92,sin:86,fib:0.84},
+      {nom:"Ford Focus WRC '00",asp:92,ter:90,nei:83,sec:90,plu:89,rap:91,sin:92,fib:0.86},
+      {nom:"Mitsubishi Lancer Evo VI",asp:86,ter:94,nei:96,sec:92,plu:93,rap:94,sin:87,fib:0.94},
+      {nom:"Subaru Impreza S6 WRC '00",asp:91,ter:93,nei:87,sec:91,plu:90,rap:94,sin:88,fib:0.85},
+      {nom:"Hyundai Accent WRC",asp:83,ter:82,nei:80,sec:81,plu:80,rap:81,sin:83,fib:0.8},
+      {nom:"Seat Cordoba WRC Evo2",asp:88,ter:84,nei:81,sec:85,plu:83,rap:84,sin:88,fib:0.82},
+      {nom:"Toyota Corolla WRC",asp:88,ter:86,nei:83,sec:86,plu:84,rap:87,sin:88,fib:0.85},
+      {nom:"Mitsubishi Carisma GT Evo VI",asp:85,ter:92,nei:94,sec:90,plu:90,rap:90,sin:86,fib:0.87},
+      {nom:"Škoda Octavia WRC",asp:82,ter:82,nei:80,sec:81,plu:80,rap:81,sin:82,fib:0.81},
+    ],
+  },
+  2001:{
+    drivers:[
+      {pos:1,nom:"Burns Richard",cop:"Reid Robert",voiture:"Subaru Impreza S7 WRC '01",asp:87,ter:89,nei:83,sec:88,plu:88,rap:89,sin:90,fib:0.96,casp:87,cter:89,cnei:83,csec:88,cplu:88,crap:89,csin:90,cfib:0.96},
+      {pos:2,nom:"McRae Colin",cop:"Grist Nicky",voiture:"Ford Focus WRC '01",asp:91,ter:93,nei:82,sec:90,plu:93,rap:95,sin:86,fib:0.8,casp:91,cter:93,cnei:82,csec:90,cplu:93,crap:95,csin:86,cfib:0.8},
+      {pos:3,nom:"Mäkinen Tommi",cop:"Mannisenmäki Risto",voiture:"Mitsubishi Lancer Evo 6.5",asp:84,ter:94,nei:95,sec:92,plu:94,rap:94,sin:88,fib:0.87,casp:84,cter:94,cnei:95,csec:92,cplu:94,crap:94,csin:88,cfib:0.87},
+      {pos:4,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Peugeot 206 WRC",asp:87,ter:92,nei:90,sec:88,plu:89,rap:93,sin:87,fib:0.86,casp:87,cter:92,cnei:90,csec:88,cplu:89,crap:93,csin:87,cfib:0.86},
+      {pos:5,nom:"Rovanperä Harri",cop:"Pietiläinen Risto",voiture:"Peugeot 206 WRC",asp:83,ter:87,nei:88,sec:85,plu:84,rap:87,sin:83,fib:0.83,casp:83,cter:87,cnei:88,csec:85,cplu:84,crap:87,csin:83,cfib:0.83},
+      {pos:6,nom:"Sainz Carlos",cop:"Moya Luis",voiture:"Ford Focus WRC '01",asp:95,ter:90,nei:80,sec:91,plu:88,rap:86,sin:95,fib:0.88,casp:95,cter:90,cnei:80,csec:91,cplu:88,crap:86,csin:95,cfib:0.88},
+      {pos:7,nom:"Auriol Didier",cop:"Giraudet Denis",voiture:"Peugeot 206 WRC",asp:91,ter:82,nei:80,sec:83,plu:81,rap:81,sin:89,fib:0.83,casp:91,cter:82,cnei:80,csec:83,cplu:81,crap:81,csin:89,cfib:0.83},
+      {pos:8,nom:"Panizzi Gilles",cop:"Panizzi Hervé",voiture:"Peugeot 206 WRC",asp:95,ter:80,nei:80,sec:83,plu:81,rap:80,sin:93,fib:0.84,casp:95,cter:80,cnei:80,csec:83,cplu:81,crap:80,csin:93,cfib:0.84},
+      {pos:9,nom:"Delecour François",cop:"Grataloup Daniel",voiture:"Ford Focus WRC '01",asp:86,ter:82,nei:80,sec:82,plu:81,rap:83,sin:85,fib:0.82,casp:86,cter:82,cnei:80,csec:82,cplu:81,crap:83,csin:85,cfib:0.82},
+      {pos:10,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Subaru Impreza S7 WRC '01",asp:84,ter:86,nei:84,sec:84,plu:83,rap:86,sin:84,fib:0.83,casp:84,cter:86,cnei:84,csec:84,cplu:83,crap:86,csin:84,cfib:0.83},
+      {pos:11,nom:"Puras Jesús",cop:"Martí Marc",voiture:"Citroën Xsara WRC",asp:84,ter:82,nei:80,sec:82,plu:81,rap:81,sin:84,fib:0.82,casp:84,cter:82,cnei:80,csec:82,cplu:81,crap:81,csin:84,cfib:0.82},
+      {pos:12,nom:"Schwarz Armin",cop:"Hiemer Manfred",voiture:"Škoda Octavia WRC Evo2",asp:85,ter:82,nei:80,sec:82,plu:81,rap:82,sin:84,fib:0.81,casp:85,cter:82,cnei:80,csec:82,cplu:81,crap:82,csin:84,cfib:0.81},
+      {pos:13,nom:"Loix Freddy",cop:"Smeets Sven",voiture:"Mitsubishi Carisma GT Evo VI",asp:85,ter:81,nei:80,sec:83,plu:82,rap:82,sin:84,fib:0.82,casp:85,cter:81,cnei:80,csec:83,cplu:82,crap:82,csin:84,cfib:0.82},
+      {pos:14,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën Xsara WRC",asp:88,ter:84,nei:81,sec:84,plu:83,rap:83,sin:86,fib:0.83,casp:88,cter:84,cnei:81,csec:84,cplu:83,crap:83,csin:86,cfib:0.83},
+      {pos:15,nom:"Rådström Thomas",cop:"Thörner Christina",voiture:"Citroën Xsara WRC",asp:80,ter:82,nei:84,sec:81,plu:81,rap:83,sin:80,fib:0.85,casp:80,cter:82,cnei:84,csec:81,cplu:81,crap:83,csin:80,cfib:0.85},
+      {pos:16,nom:"Gardemeister Toni",cop:"Lukander Paavo",voiture:"Mitsubishi Carisma GT Evo VI",asp:82,ter:84,nei:85,sec:83,plu:82,rap:84,sin:81,fib:0.83,casp:82,cter:84,cnei:85,csec:83,cplu:82,crap:84,csin:81,cfib:0.83},
+      {pos:17,nom:"McRae Alister",cop:"Senior David",voiture:"Hyundai Accent WRC2",asp:82,ter:84,nei:82,sec:82,plu:82,rap:84,sin:82,fib:0.82,casp:82,cter:84,cnei:82,csec:82,cplu:82,crap:84,csin:82,cfib:0.82},
+      {pos:18,nom:"Arai Toshihiro",cop:"Macneall Glenn",voiture:"Subaru Impreza S7 WRC '01",asp:80,ter:85,nei:82,sec:82,plu:81,rap:83,sin:80,fib:0.84,casp:80,cter:85,cnei:82,csec:82,cplu:81,crap:83,csin:80,cfib:0.84},
+      {pos:19,nom:"Märtin Markko",cop:"Park Michael",voiture:"Subaru Impreza S7 WRC '01",asp:85,ter:85,nei:83,sec:84,plu:83,rap:85,sin:84,fib:0.83,casp:85,cter:85,cnei:83,csec:84,cplu:83,crap:85,csin:84,cfib:0.83},
+      {pos:20,nom:"Eriksson Kenneth",cop:"Parmander Staffan",voiture:"Hyundai Accent WRC2",asp:82,ter:88,nei:90,sec:86,plu:84,rap:89,sin:82,fib:0.85,casp:82,cter:88,cnei:90,csec:86,cplu:84,crap:89,csin:82,cfib:0.85},
+    ],
+    cars:[
+      {nom:"Subaru Impreza S7 WRC '01",asp:90,ter:92,nei:86,sec:90,plu:89,rap:92,sin:88,fib:0.86},
+      {nom:"Ford Focus WRC '01",asp:91,ter:89,nei:83,sec:90,plu:88,rap:90,sin:92,fib:0.87},
+      {nom:"Mitsubishi Lancer Evo 6.5",asp:86,ter:94,nei:96,sec:92,plu:93,rap:94,sin:87,fib:0.93},
+      {nom:"Peugeot 206 WRC",asp:92,ter:91,nei:86,sec:90,plu:89,rap:92,sin:91,fib:0.88},
+      {nom:"Citroën Xsara WRC",asp:90,ter:88,nei:84,sec:89,plu:87,rap:88,sin:92,fib:0.88},
+      {nom:"Škoda Octavia WRC Evo2",asp:83,ter:83,nei:81,sec:82,plu:81,rap:82,sin:83,fib:0.82},
+      {nom:"Mitsubishi Carisma GT Evo VI",asp:85,ter:92,nei:94,sec:90,plu:90,rap:90,sin:86,fib:0.87},
+      {nom:"Hyundai Accent WRC2",asp:81,ter:82,nei:80,sec:81,plu:80,rap:81,sin:82,fib:0.8},
+    ],
+  },
+  2002:{
+    drivers:[
+      {pos:1,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Peugeot 206 WRC",asp:88,ter:92,nei:90,sec:88,plu:89,rap:93,sin:87,fib:0.88,casp:88,cter:92,cnei:90,csec:88,cplu:89,crap:93,csin:87,cfib:0.88},
+      {pos:2,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Subaru Impreza S8 WRC '02",asp:85,ter:88,nei:85,sec:86,plu:85,rap:88,sin:84,fib:0.85,casp:85,cter:88,cnei:85,csec:86,cplu:85,crap:88,csin:84,cfib:0.85},
+      {pos:3,nom:"Sainz Carlos",cop:"Moya Luis",voiture:"Ford Focus WRC '02",asp:94,ter:90,nei:80,sec:91,plu:88,rap:86,sin:94,fib:0.87,casp:94,cter:90,cnei:80,csec:91,cplu:88,crap:86,csin:94,cfib:0.87},
+      {pos:4,nom:"McRae Colin",cop:"Ringer Derek",voiture:"Ford Focus WRC '02",asp:90,ter:92,nei:82,sec:89,plu:92,rap:94,sin:85,fib:0.81,casp:90,cter:92,cnei:82,csec:89,cplu:92,crap:94,csin:85,cfib:0.81},
+      {pos:5,nom:"Burns Richard",cop:"Reid Robert",voiture:"Peugeot 206 WRC",asp:87,ter:88,nei:83,sec:87,plu:87,rap:88,sin:89,fib:0.94,casp:87,cter:88,cnei:83,csec:87,cplu:87,crap:88,csin:89,cfib:0.94},
+      {pos:6,nom:"Panizzi Gilles",cop:"Panizzi Hervé",voiture:"Peugeot 206 WRC",asp:95,ter:80,nei:80,sec:82,plu:80,rap:80,sin:93,fib:0.82,casp:95,cter:80,cnei:80,csec:82,cplu:80,crap:80,csin:93,cfib:0.82},
+      {pos:7,nom:"Rovanperä Harri",cop:"Pietiläinen Risto",voiture:"Peugeot 206 WRC",asp:83,ter:87,nei:88,sec:85,plu:84,rap:87,sin:83,fib:0.83,casp:83,cter:87,cnei:88,csec:85,cplu:84,crap:87,csin:83,cfib:0.83},
+      {pos:8,nom:"Mäkinen Tommi",cop:"Lindström Kaj",voiture:"Subaru Impreza S8 WRC '02",asp:83,ter:93,nei:94,sec:91,plu:93,rap:93,sin:87,fib:0.85,casp:83,cter:93,cnei:94,csec:91,cplu:93,crap:93,csin:87,cfib:0.85},
+      {pos:9,nom:"Märtin Markko",cop:"Park Michael",voiture:"Ford Focus WRC '02",asp:85,ter:86,nei:84,sec:85,plu:84,rap:86,sin:84,fib:0.84,casp:85,cter:86,cnei:84,csec:85,cplu:84,crap:86,csin:84,cfib:0.84},
+      {pos:10,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën Xsara WRC",asp:89,ter:84,nei:81,sec:85,plu:83,rap:83,sin:87,fib:0.84,casp:89,cter:84,cnei:81,csec:85,cplu:83,crap:83,csin:87,cfib:0.84},
+      {pos:11,nom:"Bugalski Philippe",cop:"Chiaroni Jean-Paul",voiture:"Citroën Xsara WRC",asp:87,ter:83,nei:80,sec:83,plu:81,rap:82,sin:85,fib:0.8,casp:87,cter:83,cnei:80,csec:83,cplu:81,crap:82,csin:85,cfib:0.8},
+      {pos:12,nom:"Rådström Thomas",cop:"Giraudet Denis",voiture:"Citroën Xsara WRC",asp:80,ter:82,nei:84,sec:81,plu:81,rap:83,sin:80,fib:0.85,casp:80,cter:82,cnei:84,csec:81,cplu:81,crap:83,csin:80,cfib:0.85},
+      {pos:13,nom:"Gardemeister Toni",cop:"Lukander Paavo",voiture:"Škoda Octavia WRC Evo2",asp:83,ter:85,nei:83,sec:83,plu:82,rap:83,sin:82,fib:0.82,casp:83,cter:85,cnei:83,csec:83,cplu:82,crap:83,csin:82,cfib:0.82},
+      {pos:14,nom:"Kankkunen Juha",cop:"Repo Juha",voiture:"Hyundai Accent WRC3",asp:83,ter:87,nei:89,sec:86,plu:83,rap:88,sin:83,fib:0.87,casp:83,cter:87,cnei:89,csec:86,cplu:83,crap:88,csin:83,cfib:0.87},
+      {pos:15,nom:"McRae Alister",cop:"Senior David",voiture:"Mitsubishi Lancer WRC",asp:82,ter:84,nei:82,sec:82,plu:82,rap:84,sin:82,fib:0.82,casp:82,cter:84,cnei:82,csec:82,cplu:82,crap:84,csin:82,cfib:0.82},
+      {pos:16,nom:"Thiry Bruno",cop:"Prévot Stéphane",voiture:"Peugeot 206 WRC",asp:83,ter:81,nei:81,sec:82,plu:81,rap:81,sin:83,fib:0.84,casp:83,cter:81,cnei:81,csec:82,cplu:81,crap:81,csin:83,cfib:0.84},
+      {pos:17,nom:"Loix Freddy",cop:"Smeets Sven",voiture:"Hyundai Accent WRC3",asp:84,ter:81,nei:80,sec:82,plu:81,rap:81,sin:83,fib:0.82,casp:84,cter:81,cnei:80,csec:82,cplu:81,crap:81,csin:83,cfib:0.82},
+      {pos:18,nom:"Eriksson Kenneth",cop:"Thörner Christina",voiture:"Škoda Octavia WRC Evo2",asp:82,ter:87,nei:89,sec:85,plu:83,rap:87,sin:81,fib:0.85,casp:82,cter:87,cnei:89,csec:85,cplu:83,crap:87,csin:81,cfib:0.85},
+      {pos:19,nom:"Puras Jesús",cop:"del Barrio Carlos",voiture:"Citroën Xsara WRC",asp:83,ter:82,nei:80,sec:82,plu:81,rap:81,sin:83,fib:0.81,casp:83,cter:82,cnei:80,csec:82,cplu:81,crap:81,csin:83,cfib:0.81},
+      {pos:20,nom:"Higgins Mark",cop:"Thomas Bryan",voiture:"Ford Focus WRC '02",asp:81,ter:82,nei:81,sec:81,plu:80,rap:82,sin:80,fib:0.81,casp:81,cter:82,cnei:81,csec:81,cplu:80,crap:82,csin:80,cfib:0.81},
+    ],
+    cars:[
+      {nom:"Peugeot 206 WRC",asp:92,ter:91,nei:86,sec:90,plu:89,rap:92,sin:91,fib:0.88},
+      {nom:"Subaru Impreza S8 WRC '02",asp:91,ter:92,nei:86,sec:91,plu:89,rap:93,sin:88,fib:0.86},
+      {nom:"Ford Focus WRC '02",asp:91,ter:90,nei:83,sec:90,plu:89,rap:91,sin:92,fib:0.87},
+      {nom:"Citroën Xsara WRC",asp:91,ter:88,nei:83,sec:89,plu:87,rap:88,sin:92,fib:0.89},
+      {nom:"Škoda Octavia WRC Evo2",asp:83,ter:83,nei:81,sec:82,plu:81,rap:82,sin:83,fib:0.82},
+      {nom:"Hyundai Accent WRC3",asp:81,ter:82,nei:80,sec:81,plu:80,rap:81,sin:82,fib:0.8},
+      {nom:"Mitsubishi Lancer WRC",asp:85,ter:85,nei:85,sec:85,plu:85,rap:85,sin:85,fib:0.85},
+    ],
+  },
+  2003:{
+    drivers:[
+      {pos:1,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Subaru Impreza S9 WRC '03",asp:86,ter:89,nei:85,sec:87,plu:86,rap:89,sin:85,fib:0.85,casp:86,cter:89,cnei:85,csec:87,cplu:86,crap:89,csin:85,cfib:0.85},
+      {pos:2,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën Xsara WRC",asp:91,ter:88,nei:83,sec:89,plu:87,rap:88,sin:92,fib:0.89,casp:91,cter:88,cnei:83,csec:89,cplu:87,crap:88,csin:92,cfib:0.89},
+      {pos:3,nom:"Sainz Carlos",cop:"Martí Marc",voiture:"Citroën Xsara WRC",asp:93,ter:88,nei:80,sec:90,plu:87,rap:84,sin:93,fib:0.86,casp:93,cter:88,cnei:80,csec:90,cplu:87,crap:84,csin:93,cfib:0.86},
+      {pos:4,nom:"Burns Richard",cop:"Reid Robert",voiture:"Peugeot 206 WRC",asp:86,ter:88,nei:83,sec:87,plu:87,rap:88,sin:89,fib:0.93,casp:86,cter:88,cnei:83,csec:87,cplu:87,crap:88,csin:89,cfib:0.93},
+      {pos:5,nom:"Märtin Markko",cop:"Park Michael",voiture:"Ford Focus RS WRC '03",asp:86,ter:88,nei:84,sec:86,plu:85,rap:87,sin:85,fib:0.84,casp:86,cter:88,cnei:84,csec:86,cplu:85,crap:87,csin:85,cfib:0.84},
+      {pos:6,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Peugeot 206 WRC",asp:88,ter:92,nei:89,sec:87,plu:88,rap:92,sin:86,fib:0.86,casp:88,cter:92,cnei:89,csec:87,cplu:88,crap:92,csin:86,cfib:0.86},
+      {pos:7,nom:"McRae Colin",cop:"Ringer Derek",voiture:"Citroën Xsara WRC",asp:89,ter:91,nei:82,sec:89,plu:91,rap:93,sin:85,fib:0.81,casp:89,cter:91,cnei:82,csec:89,cplu:91,crap:93,csin:85,cfib:0.81},
+      {pos:8,nom:"Mäkinen Tommi",cop:"Lindström Kaj",voiture:"Subaru Impreza S9 WRC '03",asp:83,ter:93,nei:93,sec:90,plu:92,rap:92,sin:87,fib:0.84,casp:83,cter:93,cnei:93,csec:90,cplu:92,crap:92,csin:87,cfib:0.84},
+      {pos:9,nom:"Duval François",cop:"Prévot Stéphane",voiture:"Ford Focus RS WRC '03",asp:85,ter:85,nei:82,sec:84,plu:83,rap:83,sin:86,fib:0.82,casp:85,cter:85,cnei:82,csec:84,cplu:83,crap:83,csin:86,cfib:0.82},
+      {pos:10,nom:"Panizzi Gilles",cop:"Panizzi Hervé",voiture:"Peugeot 206 WRC",asp:94,ter:80,nei:80,sec:82,plu:80,rap:80,sin:93,fib:0.82,casp:94,cter:80,cnei:80,csec:82,cplu:80,crap:80,csin:93,cfib:0.82},
+      {pos:11,nom:"Rovanperä Harri",cop:"Pietiläinen Risto",voiture:"Peugeot 206 WRC",asp:83,ter:86,nei:87,sec:84,plu:83,rap:86,sin:82,fib:0.83,casp:83,cter:86,cnei:87,csec:84,cplu:83,crap:86,csin:82,cfib:0.83},
+      {pos:12,nom:"Gardemeister Toni",cop:"Lukander Paavo",voiture:"Škoda Fabia WRC",asp:83,ter:85,nei:83,sec:83,plu:82,rap:83,sin:82,fib:0.82,casp:83,cter:85,cnei:83,csec:83,cplu:82,crap:83,csin:82,cfib:0.82},
+      {pos:13,nom:"Auriol Didier",cop:"Giraudet Denis",voiture:"Škoda Fabia WRC",asp:90,ter:82,nei:80,sec:83,plu:81,rap:81,sin:89,fib:0.82,casp:90,cter:82,cnei:80,csec:83,cplu:81,crap:81,csin:89,cfib:0.82},
+      {pos:14,nom:"Loix Freddy",cop:"Smeets Sven",voiture:"Hyundai Accent WRC3",asp:83,ter:81,nei:80,sec:82,plu:81,rap:81,sin:83,fib:0.82,casp:83,cter:81,cnei:80,csec:82,cplu:81,crap:81,csin:83,cfib:0.82},
+      {pos:15,nom:"Robert Cédric",cop:"Bedon Gérald",voiture:"Peugeot 206 WRC",asp:82,ter:83,nei:80,sec:81,plu:80,rap:80,sin:83,fib:0.8,casp:82,cter:83,cnei:80,csec:81,cplu:80,crap:80,csin:83,cfib:0.8},
+      {pos:16,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Ford Focus WRC '02",asp:84,ter:85,nei:83,sec:84,plu:83,rap:85,sin:83,fib:0.82,casp:84,cter:85,cnei:83,csec:84,cplu:83,crap:85,csin:83,cfib:0.82},
+      {pos:17,nom:"McRae Alister",cop:"Senior David",voiture:"Mitsubishi Lancer WRC2",asp:82,ter:84,nei:81,sec:82,plu:81,rap:83,sin:82,fib:0.81,casp:82,cter:84,cnei:81,csec:82,cplu:81,crap:83,csin:82,cfib:0.81},
+      {pos:18,nom:"Schwarz Armin",cop:"Hiemer Manfred",voiture:"Hyundai Accent WRC3",asp:82,ter:82,nei:80,sec:82,plu:81,rap:82,sin:83,fib:0.8,casp:82,cter:82,cnei:80,csec:82,cplu:81,crap:82,csin:83,cfib:0.8},
+      {pos:19,nom:"Stohl Manfred",cop:"Minor Ilka",voiture:"Peugeot 206 WRC",asp:82,ter:83,nei:81,sec:82,plu:81,rap:82,sin:82,fib:0.83,casp:82,cter:83,cnei:81,csec:82,cplu:81,crap:82,csin:82,cfib:0.83},
+      {pos:20,nom:"Bugalski Philippe",cop:"Chiaroni Jean-Paul",voiture:"Citroën Xsara WRC",asp:86,ter:83,nei:80,sec:83,plu:81,rap:82,sin:85,fib:0.8,casp:86,cter:83,cnei:80,csec:83,cplu:81,crap:82,csin:85,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Subaru Impreza S9 WRC '03",asp:89,ter:92,nei:86,sec:90,plu:88,rap:91,sin:86,fib:0.87},
+      {nom:"Citroën Xsara WRC",asp:91,ter:88,nei:83,sec:89,plu:87,rap:88,sin:92,fib:0.89},
+      {nom:"Peugeot 206 WRC",asp:92,ter:91,nei:86,sec:90,plu:89,rap:92,sin:91,fib:0.88},
+      {nom:"Ford Focus RS WRC '03",asp:90,ter:90,nei:83,sec:89,plu:88,rap:90,sin:91,fib:0.87},
+      {nom:"Škoda Fabia WRC",asp:83,ter:84,nei:82,sec:83,plu:82,rap:83,sin:84,fib:0.83},
+      {nom:"Hyundai Accent WRC3",asp:81,ter:82,nei:80,sec:81,plu:80,rap:81,sin:82,fib:0.8},
+      {nom:"Ford Focus WRC '02",asp:89,ter:89,nei:82,sec:88,plu:87,rap:89,sin:90,fib:0.86},
+      {nom:"Mitsubishi Lancer WRC2",asp:83,ter:84,nei:82,sec:83,plu:82,rap:83,sin:83,fib:0.81},
+    ],
+  },
+  2004:{
+    drivers:[
+      {pos:1,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën Xsara WRC",asp:92,ter:89,nei:84,sec:89,plu:88,rap:88,sin:92,fib:0.9,casp:89,cter:94,cnei:88,csec:84,cplu:89,crap:88,csin:88,cfib:0.92},
+      {pos:2,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Subaru Impreza S10 WRC '04",asp:87,ter:89,nei:86,sec:87,plu:86,rap:89,sin:86,fib:0.88,casp:86,cter:89,cnei:86,csec:87,cplu:86,crap:89,csin:86,cfib:0.88},
+      {pos:3,nom:"Märtin Markko",cop:"Park Michael",voiture:"Ford Focus RS WRC '04",asp:87,ter:88,nei:84,sec:87,plu:86,rap:88,sin:87,fib:0.86,casp:87,cter:88,cnei:84,csec:87,cplu:86,crap:88,csin:87,cfib:0.86},
+      {pos:4,nom:"Sainz Carlos",cop:"Martí Marc",voiture:"Citroën Xsara WRC",asp:93,ter:88,nei:80,sec:90,plu:87,rap:84,sin:93,fib:0.86,casp:88,cter:94,cnei:89,csec:80,cplu:90,crap:87,csin:85,cfib:0.94},
+      {pos:5,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Peugeot 307 WRC",asp:90,ter:93,nei:90,sec:89,plu:90,rap:94,sin:88,fib:0.87,casp:90,cter:88,cnei:93,csec:90,cplu:89,crap:90,csin:94,cfib:0.88},
+      {pos:6,nom:"Duval François",cop:"Prévot Stéphane",voiture:"Ford Focus RS WRC '04",asp:85,ter:85,nei:82,sec:84,plu:83,rap:83,sin:86,fib:0.82,casp:85,cter:89,cnei:85,csec:81,cplu:85,crap:84,csin:84,cfib:0.88},
+      {pos:7,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Subaru Impreza S10 WRC '04",asp:84,ter:86,nei:86,sec:84,plu:83,rap:86,sin:83,fib:0.84,casp:84,cter:83,cnei:86,csec:86,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:8,nom:"Rovanperä Harri",cop:"Pietiläinen Risto",voiture:"Peugeot 307 WRC",asp:83,ter:86,nei:86,sec:84,plu:83,rap:85,sin:82,fib:0.83,casp:84,cter:82,cnei:86,csec:86,cplu:84,crap:83,csin:85,cfib:0.82},
+      {pos:9,nom:"Tuohino Janne",cop:"Aho Jukka",voiture:"Ford Focus WRC '02",asp:82,ter:83,nei:84,sec:82,plu:81,rap:83,sin:81,fib:0.82,casp:82,cter:81,cnei:83,csec:84,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:10,nom:"Loix Freddy",cop:"Smeets Sven",voiture:"Peugeot 307 WRC",asp:82,ter:84,nei:81,sec:82,plu:81,rap:81,sin:83,fib:0.82,casp:82,cter:84,cnei:81,csec:80,cplu:82,crap:81,csin:81,cfib:0.83},
+      {pos:11,nom:"Sarrazin Stéphane",cop:"Pivato Patrick",voiture:"Subaru Impreza S9 WRC '03",asp:83,ter:83,nei:81,sec:82,plu:81,rap:82,sin:83,fib:0.82,casp:83,cter:86,cnei:82,csec:81,cplu:83,crap:82,csin:82,cfib:0.85},
+      {pos:12,nom:"Carlsson Daniel",cop:"Andersson Mattias",voiture:"Peugeot 206 WRC",asp:83,ter:84,nei:84,sec:83,plu:82,rap:84,sin:82,fib:0.83,casp:83,cter:82,cnei:84,csec:84,cplu:83,crap:82,csin:84,cfib:0.82},
+      {pos:13,nom:"Panizzi Gilles",cop:"Panizzi Hervé",voiture:"Mitsubishi Lancer WRC 04",asp:95,ter:80,nei:80,sec:82,plu:80,rap:80,sin:93,fib:0.82,casp:84,cter:95,cnei:80,csec:80,cplu:82,crap:80,csin:80,cfib:0.93},
+      {pos:14,nom:"Navarra Andrea",cop:"Fedeli Simona",voiture:"Subaru Impreza S9 WRC '03",asp:81,ter:83,nei:81,sec:81,plu:80,rap:81,sin:82,fib:0.81,casp:81,cter:83,cnei:81,csec:80,cplu:81,crap:80,csin:81,cfib:0.82},
+      {pos:15,nom:"Galli Gianluigi",cop:"D'Amore Guido",voiture:"Mitsubishi Lancer WRC 04",asp:82,ter:84,nei:82,sec:82,plu:80,rap:81,sin:83,fib:0.82,casp:82,cter:84,cnei:82,csec:80,cplu:82,crap:80,csin:81,cfib:0.83},
+      {pos:16,nom:"Robert Cédric",cop:"Bedon Gérald",voiture:"Peugeot 307 WRC",asp:82,ter:83,nei:80,sec:81,plu:80,rap:80,sin:83,fib:0.8,casp:82,cter:86,cnei:81,csec:80,cplu:82,crap:81,csin:81,cfib:0.85},
+      {pos:17,nom:"Stohl Manfred",cop:"Minor Ilka",voiture:"Peugeot 206 WRC",asp:82,ter:83,nei:81,sec:82,plu:81,rap:82,sin:82,fib:0.83,casp:82,cter:82,cnei:83,csec:81,cplu:82,crap:81,csin:82,cfib:0.82},
+      {pos:18,nom:"Solberg Henning",cop:"Menkerud Cato",voiture:"Peugeot 206 WRC",asp:82,ter:83,nei:83,sec:82,plu:81,rap:83,sin:81,fib:0.82,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:19,nom:"Paasonen Jani",cop:"Vainikka Jani",voiture:"Škoda Fabia WRC",asp:81,ter:82,nei:83,sec:81,plu:80,rap:82,sin:80,fib:0.82,casp:81,cter:80,cnei:82,csec:83,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:20,nom:"Gardemeister Toni",cop:"Lukander Paavo",voiture:"Škoda Fabia WRC",asp:83,ter:85,nei:83,sec:83,plu:82,rap:83,sin:82,fib:0.82,casp:83,cter:82,cnei:84,csec:85,cplu:83,crap:82,csin:84,cfib:0.81},
+    ],
+    cars:[
+      {nom:"Citroën Xsara WRC",asp:91,ter:96,nei:90,sec:85,plu:91,rap:89,sin:90,fib:0.95},
+      {nom:"Subaru Impreza S10 WRC '04",asp:90,ter:89,nei:93,sec:87,plu:91,rap:89,sin:93,fib:0.88},
+      {nom:"Ford Focus RS WRC '04",asp:90,ter:92,nei:91,sec:83,plu:90,rap:89,sin:91,fib:0.92},
+      {nom:"Peugeot 307 WRC",asp:89,ter:91,nei:91,sec:85,plu:90,rap:89,sin:91,fib:0.91},
+      {nom:"Ford Focus WRC '02",asp:87,ter:89,nei:88,sec:81,plu:87,rap:86,sin:88,fib:0.89},
+      {nom:"Subaru Impreza S9 WRC '03",asp:88,ter:87,nei:92,sec:86,plu:90,rap:88,sin:91,fib:0.86},
+      {nom:"Peugeot 206 WRC",asp:90,ter:93,nei:91,sec:86,plu:90,rap:89,sin:93,fib:0.92},
+      {nom:"Mitsubishi Lancer WRC 04",asp:86,ter:83,nei:89,sec:90,plu:87,rap:86,sin:87,fib:0.84},
+      {nom:"Škoda Fabia WRC",asp:83,ter:84,nei:84,sec:82,plu:83,rap:82,sin:83,fib:0.84},
+    ],
+  },
+  2005:{
+    drivers:[
+      {pos:1,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën Xsara WRC",asp:90,ter:95,nei:89,sec:84,plu:90,rap:89,sin:89,fib:0.93,casp:90,cter:95,cnei:89,csec:84,cplu:90,crap:89,csin:89,cfib:0.93},
+      {pos:2,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Subaru Impreza S11 WRC '05",asp:87,ter:86,nei:89,sec:86,plu:87,rap:86,sin:89,fib:0.86,casp:87,cter:86,cnei:89,csec:86,cplu:87,crap:86,csin:89,cfib:0.86},
+      {pos:3,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Peugeot 307 WRC",asp:90,ter:88,nei:93,sec:90,plu:89,rap:90,sin:94,fib:0.88,casp:90,cter:88,cnei:93,csec:90,cplu:89,crap:90,csin:94,cfib:0.88},
+      {pos:4,nom:"Gardemeister Toni",cop:"Honkanen Jakke",voiture:"Ford Focus RS WRC '04",asp:83,ter:82,nei:84,sec:85,plu:83,rap:82,sin:84,fib:0.81,casp:83,cter:82,cnei:84,csec:85,cplu:83,crap:82,csin:84,cfib:0.81},
+      {pos:5,nom:"Märtin Markko",cop:"Park Michael",voiture:"Peugeot 307 WRC",asp:87,ter:88,nei:88,sec:84,plu:87,rap:86,sin:88,fib:0.87,casp:87,cter:88,cnei:88,csec:84,cplu:87,crap:86,csin:88,cfib:0.87},
+      {pos:6,nom:"Duval François",cop:"Smeets Sven",voiture:"Citroën Xsara WRC",asp:85,ter:89,nei:85,sec:81,plu:85,rap:84,sin:84,fib:0.88,casp:85,cter:89,cnei:85,csec:81,cplu:85,crap:84,csin:84,cfib:0.88},
+      {pos:7,nom:"Rovanperä Harri",cop:"Pietiläinen Risto",voiture:"Mitsubishi Lancer WRC 05",asp:84,ter:82,nei:86,sec:86,plu:84,rap:83,sin:85,fib:0.82,casp:84,cter:82,cnei:86,csec:86,cplu:84,crap:83,csin:85,cfib:0.82},
+      {pos:8,nom:"Kresta Roman",cop:"Tománek Jan",voiture:"Ford Focus RS WRC '04",asp:83,ter:83,nei:84,sec:83,plu:83,rap:82,sin:84,fib:0.83,casp:83,cter:83,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.83},
+      {pos:9,nom:"Stohl Manfred",cop:"Minor Ilka",voiture:"Citroën Xsara WRC",asp:82,ter:82,nei:83,sec:81,plu:82,rap:81,sin:82,fib:0.82,casp:82,cter:82,cnei:83,csec:81,cplu:82,crap:81,csin:82,cfib:0.82},
+      {pos:10,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Ford Focus RS WRC '03",asp:84,ter:83,nei:86,sec:86,plu:84,rap:83,sin:86,fib:0.83,casp:84,cter:83,cnei:86,csec:86,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:11,nom:"Galli Gianluigi",cop:"D'Amore Guido",voiture:"Mitsubishi Lancer WRC 05",asp:82,ter:84,nei:82,sec:80,plu:82,rap:80,sin:81,fib:0.83,casp:82,cter:84,cnei:82,csec:80,cplu:82,crap:80,csin:81,cfib:0.83},
+      {pos:12,nom:"Atkinson Chris",cop:"Macneall Glenn",voiture:"Subaru Impreza S11 WRC '05",asp:84,ter:83,nei:85,sec:84,plu:84,rap:83,sin:85,fib:0.83,casp:84,cter:83,cnei:85,csec:84,cplu:84,crap:83,csin:85,cfib:0.83},
+      {pos:13,nom:"Sainz Carlos",cop:"Martí Marc",voiture:"Citroën Xsara WRC",asp:87,ter:93,nei:88,sec:80,plu:89,rap:86,sin:84,fib:0.93,casp:87,cter:93,cnei:88,csec:80,cplu:89,crap:86,csin:84,cfib:0.93},
+      {pos:14,nom:"Solberg Henning",cop:"Menkerud Cato",voiture:"Ford Focus RS WRC '04",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:15,nom:"Panizzi Gilles",cop:"Panizzi Hervé",voiture:"Mitsubishi Lancer WRC 05",asp:84,ter:95,nei:80,sec:80,plu:82,rap:80,sin:80,fib:0.93,casp:84,cter:95,cnei:80,csec:80,cplu:82,crap:80,csin:80,cfib:0.93},
+      {pos:16,nom:"Pons Xevi",cop:"del Barrio Carlos",voiture:"Citroën Xsara WRC",asp:83,ter:86,nei:82,sec:80,plu:83,rap:81,sin:82,fib:0.85,casp:83,cter:86,cnei:82,csec:80,cplu:83,crap:81,csin:82,cfib:0.85},
+      {pos:17,nom:"Sarrazin Stéphane",cop:"Giraudet Denis",voiture:"Subaru Impreza S11 WRC '05",asp:83,ter:86,nei:82,sec:81,plu:83,rap:82,sin:82,fib:0.85,casp:83,cter:86,cnei:82,csec:81,cplu:83,crap:82,csin:82,cfib:0.85},
+      {pos:18,nom:"Warmbold Antony",cop:"Orr Michael",voiture:"Ford Focus RS WRC '04",asp:81,ter:81,nei:82,sec:81,plu:81,rap:81,sin:82,fib:0.81,casp:81,cter:81,cnei:82,csec:81,cplu:81,crap:81,csin:82,cfib:0.81},
+      {pos:19,nom:"Bernardi Nicolas",cop:"Fortin Jean-Marc",voiture:"Peugeot 206 WRC",asp:81,ter:82,nei:81,sec:80,plu:81,rap:80,sin:81,fib:0.81,casp:81,cter:82,cnei:81,csec:80,cplu:81,crap:80,csin:81,cfib:0.81},
+      {pos:20,nom:"Bengué Alexandre",cop:"Escudero-Bengué Caroline",voiture:"Škoda Fabia WRC",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Citroën Xsara WRC",asp:91,ter:96,nei:90,sec:85,plu:91,rap:89,sin:90,fib:0.95},
+      {nom:"Subaru Impreza S11 WRC '05",asp:90,ter:89,nei:93,sec:87,plu:91,rap:89,sin:93,fib:0.88},
+      {nom:"Peugeot 307 WRC",asp:89,ter:91,nei:91,sec:85,plu:90,rap:89,sin:91,fib:0.91},
+      {nom:"Ford Focus RS WRC '04",asp:89,ter:91,nei:90,sec:83,plu:89,rap:88,sin:90,fib:0.91},
+      {nom:"Mitsubishi Lancer WRC 05",asp:86,ter:83,nei:89,sec:90,plu:87,rap:86,sin:87,fib:0.84},
+      {nom:"Ford Focus RS WRC '03",asp:88,ter:90,nei:89,sec:82,plu:88,rap:87,sin:89,fib:0.9},
+      {nom:"Peugeot 206 WRC",asp:89,ter:92,nei:90,sec:85,plu:89,rap:88,sin:92,fib:0.91},
+      {nom:"Škoda Fabia WRC",asp:83,ter:84,nei:84,sec:82,plu:83,rap:82,sin:83,fib:0.84},
+    ],
+  },
+  2006:{
+    drivers:[
+      {pos:1,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën Xsara WRC",asp:91,ter:96,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.94,casp:91,cter:96,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.94},
+      {pos:2,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Ford Focus RS WRC '06",asp:91,ter:88,nei:94,sec:91,plu:90,rap:91,sin:95,fib:0.88,casp:91,cter:88,cnei:94,csec:91,cplu:90,crap:91,csin:95,cfib:0.88},
+      {pos:3,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Ford Focus RS WRC '06",asp:85,ter:84,nei:87,sec:87,plu:85,rap:84,sin:87,fib:0.84,casp:85,cter:84,cnei:87,csec:87,cplu:85,crap:84,csin:87,cfib:0.84},
+      {pos:4,nom:"Stohl Manfred",cop:"Minor Ilka",voiture:"Peugeot 307 WRC",asp:82,ter:82,nei:83,sec:81,plu:82,rap:81,sin:82,fib:0.82,casp:82,cter:82,cnei:83,csec:81,cplu:82,crap:81,csin:82,cfib:0.82},
+      {pos:5,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Citroën Xsara WRC",asp:86,ter:90,nei:85,sec:82,plu:87,rap:85,sin:85,fib:0.89,casp:86,cter:90,cnei:85,csec:82,cplu:87,crap:85,csin:85,cfib:0.89},
+      {pos:6,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Subaru Impreza S12 WRC '06",asp:87,ter:85,nei:89,sec:86,plu:87,rap:86,sin:89,fib:0.85,casp:87,cter:85,cnei:89,csec:86,cplu:87,crap:86,csin:89,cfib:0.85},
+      {pos:7,nom:"Pons Xevi",cop:"del Barrio Carlos",voiture:"Citroën Xsara WRC",asp:83,ter:86,nei:82,sec:80,plu:83,rap:81,sin:82,fib:0.85,casp:83,cter:86,cnei:82,csec:80,cplu:83,crap:81,csin:82,cfib:0.85},
+      {pos:8,nom:"Solberg Henning",cop:"Menkerud Cato",voiture:"Peugeot 307 WRC",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:9,nom:"Gardemeister Toni",cop:"Honkanen Jakke",voiture:"Citroën Xsara WRC",asp:83,ter:82,nei:84,sec:85,plu:83,rap:82,sin:84,fib:0.81,casp:83,cter:82,cnei:84,csec:85,cplu:83,crap:82,csin:84,cfib:0.81},
+      {pos:10,nom:"Atkinson Chris",cop:"Macneall Glenn",voiture:"Subaru Impreza S12 WRC '06",asp:84,ter:83,nei:86,sec:85,plu:84,rap:83,sin:86,fib:0.83,casp:84,cter:83,cnei:86,csec:85,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:11,nom:"Galli Gianluigi",cop:"Bernacchini Giovanni",voiture:"Peugeot 307 WRC",asp:82,ter:84,nei:82,sec:80,plu:82,rap:80,sin:81,fib:0.83,casp:82,cter:84,cnei:82,csec:80,cplu:82,crap:80,csin:81,cfib:0.83},
+      {pos:12,nom:"Bengué Alexandre",cop:"Escudero-Bengué Caroline",voiture:"Peugeot 307 WRC",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:13,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Ford Focus RS WRC '04",asp:85,ter:85,nei:86,sec:85,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:86,csec:85,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:14,nom:"Katajamäki Kosti",cop:"Alanne Timo",voiture:"Ford Focus RS WRC '04",asp:81,ter:80,nei:82,sec:83,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:83,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:15,nom:"Kopecký Jan",cop:"Schovánek Filip",voiture:"Škoda Fabia WRC",asp:82,ter:82,nei:82,sec:81,plu:82,rap:81,sin:82,fib:0.82,casp:82,cter:82,cnei:82,csec:81,cplu:82,crap:81,csin:82,cfib:0.82},
+      {pos:16,nom:"Carlsson Daniel",cop:"Holmstrand Bosse",voiture:"Mitsubishi Lancer WRC 05",asp:83,ter:82,nei:84,sec:84,plu:83,rap:82,sin:84,fib:0.82,casp:83,cter:82,cnei:84,csec:84,cplu:83,crap:82,csin:84,cfib:0.82},
+      {pos:17,nom:"Välimäki Jussi",cop:"Kalliolepo Jarkko",voiture:"Mitsubishi Lancer WRC 05",asp:81,ter:80,nei:82,sec:83,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:83,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:18,nom:"Sarrazin Stéphane",cop:"Prévot Stéphane",voiture:"Subaru Impreza S12 WRC '06",asp:83,ter:86,nei:82,sec:81,plu:83,rap:82,sin:82,fib:0.85,casp:83,cter:86,cnei:82,csec:81,cplu:83,crap:82,csin:82,cfib:0.85},
+      {pos:19,nom:"Duval François",cop:"Pivato Patrick",voiture:"Škoda Fabia WRC",asp:84,ter:88,nei:84,sec:81,plu:84,rap:83,sin:83,fib:0.87,casp:84,cter:88,cnei:84,csec:81,cplu:84,crap:83,csin:83,cfib:0.87},
+      {pos:20,nom:"Aigner Andreas",cop:"Wicha Klaus",voiture:"Škoda Fabia WRC",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Citroën Xsara WRC",asp:91,ter:96,nei:90,sec:85,plu:91,rap:89,sin:90,fib:0.95},
+      {nom:"Ford Focus RS WRC '06",asp:90,ter:92,nei:91,sec:84,plu:90,rap:89,sin:91,fib:0.92},
+      {nom:"Peugeot 307 WRC",asp:89,ter:91,nei:91,sec:85,plu:90,rap:89,sin:91,fib:0.91},
+      {nom:"Subaru Impreza S12 WRC '06",asp:90,ter:89,nei:93,sec:87,plu:91,rap:89,sin:93,fib:0.88},
+      {nom:"Ford Focus RS WRC '04",asp:88,ter:90,nei:89,sec:82,plu:88,rap:87,sin:89,fib:0.9},
+      {nom:"Škoda Fabia WRC",asp:83,ter:84,nei:84,sec:82,plu:83,rap:82,sin:83,fib:0.84},
+      {nom:"Mitsubishi Lancer WRC 05",asp:85,ter:83,nei:88,sec:89,plu:86,rap:85,sin:86,fib:0.83},
+    ],
+  },
+  2007:{
+    drivers:[
+      {pos:1,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën C4 WRC",asp:92,ter:97,nei:91,sec:86,plu:92,rap:91,sin:91,fib:0.95,casp:92,cter:97,cnei:91,csec:86,cplu:92,crap:91,csin:91,cfib:0.95},
+      {pos:2,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Ford Focus RS WRC '07",asp:91,ter:88,nei:94,sec:91,plu:90,rap:91,sin:95,fib:0.88,casp:91,cter:88,cnei:94,csec:91,cplu:90,crap:91,csin:95,cfib:0.88},
+      {pos:3,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Ford Focus RS WRC '07",asp:86,ter:85,nei:88,sec:87,plu:86,rap:85,sin:88,fib:0.85,casp:86,cter:85,cnei:88,csec:87,cplu:86,crap:85,csin:88,cfib:0.85},
+      {pos:4,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Citroën C4 WRC",asp:87,ter:91,nei:86,sec:82,plu:88,rap:86,sin:86,fib:0.9,casp:87,cter:91,cnei:86,csec:82,cplu:88,crap:86,csin:86,cfib:0.9},
+      {pos:5,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Subaru Impreza S12B WRC '07",asp:87,ter:85,nei:89,sec:86,plu:87,rap:86,sin:89,fib:0.85,casp:87,cter:85,cnei:89,csec:86,cplu:87,crap:86,csin:89,cfib:0.85},
+      {pos:6,nom:"Solberg Henning",cop:"Menkerud Cato",voiture:"Ford Focus RS WRC '06",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:7,nom:"Atkinson Chris",cop:"Prévot Stéphane",voiture:"Subaru Impreza S12B WRC '07",asp:84,ter:83,nei:86,sec:85,plu:84,rap:83,sin:86,fib:0.83,casp:84,cter:83,cnei:86,csec:85,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:8,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Ford Focus RS WRC '06",asp:86,ter:86,nei:87,sec:86,plu:86,rap:85,sin:88,fib:0.86,casp:86,cter:86,cnei:87,csec:86,cplu:86,crap:85,csin:88,cfib:0.86},
+      {pos:9,nom:"Stohl Manfred",cop:"Minor Ilka",voiture:"Citroën Xsara WRC",asp:82,ter:82,nei:83,sec:81,plu:82,rap:81,sin:82,fib:0.82,casp:82,cter:82,cnei:83,csec:81,cplu:82,crap:81,csin:82,cfib:0.82},
+      {pos:10,nom:"Duval François",cop:"Pivato Patrick",voiture:"Citroën Xsara WRC",asp:84,ter:88,nei:84,sec:81,plu:84,rap:83,sin:83,fib:0.87,casp:84,cter:88,cnei:84,csec:81,cplu:84,crap:83,csin:83,cfib:0.87},
+      {pos:11,nom:"Wilson Matthew",cop:"Martin Scott",voiture:"Ford Focus RS WRC '06",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:85,fib:0.84,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:85,cfib:0.84},
+      {pos:12,nom:"Kopecký Jan",cop:"Schovánek Filip",voiture:"Škoda Fabia WRC",asp:82,ter:82,nei:82,sec:81,plu:82,rap:81,sin:82,fib:0.82,casp:82,cter:82,cnei:82,csec:81,cplu:82,crap:81,csin:82,cfib:0.82},
+      {pos:13,nom:"Gardemeister Toni",cop:"Honkanen Jakke",voiture:"Mitsubishi Lancer WRC 05",asp:83,ter:82,nei:84,sec:85,plu:83,rap:82,sin:84,fib:0.81,casp:83,cter:82,cnei:84,csec:85,cplu:83,crap:82,csin:84,cfib:0.81},
+      {pos:14,nom:"Carlsson Daniel",cop:"Giraudet Denis",voiture:"Citroën Xsara WRC",asp:83,ter:82,nei:84,sec:84,plu:83,rap:82,sin:84,fib:0.82,casp:83,cter:82,cnei:84,csec:84,cplu:83,crap:82,csin:84,cfib:0.82},
+      {pos:15,nom:"Galli Gianluigi",cop:"Bernacchini Giovanni",voiture:"Citroën Xsara WRC",asp:82,ter:84,nei:82,sec:80,plu:82,rap:80,sin:81,fib:0.83,casp:82,cter:84,cnei:82,csec:80,cplu:82,crap:80,csin:81,cfib:0.83},
+      {pos:16,nom:"Perez Companc Luis",cop:"Volta José Maria",voiture:"Ford Focus RS WRC '06",asp:81,ter:80,nei:82,sec:81,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:81,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:17,nom:"Pons Xevi",cop:"Amigò Colón Xavier",voiture:"Subaru Impreza S12B WRC '07",asp:82,ter:85,nei:82,sec:80,plu:82,rap:81,sin:82,fib:0.84,casp:82,cter:85,cnei:82,csec:80,cplu:82,crap:81,csin:82,cfib:0.84},
+      {pos:18,nom:"Wilks Guy",cop:"Pugh Phil",voiture:"Ford Focus RS WRC '05",asp:81,ter:81,nei:82,sec:81,plu:81,rap:80,sin:82,fib:0.81,casp:81,cter:81,cnei:82,csec:81,cplu:81,crap:80,csin:82,cfib:0.81},
+      {pos:19,nom:"Aava Urmo",cop:"Sikk Kuldar",voiture:"Mitsubishi Lancer WRC 05",asp:82,ter:81,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:20,nom:"Østberg Mads",cop:"Unnerud Ole Kristian",voiture:"Subaru Impreza S10 WRC '04",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+    ],
+    cars:[
+      {nom:"Citroën C4 WRC",asp:91,ter:95,nei:91,sec:86,plu:92,rap:90,sin:91,fib:0.94},
+      {nom:"Ford Focus RS WRC '07",asp:90,ter:92,nei:91,sec:84,plu:90,rap:89,sin:91,fib:0.92},
+      {nom:"Subaru Impreza S12B WRC '07",asp:89,ter:88,nei:93,sec:87,plu:90,rap:88,sin:92,fib:0.87},
+      {nom:"Ford Focus RS WRC '06",asp:89,ter:91,nei:90,sec:83,plu:89,rap:88,sin:90,fib:0.91},
+      {nom:"Citroën Xsara WRC",asp:90,ter:95,nei:89,sec:84,plu:90,rap:88,sin:89,fib:0.94},
+      {nom:"Škoda Fabia WRC",asp:83,ter:84,nei:84,sec:82,plu:83,rap:82,sin:83,fib:0.84},
+      {nom:"Mitsubishi Lancer WRC 05",asp:85,ter:83,nei:88,sec:89,plu:86,rap:85,sin:86,fib:0.83},
+      {nom:"Ford Focus RS WRC '05",asp:89,ter:91,nei:90,sec:83,plu:89,rap:88,sin:90,fib:0.91},
+      {nom:"Subaru Impreza S10 WRC '04",asp:88,ter:87,nei:91,sec:85,plu:89,rap:87,sin:90,fib:0.86},
+    ],
+  },
+  2008:{
+    drivers:[
+      {pos:1,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën C4 WRC",asp:92,ter:97,nei:91,sec:86,plu:92,rap:91,sin:91,fib:0.95,casp:92,cter:97,cnei:91,csec:86,cplu:92,crap:91,csin:91,cfib:0.95},
+      {pos:2,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Ford Focus RS WRC '07",asp:87,ter:86,nei:89,sec:87,plu:87,rap:86,sin:89,fib:0.86,casp:87,cter:86,cnei:89,csec:87,cplu:87,crap:86,csin:89,cfib:0.86},
+      {pos:3,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Citroën C4 WRC",asp:88,ter:92,nei:87,sec:82,plu:89,rap:87,sin:87,fib:0.91,casp:88,cter:92,cnei:87,csec:82,cplu:89,crap:87,csin:87,cfib:0.91},
+      {pos:4,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Ford Focus RS WRC '07",asp:87,ter:87,nei:88,sec:86,plu:87,rap:86,sin:89,fib:0.87,casp:87,cter:87,cnei:88,csec:86,cplu:87,crap:86,csin:89,cfib:0.87},
+      {pos:5,nom:"Atkinson Chris",cop:"Prévot Stéphane",voiture:"Subaru Impreza S14 WRC '08",asp:85,ter:83,nei:87,sec:85,plu:84,rap:83,sin:87,fib:0.83,casp:85,cter:83,cnei:87,csec:85,cplu:84,crap:83,csin:87,cfib:0.83},
+      {pos:6,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Subaru Impreza S14 WRC '08",asp:86,ter:85,nei:89,sec:86,plu:87,rap:86,sin:89,fib:0.85,casp:86,cter:85,cnei:89,csec:86,cplu:87,crap:86,csin:89,cfib:0.85},
+      {pos:7,nom:"Duval François",cop:"Pivato Patrick",voiture:"Ford Focus RS WRC '07",asp:84,ter:88,nei:84,sec:81,plu:84,rap:83,sin:83,fib:0.87,casp:84,cter:88,cnei:84,csec:81,cplu:84,crap:83,csin:83,cfib:0.87},
+      {pos:8,nom:"Solberg Henning",cop:"Menkerud Cato",voiture:"Ford Focus RS WRC '07",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:9,nom:"Galli Gianluigi",cop:"Bernacchini Giovanni",voiture:"Ford Focus RS WRC '07",asp:82,ter:84,nei:82,sec:80,plu:82,rap:80,sin:81,fib:0.83,casp:82,cter:84,cnei:82,csec:80,cplu:82,crap:80,csin:81,cfib:0.83},
+      {pos:10,nom:"Wilson Matthew",cop:"Martin Scott",voiture:"Ford Focus RS WRC '07",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:85,fib:0.84,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:85,cfib:0.84},
+      {pos:11,nom:"Aava Urmo",cop:"Sikk Kuldar",voiture:"Citroën C4 WRC",asp:82,ter:81,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:12,nom:"Andersson Per-Gunnar",cop:"Andersson Jonas",voiture:"Suzuki SX4 WRC",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:13,nom:"Gardemeister Toni",cop:"Tuominen Tomi",voiture:"Suzuki SX4 WRC",asp:82,ter:81,nei:83,sec:84,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:84,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:14,nom:"Villagra Federico",cop:"Perez Companc Jorge",voiture:"Ford Focus RS WRC '07",asp:81,ter:81,nei:83,sec:81,plu:81,rap:80,sin:82,fib:0.81,casp:81,cter:81,cnei:83,csec:81,cplu:81,crap:80,csin:82,cfib:0.81},
+      {pos:15,nom:"Rautenbach Conrad",cop:"Senior David",voiture:"Citroën C4 WRC",asp:81,ter:81,nei:82,sec:81,plu:81,rap:80,sin:82,fib:0.81,casp:81,cter:81,cnei:82,csec:81,cplu:81,crap:80,csin:82,cfib:0.81},
+      {pos:16,nom:"Mikkelsen Andreas",cop:"Fløene Ola",voiture:"Ford Focus RS WRC '06",asp:81,ter:81,nei:82,sec:82,plu:81,rap:81,sin:82,fib:0.81,casp:81,cter:81,cnei:82,csec:82,cplu:81,crap:81,csin:82,cfib:0.81},
+      {pos:17,nom:"Cuoq Jean-Marie",cop:"Janvier Philippe",voiture:"Peugeot 307 WRC",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:18,nom:"Rantanen Matti",cop:"Lönegren Jan",voiture:"Ford Focus RS WRC '06",asp:81,ter:80,nei:82,sec:83,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:83,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:19,nom:"Al-Qassimi Khalid",cop:"Orr Michael",voiture:"Ford Focus RS WRC '07",asp:82,ter:83,nei:82,sec:80,plu:82,rap:81,sin:81,fib:0.82,casp:82,cter:83,cnei:82,csec:80,cplu:82,crap:81,csin:81,cfib:0.82},
+      {pos:20,nom:"van Merksteijn Peter sen.",cop:"van Beek Hans",voiture:"Ford Focus RS WRC '06",asp:81,ter:80,nei:82,sec:81,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:81,cplu:81,crap:80,csin:82,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Citroën C4 WRC",asp:92,ter:96,nei:91,sec:86,plu:92,rap:90,sin:91,fib:0.95},
+      {nom:"Ford Focus RS WRC '07",asp:90,ter:92,nei:91,sec:84,plu:90,rap:89,sin:91,fib:0.92},
+      {nom:"Subaru Impreza S14 WRC '08",asp:89,ter:88,nei:93,sec:87,plu:90,rap:88,sin:92,fib:0.87},
+      {nom:"Suzuki SX4 WRC",asp:83,ter:85,nei:84,sec:82,plu:84,rap:82,sin:83,fib:0.85},
+      {nom:"Ford Focus RS WRC '06",asp:88,ter:90,nei:89,sec:83,plu:88,rap:87,sin:89,fib:0.9},
+      {nom:"Peugeot 307 WRC",asp:88,ter:90,nei:90,sec:84,plu:89,rap:88,sin:90,fib:0.9},
+    ],
+  },
+  2009:{
+    drivers:[
+      {pos:1,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën C4 WRC",asp:92,ter:97,nei:91,sec:86,plu:92,rap:91,sin:91,fib:0.95,casp:92,cter:97,cnei:91,csec:86,cplu:92,crap:91,csin:91,cfib:0.95},
+      {pos:2,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Ford Focus RS WRC '09",asp:88,ter:87,nei:90,sec:88,plu:88,rap:87,sin:90,fib:0.87,casp:88,cter:87,cnei:90,csec:88,cplu:88,crap:87,csin:90,cfib:0.87},
+      {pos:3,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Citroën C4 WRC",asp:88,ter:92,nei:87,sec:82,plu:89,rap:87,sin:87,fib:0.91,casp:88,cter:92,cnei:87,csec:82,cplu:89,crap:87,csin:87,cfib:0.91},
+      {pos:4,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Ford Focus RS WRC '09",asp:87,ter:87,nei:89,sec:86,plu:87,rap:86,sin:90,fib:0.87,casp:87,cter:87,cnei:89,csec:86,cplu:87,crap:86,csin:90,cfib:0.87},
+      {pos:5,nom:"Solberg Petter",cop:"Mills Phil",voiture:"Citroën Xsara WRC",asp:86,ter:85,nei:89,sec:86,plu:87,rap:86,sin:89,fib:0.85,casp:86,cter:85,cnei:89,csec:86,cplu:87,crap:86,csin:89,cfib:0.85},
+      {pos:6,nom:"Solberg Henning",cop:"Menkerud Cato",voiture:"Ford Focus RS WRC '08",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:7,nom:"Wilson Matthew",cop:"Martin Scott",voiture:"Ford Focus RS WRC '08",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:85,fib:0.84,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:85,cfib:0.84},
+      {pos:8,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Citroën C4 WRC",asp:86,ter:90,nei:86,sec:83,plu:87,rap:86,sin:86,fib:0.89,casp:86,cter:90,cnei:86,csec:83,cplu:87,crap:86,csin:86,cfib:0.89},
+      {pos:9,nom:"Al-Qassimi Khalid",cop:"Orr Michael",voiture:"Ford Focus RS WRC '08",asp:82,ter:83,nei:82,sec:80,plu:82,rap:81,sin:81,fib:0.82,casp:82,cter:83,cnei:82,csec:80,cplu:82,crap:81,csin:81,cfib:0.82},
+      {pos:10,nom:"Atkinson Chris",cop:"Prévot Stéphane",voiture:"Ford Focus RS WRC '08",asp:85,ter:83,nei:87,sec:85,plu:84,rap:83,sin:87,fib:0.83,casp:85,cter:83,cnei:87,csec:85,cplu:84,crap:83,csin:87,cfib:0.83},
+      {pos:11,nom:"Andersson Per-Gunnar",cop:"Andersson Jonas",voiture:"Subaru Impreza S14 WRC '08",asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.8,casp:83,cter:82,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.82},
+      {pos:12,nom:"Gardemeister Toni",cop:"Tuominen Tomi",voiture:"Ford Focus RS WRC '08",asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.8,casp:80,cter:80,cnei:80,csec:80,cplu:80,crap:80,csin:80,cfib:0.8},
+      {pos:13,nom:"Villagra Federico",cop:"Perez Companc Jorge",voiture:"Ford Focus RS WRC '08",asp:81,ter:81,nei:83,sec:81,plu:81,rap:80,sin:82,fib:0.81,casp:81,cter:81,cnei:83,csec:81,cplu:81,crap:80,csin:82,cfib:0.81},
+      {pos:14,nom:"Østberg Mads",cop:"Andersson Jonas",voiture:"Ford Focus RS WRC '08",asp:83,ter:82,nei:84,sec:83,plu:83,rap:82,sin:84,fib:0.82,casp:83,cter:82,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.82},
+      {pos:15,nom:"Hołowczyc Krzysztof",cop:"Kurzeja Łukasz",voiture:"Ford Focus RS WRC '06",asp:82,ter:81,nei:84,sec:82,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:84,csec:82,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:16,nom:"Aava Urmo",cop:"Sikk Kuldar",voiture:"Ford Focus RS WRC '08",asp:82,ter:81,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:17,nom:"Rantanen Matti",cop:"Lukka Mikko",voiture:"Ford Focus RS WRC '08",asp:81,ter:80,nei:82,sec:83,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:83,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:18,nom:"Rautenbach Conrad",cop:"Barritt Daniel",voiture:"Subaru Impreza S14 WRC '08",asp:81,ter:81,nei:82,sec:81,plu:81,rap:80,sin:82,fib:0.81,casp:81,cter:81,cnei:82,csec:81,cplu:81,crap:80,csin:82,cfib:0.81},
+      {pos:19,nom:"van Merksteijn Peter jun.",cop:"Chevaillier Eddy",voiture:"Ford Focus RS WRC '06",asp:81,ter:80,nei:82,sec:81,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:81,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:20,nom:"MacHale Gareth",cop:"Murphy Brian",voiture:"Ford Focus RS WRC '04",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Citroën C4 WRC",asp:92,ter:96,nei:91,sec:86,plu:92,rap:90,sin:91,fib:0.95},
+      {nom:"Ford Focus RS WRC '09",asp:91,ter:93,nei:92,sec:84,plu:91,rap:90,sin:92,fib:0.93},
+      {nom:"Citroën Xsara WRC",asp:89,ter:93,nei:88,sec:83,plu:89,rap:87,sin:88,fib:0.92},
+      {nom:"Ford Focus RS WRC '08",asp:90,ter:92,nei:91,sec:84,plu:90,rap:89,sin:91,fib:0.92},
+      {nom:"Subaru Impreza S14 WRC '08",asp:88,ter:87,nei:92,sec:86,plu:89,rap:87,sin:91,fib:0.86},
+      {nom:"Ford Focus RS WRC '06",asp:87,ter:89,nei:88,sec:82,plu:87,rap:86,sin:88,fib:0.89},
+      {nom:"Ford Focus RS WRC '04",asp:87,ter:89,nei:88,sec:81,plu:87,rap:86,sin:88,fib:0.89},
+    ],
+  },
+  2010:{
+    drivers:[
+      {pos:1,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën C4 WRC",asp:92,ter:97,nei:91,sec:86,plu:92,rap:91,sin:91,fib:0.95,casp:92,cter:97,cnei:91,csec:86,cplu:92,crap:91,csin:91,cfib:0.95},
+      {pos:2,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Ford Focus RS WRC '09",asp:87,ter:87,nei:89,sec:86,plu:87,rap:86,sin:90,fib:0.87,casp:87,cter:87,cnei:89,csec:86,cplu:87,crap:86,csin:90,cfib:0.87},
+      {pos:3,nom:"Solberg Petter",cop:"Patterson Chris",voiture:"Citroën C4 WRC",asp:86,ter:84,nei:88,sec:85,plu:86,rap:85,sin:88,fib:0.84,casp:86,cter:84,cnei:88,csec:85,cplu:86,crap:85,csin:88,cfib:0.84},
+      {pos:4,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Citroën C4 WRC",asp:87,ter:91,nei:87,sec:83,plu:88,rap:87,sin:87,fib:0.9,casp:87,cter:91,cnei:87,csec:83,cplu:88,crap:87,csin:87,cfib:0.9},
+      {pos:5,nom:"Sordo Dani",cop:"Vallejo Diego",voiture:"Citroën C4 WRC",asp:87,ter:91,nei:86,sec:82,plu:88,rap:86,sin:86,fib:0.9,casp:87,cter:91,cnei:86,csec:82,cplu:88,crap:86,csin:86,cfib:0.9},
+      {pos:6,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Ford Focus RS WRC '09",asp:87,ter:86,nei:89,sec:87,plu:87,rap:86,sin:89,fib:0.86,casp:87,cter:86,cnei:89,csec:87,cplu:87,crap:86,csin:89,cfib:0.86},
+      {pos:7,nom:"Wilson Matthew",cop:"Martin Scott",voiture:"Ford Focus RS WRC '08",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:85,fib:0.84,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:85,cfib:0.84},
+      {pos:8,nom:"Solberg Henning",cop:"Prévot Stéphane",voiture:"Ford Focus RS WRC '08",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:9,nom:"Villagra Federico",cop:"Perez Companc Jorge",voiture:"Ford Focus RS WRC '08",asp:81,ter:81,nei:83,sec:81,plu:81,rap:80,sin:82,fib:0.81,casp:81,cter:81,cnei:83,csec:81,cplu:81,crap:80,csin:82,cfib:0.81},
+      {pos:10,nom:"Räikkönen Kimi",cop:"Lindström Kaj",voiture:"Citroën C4 WRC",asp:84,ter:86,nei:85,sec:83,plu:85,rap:84,sin:86,fib:0.85,casp:84,cter:86,cnei:85,csec:83,cplu:85,crap:84,csin:86,cfib:0.85},
+      {pos:11,nom:"Østberg Mads",cop:"Andersson Jonas",voiture:"Subaru Impreza S12B WRC '07",asp:83,ter:83,nei:85,sec:83,plu:83,rap:82,sin:85,fib:0.83,casp:83,cter:83,cnei:85,csec:83,cplu:83,crap:82,csin:85,cfib:0.83},
+      {pos:12,nom:"Al-Qassimi Khalid",cop:"Orr Michael",voiture:"Ford Focus RS WRC '08",asp:82,ter:83,nei:82,sec:80,plu:82,rap:81,sin:81,fib:0.82,casp:82,cter:83,cnei:82,csec:80,cplu:82,crap:81,csin:81,cfib:0.82},
+      {pos:13,nom:"Andersson Per-Gunnar",cop:"Andersson Jonas",voiture:"Ford Focus RS WRC '08",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:83,cter:83,cnei:85,csec:83,cplu:83,crap:82,csin:85,cfib:0.83},
+      {pos:14,nom:"Turán Frigyes",cop:"Zsiros Gábor",voiture:"Ford Focus RS WRC '08",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:15,nom:"Kankkunen Juha",cop:"Repo Juha",voiture:"Ford Focus RS WRC '08",asp:85,ter:82,nei:87,sec:89,plu:85,rap:83,sin:87,fib:0.82,casp:85,cter:82,cnei:87,csec:89,cplu:85,crap:83,csin:87,cfib:0.82},
+      {pos:16,nom:"Kuipers Dennis",cop:"Miclotte Frédéric",voiture:"Ford Focus RS WRC '06",asp:81,ter:80,nei:82,sec:81,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:81,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:17,nom:"Block Ken",cop:"Gelsomino Alessandro",voiture:"Ford Focus RS WRC '08",asp:83,ter:85,nei:83,sec:81,plu:83,rap:82,sin:84,fib:0.84,casp:83,cter:85,cnei:83,csec:81,cplu:83,crap:82,csin:84,cfib:0.84},
+      {pos:18,nom:"Grönholm Marcus",cop:"Rautiainen Timo",voiture:"Ford Focus RS WRC '08",asp:88,ter:86,nei:92,sec:88,plu:88,rap:89,sin:92,fib:0.86,casp:88,cter:86,cnei:92,csec:88,cplu:88,crap:89,csin:92,cfib:0.86},
+      {pos:19,nom:"Duval François",cop:"Giraudet Denis",voiture:"Ford Focus RS WRC '08",asp:83,ter:87,nei:83,sec:80,plu:83,rap:82,sin:83,fib:0.86,casp:83,cter:87,cnei:83,csec:80,cplu:83,crap:82,csin:83,cfib:0.86},
+      {pos:20,nom:"Therman Mattias",cop:"Perälä Janne",voiture:"Ford Focus RS WRC '08",asp:81,ter:80,nei:82,sec:83,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:83,cplu:81,crap:80,csin:82,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Citroën C4 WRC",asp:92,ter:96,nei:91,sec:86,plu:92,rap:90,sin:91,fib:0.95},
+      {nom:"Ford Focus RS WRC '09",asp:91,ter:93,nei:92,sec:84,plu:91,rap:90,sin:92,fib:0.93},
+      {nom:"Ford Focus RS WRC '08",asp:89,ter:91,nei:90,sec:83,plu:89,rap:88,sin:90,fib:0.91},
+      {nom:"Subaru Impreza S12B WRC '07",asp:88,ter:87,nei:92,sec:86,plu:89,rap:87,sin:91,fib:0.86},
+      {nom:"Ford Focus RS WRC '06",asp:87,ter:89,nei:88,sec:82,plu:87,rap:86,sin:88,fib:0.89},
+    ],
+  },
+  2011:{
+    drivers:[
+      {pos:1,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën DS3 WRC",asp:92,ter:97,nei:91,sec:86,plu:92,rap:91,sin:91,fib:0.95,casp:92,cter:97,cnei:91,csec:86,cplu:92,crap:91,csin:91,cfib:0.95},
+      {pos:2,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Ford Fiesta RS WRC",asp:88,ter:86,nei:90,sec:88,plu:87,rap:86,sin:90,fib:0.86,casp:88,cter:86,cnei:90,csec:88,cplu:87,crap:86,csin:90,cfib:0.86},
+      {pos:3,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Citroën DS3 WRC",asp:89,ter:93,nei:88,sec:84,plu:90,rap:89,sin:89,fib:0.92,casp:89,cter:93,cnei:88,csec:84,cplu:90,crap:89,csin:89,cfib:0.92},
+      {pos:4,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Ford Fiesta RS WRC",asp:87,ter:87,nei:89,sec:86,plu:87,rap:86,sin:90,fib:0.87,casp:87,cter:87,cnei:89,csec:86,cplu:87,crap:86,csin:90,cfib:0.87},
+      {pos:5,nom:"Solberg Petter",cop:"Patterson Chris",voiture:"Citroën DS3 WRC",asp:85,ter:84,nei:88,sec:85,plu:86,rap:85,sin:88,fib:0.84,casp:85,cter:84,cnei:88,csec:85,cplu:86,crap:85,csin:88,cfib:0.84},
+      {pos:6,nom:"Østberg Mads",cop:"Andersson Jonas",voiture:"Ford Fiesta RS WRC",asp:84,ter:84,nei:86,sec:84,plu:84,rap:83,sin:86,fib:0.84,casp:84,cter:84,cnei:86,csec:84,cplu:84,crap:83,csin:86,cfib:0.84},
+      {pos:7,nom:"Wilson Matthew",cop:"Martin Scott",voiture:"Ford Fiesta RS WRC",asp:83,ter:83,nei:85,sec:83,plu:83,rap:82,sin:85,fib:0.83,casp:83,cter:83,cnei:85,csec:83,cplu:83,crap:82,csin:85,cfib:0.83},
+      {pos:8,nom:"Sordo Dani",cop:"del Barrio Carlos",voiture:"Mini John Cooper Works WRC",asp:86,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.89,casp:86,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.89},
+      {pos:9,nom:"Solberg Henning",cop:"Minor Ilka",voiture:"Ford Fiesta RS WRC",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:10,nom:"Räikkönen Kimi",cop:"Lindström Kaj",voiture:"Citroën DS3 WRC",asp:83,ter:85,nei:84,sec:82,plu:84,rap:83,sin:85,fib:0.84,casp:83,cter:85,cnei:84,csec:82,cplu:84,crap:83,csin:85,cfib:0.84},
+      {pos:11,nom:"Meeke Kris",cop:"Nagle Paul",voiture:"Mini John Cooper Works WRC",asp:84,ter:87,nei:84,sec:82,plu:85,rap:84,sin:84,fib:0.86,casp:84,cter:87,cnei:84,csec:82,cplu:85,crap:84,csin:84,cfib:0.86},
+      {pos:12,nom:"Kuipers Dennis",cop:"Miclotte Frédéric",voiture:"Ford Fiesta RS WRC",asp:81,ter:80,nei:82,sec:81,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:81,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:13,nom:"Villagra Federico",cop:"Perez Companc Jorge",voiture:"Ford Fiesta RS WRC",asp:81,ter:81,nei:83,sec:81,plu:81,rap:80,sin:82,fib:0.81,casp:81,cter:81,cnei:83,csec:81,cplu:81,crap:80,csin:82,cfib:0.81},
+      {pos:14,nom:"Al-Qassimi Khalid",cop:"Orr Michael",voiture:"Ford Fiesta RS WRC",asp:82,ter:83,nei:82,sec:80,plu:82,rap:81,sin:81,fib:0.82,casp:82,cter:83,cnei:82,csec:80,cplu:82,crap:81,csin:81,cfib:0.82},
+      {pos:15,nom:"Tänak Ott",cop:"Sikk Kuldar",voiture:"Ford Fiesta RS WRC",asp:83,ter:83,nei:84,sec:83,plu:83,rap:82,sin:84,fib:0.83,casp:83,cter:83,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.83},
+      {pos:16,nom:"Novikov Evgeniy",cop:"Giraudet Denis",voiture:"Ford Fiesta RS WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:17,nom:"Prokop Martin",cop:"Tománek Jan",voiture:"Ford Fiesta RS WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:18,nom:"Andersson Per-Gunnar",cop:"Axelsson Emil",voiture:"Ford Fiesta RS WRC",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:19,nom:"Araújo Armindo",cop:"Ramalho Miguel",voiture:"Mini John Cooper Works WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:82,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:82,cfib:0.82},
+      {pos:20,nom:"Block Ken",cop:"Gelsomino Alessandro",voiture:"Ford Fiesta RS WRC",asp:83,ter:85,nei:83,sec:81,plu:83,rap:82,sin:84,fib:0.84,casp:83,cter:85,cnei:83,csec:81,cplu:83,crap:82,csin:84,cfib:0.84},
+    ],
+    cars:[
+      {nom:"Citroën DS3 WRC",asp:91,ter:94,nei:91,sec:86,plu:91,rap:90,sin:91,fib:0.93},
+      {nom:"Ford Fiesta RS WRC",asp:89,ter:91,nei:90,sec:84,plu:90,rap:88,sin:90,fib:0.91},
+      {nom:"Mini John Cooper Works WRC",asp:87,ter:88,nei:88,sec:83,plu:88,rap:86,sin:88,fib:0.88},
+    ],
+  },
+  2012:{
+    drivers:[
+      {pos:1,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën DS3 WRC",asp:92,ter:97,nei:91,sec:86,plu:92,rap:91,sin:91,fib:0.95,casp:92,cter:97,cnei:91,csec:86,cplu:92,crap:91,csin:91,cfib:0.95},
+      {pos:2,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Citroën DS3 WRC",asp:88,ter:86,nei:90,sec:88,plu:87,rap:86,sin:90,fib:0.86,casp:88,cter:86,cnei:90,csec:88,cplu:87,crap:86,csin:90,cfib:0.86},
+      {pos:3,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Ford Fiesta RS WRC",asp:87,ter:87,nei:89,sec:86,plu:87,rap:86,sin:90,fib:0.87,casp:87,cter:87,cnei:89,csec:86,cplu:87,crap:86,csin:90,cfib:0.87},
+      {pos:4,nom:"Østberg Mads",cop:"Andersson Jonas",voiture:"Ford Fiesta RS WRC",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:5,nom:"Solberg Petter",cop:"Patterson Chris",voiture:"Ford Fiesta RS WRC",asp:85,ter:84,nei:88,sec:85,plu:86,rap:85,sin:88,fib:0.84,casp:85,cter:84,cnei:88,csec:85,cplu:86,crap:85,csin:88,cfib:0.84},
+      {pos:6,nom:"Novikov Evgeniy",cop:"Minor Ilka",voiture:"Ford Fiesta RS WRC",asp:82,ter:82,nei:84,sec:82,plu:82,rap:81,sin:84,fib:0.82,casp:82,cter:82,cnei:84,csec:82,cplu:82,crap:81,csin:84,cfib:0.82},
+      {pos:7,nom:"Neuville Thierry",cop:"Gilsoul Nicolas",voiture:"Citroën DS3 WRC",asp:86,ter:88,nei:86,sec:83,plu:86,rap:85,sin:86,fib:0.87,casp:86,cter:88,cnei:86,csec:83,cplu:86,crap:85,csin:86,cfib:0.87},
+      {pos:8,nom:"Tänak Ott",cop:"Sikk Kuldar",voiture:"Ford Fiesta RS WRC",asp:84,ter:84,nei:86,sec:84,plu:84,rap:83,sin:86,fib:0.84,casp:84,cter:84,cnei:86,csec:84,cplu:84,crap:83,csin:86,cfib:0.84},
+      {pos:9,nom:"Prokop Martin",cop:"Hrůza Zdeněk",voiture:"Ford Fiesta RS WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:10,nom:"Sordo Dani",cop:"del Barrio Carlos",voiture:"Mini John Cooper Works WRC",asp:86,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.89,casp:86,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.89},
+      {pos:11,nom:"Al-Attiyah Nasser",cop:"Bernacchini Giovanni",voiture:"Citroën DS3 WRC",asp:83,ter:84,nei:83,sec:81,plu:83,rap:82,sin:82,fib:0.83,casp:83,cter:84,cnei:83,csec:81,cplu:83,crap:82,csin:82,cfib:0.83},
+      {pos:12,nom:"Atkinson Chris",cop:"Prévot Stéphane",voiture:"Mini John Cooper Works WRC",asp:84,ter:83,nei:86,sec:85,plu:84,rap:83,sin:86,fib:0.83,casp:84,cter:83,cnei:86,csec:85,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:13,nom:"Araújo Armindo",cop:"Ramalho Miguel",voiture:"Mini John Cooper Works WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:82,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:82,cfib:0.82},
+      {pos:14,nom:"Nikara Jarkko",cop:"Kalliolepo Jarkko",voiture:"Mini John Cooper Works WRC",asp:81,ter:80,nei:82,sec:83,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:83,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:15,nom:"Delecour François",cop:"Savignoni Dominique",voiture:"Ford Fiesta RS WRC",asp:81,ter:84,nei:81,sec:80,plu:81,rap:80,sin:81,fib:0.83,casp:81,cter:84,cnei:81,csec:80,cplu:81,crap:80,csin:81,cfib:0.83},
+      {pos:16,nom:"Kuipers Dennis",cop:"Buysmans Robin",voiture:"Ford Fiesta RS WRC",asp:81,ter:80,nei:82,sec:81,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:81,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:17,nom:"Solberg Henning",cop:"Minor Ilka",voiture:"Ford Fiesta RS WRC",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:82,cnei:84,csec:82,cplu:82,crap:81,csin:84,cfib:0.82},
+      {pos:18,nom:"Campana Pierre",cop:"De Castelli Sabrina",voiture:"Mini John Cooper Works WRC",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:19,nom:"Rantanen Matti",cop:"Lukka Mikko",voiture:"Ford Fiesta RS WRC",asp:81,ter:80,nei:82,sec:83,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:83,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:20,nom:"Ketomaa Jari",cop:"Stenberg Mika",voiture:"Ford Fiesta RS WRC",asp:82,ter:81,nei:83,sec:84,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:84,cplu:82,crap:81,csin:83,cfib:0.81},
+    ],
+    cars:[
+      {nom:"Citroën DS3 WRC",asp:91,ter:94,nei:91,sec:86,plu:91,rap:90,sin:91,fib:0.93},
+      {nom:"Ford Fiesta RS WRC",asp:89,ter:91,nei:90,sec:84,plu:90,rap:88,sin:90,fib:0.91},
+      {nom:"Mini John Cooper Works WRC",asp:87,ter:88,nei:88,sec:83,plu:88,rap:86,sin:88,fib:0.88},
+    ],
+  },
+  2013:{
+    drivers:[
+      {pos:1,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Volkswagen Polo R WRC",asp:92,ter:96,nei:91,sec:85,plu:92,rap:91,sin:91,fib:0.95,casp:92,cter:96,cnei:91,csec:85,cplu:92,crap:91,csin:91,cfib:0.95},
+      {pos:2,nom:"Neuville Thierry",cop:"Gilsoul Nicolas",voiture:"Ford Fiesta RS WRC",asp:87,ter:87,nei:87,sec:86,plu:86,rap:85,sin:87,fib:0.87,casp:87,cter:87,cnei:87,csec:86,cplu:86,crap:85,csin:87,cfib:0.87},
+      {pos:3,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Volkswagen Polo R WRC",asp:87,ter:87,nei:89,sec:86,plu:87,rap:86,sin:90,fib:0.87,casp:87,cter:87,cnei:89,csec:86,cplu:87,crap:86,csin:90,cfib:0.87},
+      {pos:4,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Citroën DS3 WRC",asp:87,ter:85,nei:89,sec:86,plu:85,rap:84,sin:87,fib:0.85,casp:87,cter:85,cnei:89,csec:86,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:5,nom:"Sordo Dani",cop:"del Barrio Carlos",voiture:"Citroën DS3 WRC",asp:87,ter:87,nei:86,sec:86,plu:85,rap:85,sin:88,fib:0.85,casp:87,cter:87,cnei:86,csec:86,cplu:85,crap:85,csin:88,cfib:0.85},
+      {pos:6,nom:"Østberg Mads",cop:"Andersson Jonas",voiture:"Ford Fiesta RS WRC",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:7,nom:"Novikov Evgeniy",cop:"Minor Ilka",voiture:"Ford Fiesta RS WRC",asp:82,ter:82,nei:84,sec:82,plu:82,rap:81,sin:84,fib:0.82,casp:82,cter:82,cnei:84,csec:82,cplu:82,crap:81,csin:84,cfib:0.82},
+      {pos:8,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën DS3 WRC",asp:91,ter:89,nei:85,sec:91,plu:89,rap:88,sin:94,fib:0.92,casp:91,cter:89,cnei:85,csec:91,cplu:89,crap:88,csin:94,cfib:0.92},
+      {pos:9,nom:"Prokop Martin",cop:"Ernst Michal",voiture:"Ford Fiesta RS WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:10,nom:"Mikkelsen Andreas",cop:"Markkula Mikko",voiture:"Volkswagen Polo R WRC",asp:85,ter:85,nei:87,sec:85,plu:84,rap:84,sin:86,fib:0.84,casp:85,cter:85,cnei:87,csec:85,cplu:84,crap:84,csin:86,cfib:0.84},
+      {pos:11,nom:"Al-Attiyah Nasser",cop:"Bernacchini Giovanni",voiture:"Ford Fiesta RS WRC",asp:83,ter:83,nei:82,sec:83,plu:82,rap:81,sin:83,fib:0.82,casp:83,cter:83,cnei:82,csec:83,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:12,nom:"Evans Elfyn",cop:"Bernacchini Giovanni",voiture:"Ford Fiesta RS WRC",asp:83,ter:83,nei:84,sec:83,plu:82,rap:82,sin:83,fib:0.82,casp:83,cter:83,cnei:82,csec:83,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:13,nom:"Kubica Robert",cop:"Ferrara Michele",voiture:"Citroën DS3 WRC",asp:84,ter:85,nei:85,sec:84,plu:83,rap:83,sin:85,fib:0.82,casp:84,cter:85,cnei:85,csec:84,cplu:83,crap:83,csin:85,cfib:0.82},
+      {pos:14,nom:"Bouffier Bryan",cop:"Panseri Xavier",voiture:"Citroën DS3 WRC",asp:83,ter:84,nei:83,sec:83,plu:82,rap:81,sin:84,fib:0.82,casp:83,cter:84,cnei:83,csec:83,cplu:82,crap:81,csin:84,cfib:0.82},
+      {pos:15,nom:"Hänninen Juho",cop:"Tuominen Tomi",voiture:"Ford Fiesta RS WRC",asp:83,ter:83,nei:84,sec:84,plu:82,rap:82,sin:85,fib:0.82,casp:83,cter:83,cnei:84,csec:84,cplu:82,crap:82,csin:85,cfib:0.82},
+      {pos:16,nom:"Atkinson Chris",cop:"Prévot Stéphane",voiture:"Citroën DS3 WRC",asp:83,ter:82,nei:85,sec:84,plu:83,rap:82,sin:85,fib:0.82,casp:83,cter:82,cnei:85,csec:84,cplu:83,crap:82,csin:85,cfib:0.82},
+      {pos:17,nom:"Ketomaa Jari",cop:"Lindström Kaj",voiture:"Ford Fiesta RS WRC",asp:82,ter:81,nei:83,sec:84,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:84,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:18,nom:"Paddon Hayden",cop:"Kennard John",voiture:"Ford Fiesta RS WRC",asp:83,ter:82,nei:84,sec:83,plu:82,rap:81,sin:84,fib:0.82,casp:83,cter:82,cnei:84,csec:83,cplu:82,crap:81,csin:84,cfib:0.82},
+      {pos:19,nom:"Kościuszko Michał",cop:"Szczepaniak Maciej",voiture:"Mini John Cooper Works WRC",asp:82,ter:84,nei:84,sec:83,plu:82,rap:82,sin:84,fib:0.81,casp:82,cter:84,cnei:84,csec:83,cplu:82,crap:82,csin:84,cfib:0.81},
+      {pos:20,nom:"Block Ken",cop:"Gelsomino Alessandro",voiture:"Ford Fiesta RS WRC",asp:83,ter:85,nei:83,sec:81,plu:83,rap:82,sin:84,fib:0.84,casp:83,cter:85,cnei:83,csec:81,cplu:83,crap:82,csin:84,cfib:0.84},
+    ],
+    cars:[
+      {nom:"Volkswagen Polo R WRC",asp:92,ter:94,nei:92,sec:87,plu:91,rap:90,sin:92,fib:0.93},
+      {nom:"Ford Fiesta RS WRC",asp:87,ter:89,nei:88,sec:82,plu:88,rap:86,sin:88,fib:0.89},
+      {nom:"Citroën DS3 WRC",asp:89,ter:92,nei:89,sec:84,plu:89,rap:88,sin:89,fib:0.91},
+      {nom:"Mini John Cooper Works WRC",asp:86,ter:87,nei:86,sec:82,plu:86,rap:84,sin:86,fib:0.87},
+    ],
+  },
+  2014:{
+    drivers:[
+      {pos:1,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Volkswagen Polo R WRC",asp:92,ter:96,nei:91,sec:85,plu:92,rap:91,sin:91,fib:0.95,casp:92,cter:96,cnei:91,csec:85,cplu:92,crap:91,csin:91,cfib:0.95},
+      {pos:2,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Volkswagen Polo R WRC",asp:87,ter:87,nei:90,sec:86,plu:87,rap:86,sin:91,fib:0.87,casp:87,cter:87,cnei:90,csec:86,cplu:87,crap:86,csin:91,cfib:0.87},
+      {pos:3,nom:"Mikkelsen Andreas",cop:"Fløene Ola",voiture:"Volkswagen Polo R WRC",asp:86,ter:86,nei:87,sec:85,plu:86,rap:85,sin:87,fib:0.86,casp:86,cter:86,cnei:87,csec:85,cplu:86,crap:85,csin:87,cfib:0.86},
+      {pos:4,nom:"Hirvonen Mikko",cop:"Lehtinen Jarmo",voiture:"Citroën DS3 WRC",asp:87,ter:85,nei:89,sec:87,plu:86,rap:85,sin:89,fib:0.85,casp:87,cter:85,cnei:89,csec:87,cplu:86,crap:85,csin:89,cfib:0.85},
+      {pos:5,nom:"Neuville Thierry",cop:"Gilsoul Nicolas",voiture:"Hyundai i20 WRC",asp:88,ter:90,nei:88,sec:84,plu:88,rap:87,sin:88,fib:0.89,casp:88,cter:90,cnei:88,csec:84,cplu:88,crap:87,csin:88,cfib:0.89},
+      {pos:6,nom:"Østberg Mads",cop:"Andersson Jonas",voiture:"Citroën DS3 WRC",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:7,nom:"Meeke Kris",cop:"Nagle Paul",voiture:"Citroën DS3 WRC",asp:86,ter:89,nei:86,sec:82,plu:87,rap:86,sin:86,fib:0.88,casp:86,cter:89,cnei:86,csec:82,cplu:87,crap:86,csin:86,cfib:0.88},
+      {pos:8,nom:"Evans Elfyn",cop:"Barritt Daniel",voiture:"Ford Fiesta RS WRC",asp:85,ter:85,nei:86,sec:83,plu:85,rap:84,sin:86,fib:0.85,casp:85,cter:85,cnei:86,csec:83,cplu:85,crap:84,csin:86,cfib:0.85},
+      {pos:9,nom:"Prokop Martin",cop:"Tománek Jan",voiture:"Ford Fiesta RS WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:10,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Hyundai i20 WRC",asp:86,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.89,casp:86,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.89},
+      {pos:11,nom:"Novikov Evgeniy",cop:"Minor Ilka",voiture:"Ford Fiesta RS WRC",asp:82,ter:81,nei:83,sec:83,plu:82,rap:81,sin:83,fib:0.81,casp:82,cter:81,cnei:83,csec:83,cplu:82,crap:81,csin:83,cfib:0.81},
+      {pos:12,nom:"Bouffier Bryan",cop:"Panseri Xavier",voiture:"Citroën DS3 WRC",asp:83,ter:85,nei:83,sec:81,plu:83,rap:82,sin:82,fib:0.84,casp:83,cter:85,cnei:83,csec:81,cplu:83,crap:82,csin:82,cfib:0.84},
+      {pos:13,nom:"Hänninen Juho",cop:"Tuominen Tomi",voiture:"Ford Fiesta RS WRC",asp:83,ter:83,nei:84,sec:84,plu:83,rap:82,sin:85,fib:0.83,casp:83,cter:83,cnei:84,csec:84,cplu:83,crap:82,csin:85,cfib:0.83},
+      {pos:14,nom:"Paddon Hayden",cop:"Kennard John",voiture:"Ford Fiesta RS WRC",asp:83,ter:82,nei:84,sec:83,plu:82,rap:81,sin:84,fib:0.82,casp:83,cter:82,cnei:84,csec:83,cplu:82,crap:81,csin:84,cfib:0.82},
+      {pos:15,nom:"Tänak Ott",cop:"Mõlder Raigo",voiture:"Ford Fiesta RS WRC",asp:85,ter:85,nei:87,sec:85,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:85,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:16,nom:"Kościuszko Michał",cop:"Szczepaniak Maciej",voiture:"Ford Fiesta RS WRC",asp:83,ter:84,nei:84,sec:83,plu:83,rap:82,sin:84,fib:0.81,casp:83,cter:84,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.81},
+      {pos:18,nom:"Atkinson Chris",cop:"Prévot Stéphane",voiture:"Citroën DS3 WRC",asp:83,ter:82,nei:85,sec:84,plu:83,rap:82,sin:85,fib:0.82,casp:83,cter:82,cnei:85,csec:84,cplu:83,crap:82,csin:85,cfib:0.82},
+      {pos:19,nom:"Tidemand Pontus",cop:"Fløene Ola",voiture:"Ford Fiesta RS WRC",asp:83,ter:82,nei:84,sec:83,plu:82,rap:81,sin:84,fib:0.82,casp:86,cter:86,cnei:87,csec:85,cplu:86,crap:85,csin:87,cfib:0.86},
+      {pos:20,nom:"Al-Qassimi Khalid",cop:"Patterson Chris",voiture:"Ford Fiesta RS WRC",asp:82,ter:83,nei:82,sec:80,plu:82,rap:81,sin:81,fib:0.82,casp:82,cter:83,cnei:82,csec:80,cplu:82,crap:81,csin:81,cfib:0.82},
+    ],
+    cars:[
+      {nom:"Volkswagen Polo R WRC",asp:92,ter:94,nei:92,sec:87,plu:91,rap:90,sin:92,fib:0.93},
+      {nom:"Citroën DS3 WRC",asp:89,ter:92,nei:89,sec:84,plu:89,rap:88,sin:89,fib:0.91},
+      {nom:"Hyundai i20 WRC",asp:86,ter:88,nei:87,sec:83,plu:87,rap:86,sin:87,fib:0.88},
+      {nom:"Ford Fiesta RS WRC",asp:87,ter:89,nei:88,sec:82,plu:88,rap:86,sin:88,fib:0.89},
+    ],
+  },
+  2015:{
+    drivers:[
+      {pos:1,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Volkswagen Polo R WRC",asp:92,ter:96,nei:91,sec:85,plu:92,rap:91,sin:91,fib:0.95,casp:84,cter:85,cnei:84,csec:82,cplu:84,crap:83,csin:84,cfib:0.84},
+      {pos:2,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Volkswagen Polo R WRC",asp:87,ter:87,nei:90,sec:86,plu:87,rap:86,sin:91,fib:0.87,casp:87,cter:87,cnei:90,csec:86,cplu:87,crap:86,csin:91,cfib:0.87},
+      {pos:3,nom:"Mikkelsen Andreas",cop:"Fløene Ola",voiture:"Volkswagen Polo R WRC",asp:87,ter:87,nei:88,sec:85,plu:87,rap:86,sin:88,fib:0.87,casp:87,cter:87,cnei:88,csec:85,cplu:87,crap:86,csin:88,cfib:0.87},
+      {pos:4,nom:"Østberg Mads",cop:"Andersson Jonas",voiture:"Citroën DS3 WRC",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:5,nom:"Meeke Kris",cop:"Nagle Paul",voiture:"Citroën DS3 WRC",asp:86,ter:89,nei:86,sec:82,plu:87,rap:86,sin:86,fib:0.88,casp:86,cter:89,cnei:86,csec:82,cplu:87,crap:86,csin:86,cfib:0.88},
+      {pos:6,nom:"Neuville Thierry",cop:"Gilsoul Nicolas",voiture:"Hyundai i20 WRC",asp:88,ter:91,nei:88,sec:84,plu:89,rap:88,sin:88,fib:0.9,casp:88,cter:91,cnei:88,csec:84,cplu:89,crap:88,csin:88,cfib:0.9},
+      {pos:7,nom:"Evans Elfyn",cop:"Barritt Daniel",voiture:"Ford Fiesta RS WRC",asp:85,ter:85,nei:87,sec:83,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:83,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:8,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Hyundai i20 WRC",asp:86,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.89,casp:86,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.89},
+      {pos:9,nom:"Paddon Hayden",cop:"Kennard John",voiture:"Hyundai i20 WRC",asp:83,ter:83,nei:85,sec:83,plu:83,rap:82,sin:85,fib:0.83,casp:83,cter:83,cnei:85,csec:83,cplu:83,crap:82,csin:85,cfib:0.83},
+      {pos:10,nom:"Tänak Ott",cop:"Mõlder Raigo",voiture:"Volkswagen Polo R WRC",asp:86,ter:86,nei:88,sec:85,plu:86,rap:85,sin:88,fib:0.86,casp:86,cter:86,cnei:88,csec:85,cplu:86,crap:85,csin:88,cfib:0.86},
+      {pos:11,nom:"Prokop Martin",cop:"Tománek Jan",voiture:"Ford Fiesta RS WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:12,nom:"Kubica Robert",cop:"Szczepaniak Maciej",voiture:"Ford Fiesta RS WRC",asp:83,ter:84,nei:84,sec:83,plu:83,rap:82,sin:84,fib:0.83,casp:83,cter:84,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.83},
+      {pos:13,nom:"Al-Qassimi Khalid",cop:"Patterson Chris",voiture:"Ford Fiesta RS WRC",asp:82,ter:83,nei:82,sec:80,plu:82,rap:81,sin:81,fib:0.82,casp:82,cter:83,cnei:82,csec:80,cplu:82,crap:81,csin:81,cfib:0.82},
+      {pos:14,nom:"Hänninen Juho",cop:"Tuominen Tomi",voiture:"Ford Fiesta RS WRC",asp:83,ter:83,nei:84,sec:84,plu:83,rap:82,sin:85,fib:0.83,casp:83,cter:83,cnei:84,csec:84,cplu:83,crap:82,csin:85,cfib:0.83},
+      {pos:15,nom:"Guerra Benito jnr",cop:"Rozada Borja",voiture:"Ford Fiesta RS WRC",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:80,csec:80,cplu:80,crap:80,csin:80,cfib:0.8},
+      {pos:16,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Citroën DS3 WRC",asp:90,ter:96,nei:89,sec:85,plu:91,rap:89,sin:89,fib:0.94,casp:90,cter:96,cnei:89,csec:85,cplu:91,crap:89,csin:89,cfib:0.94},
+      {pos:17,nom:"Lefebvre Stéphane",cop:"Ingrassia Julien",voiture:"Citroën DS3 WRC",asp:84,ter:85,nei:84,sec:82,plu:84,rap:83,sin:84,fib:0.84,casp:84,cter:85,cnei:84,csec:82,cplu:84,crap:83,csin:84,cfib:0.84},
+      {pos:18,nom:"Abbring Kevin",cop:"Miclotte Frédéric",voiture:"Ford Fiesta RS WRC",asp:83,ter:83,nei:84,sec:83,plu:83,rap:82,sin:84,fib:0.83,casp:83,cter:83,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.83},
+      {pos:19,nom:"Bertelli Lorenzo",cop:"Scattolin Simone",voiture:"Ford Fiesta RS WRC",asp:81,ter:82,nei:82,sec:80,plu:81,rap:80,sin:81,fib:0.81,casp:81,cter:82,cnei:82,csec:80,cplu:81,crap:80,csin:81,cfib:0.81},
+      {pos:20,nom:"Bouffier Bryan",cop:"Panseri Xavier",voiture:"Citroën DS3 WRC",asp:82,ter:84,nei:83,sec:81,plu:82,rap:81,sin:82,fib:0.83,casp:82,cter:84,cnei:83,csec:81,cplu:82,crap:81,csin:82,cfib:0.83},
+    ],
+    cars:[
+      {nom:"Volkswagen Polo R WRC",asp:92,ter:94,nei:92,sec:87,plu:91,rap:90,sin:92,fib:0.93},
+      {nom:"Citroën DS3 WRC",asp:89,ter:92,nei:89,sec:84,plu:89,rap:88,sin:89,fib:0.91},
+      {nom:"Hyundai i20 WRC",asp:86,ter:88,nei:87,sec:83,plu:87,rap:86,sin:87,fib:0.88},
+      {nom:"Ford Fiesta RS WRC",asp:87,ter:89,nei:88,sec:82,plu:88,rap:86,sin:88,fib:0.89},
+    ],
+  },
+  2016:{
+    drivers:[
+      {pos:1,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Volkswagen Polo R WRC",asp:92,ter:96,nei:91,sec:85,plu:92,rap:91,sin:91,fib:0.95,casp:92,cter:96,cnei:91,csec:85,cplu:92,crap:91,csin:91,cfib:0.95},
+      {pos:2,nom:"Meeke Kris",cop:"Nagle Paul",voiture:"Citroën DS3 WRC",asp:86,ter:89,nei:86,sec:82,plu:87,rap:86,sin:86,fib:0.88,casp:86,cter:89,cnei:86,csec:82,cplu:87,crap:86,csin:86,cfib:0.88},
+      {pos:3,nom:"Mikkelsen Andreas",cop:"Fløene Ola",voiture:"Volkswagen Polo R WRC",asp:86,ter:87,nei:88,sec:85,plu:86,rap:85,sin:87,fib:0.86,casp:86,cter:87,cnei:88,csec:85,cplu:86,crap:85,csin:87,cfib:0.86},
+      {pos:4,nom:"Neuville Thierry",cop:"Gilsoul Nicolas",voiture:"Hyundai i20 WRC",asp:88,ter:91,nei:88,sec:84,plu:89,rap:88,sin:88,fib:0.9,casp:88,cter:91,cnei:88,csec:84,cplu:89,crap:88,csin:88,cfib:0.9},
+      {pos:5,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Volkswagen Polo R WRC",asp:87,ter:87,nei:90,sec:86,plu:87,rap:86,sin:91,fib:0.87,casp:87,cter:87,cnei:90,csec:86,cplu:87,crap:86,csin:91,cfib:0.87},
+      {pos:6,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Hyundai i20 WRC",asp:86,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.89,casp:86,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.89},
+      {pos:7,nom:"Østberg Mads",cop:"Andersson Jonas",voiture:"Citroën DS3 WRC",asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.8,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:8,nom:"Tänak Ott",cop:"Mõlder Raigo",voiture:"Ford Fiesta RS WRC",asp:86,ter:86,nei:88,sec:85,plu:86,rap:85,sin:88,fib:0.86,casp:86,cter:86,cnei:88,csec:85,cplu:86,crap:85,csin:88,cfib:0.86},
+      {pos:9,nom:"Evans Elfyn",cop:"Barritt Daniel",voiture:"Ford Fiesta RS WRC",asp:85,ter:85,nei:87,sec:83,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:83,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:10,nom:"Paddon Hayden",cop:"Kennard John",voiture:"Hyundai i20 WRC",asp:84,ter:83,nei:86,sec:84,plu:84,rap:83,sin:86,fib:0.83,casp:84,cter:83,cnei:86,csec:84,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:11,nom:"Abbring Kevin",cop:"Miclotte Frédéric",voiture:"Volkswagen Polo R WRC",asp:83,ter:83,nei:84,sec:83,plu:83,rap:82,sin:84,fib:0.83,casp:83,cter:83,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.83},
+      {pos:12,nom:"Lefebvre Stéphane",cop:"Panseri Xavier",voiture:"Citroën DS3 WRC",asp:84,ter:85,nei:84,sec:82,plu:84,rap:83,sin:84,fib:0.84,casp:82,cter:84,cnei:83,csec:81,cplu:82,crap:81,csin:82,cfib:0.83},
+      {pos:13,nom:"Prokop Martin",cop:"Tománek Jan",voiture:"Ford Fiesta RS WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:14,nom:"Bouffier Bryan",cop:"Panseri Xavier",voiture:"Citroën DS3 WRC",asp:82,ter:84,nei:83,sec:81,plu:82,rap:81,sin:82,fib:0.83,casp:82,cter:84,cnei:83,csec:81,cplu:82,crap:81,csin:82,cfib:0.83},
+      {pos:15,nom:"Bertelli Lorenzo",cop:"Scattolin Simone",voiture:"Ford Fiesta RS WRC",asp:81,ter:82,nei:82,sec:80,plu:81,rap:80,sin:81,fib:0.81,casp:81,cter:82,cnei:82,csec:80,cplu:81,crap:80,csin:81,cfib:0.81},
+      {pos:16,nom:"Suninen Teemu",cop:"Lehtinen Jarmo",voiture:"Ford Fiesta RS WRC",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:86,fib:0.84,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:86,cfib:0.84},
+      {pos:17,nom:"Al-Qassimi Khalid",cop:"Orr Michael",voiture:"Citroën DS3 WRC",asp:82,ter:83,nei:82,sec:80,plu:82,rap:81,sin:81,fib:0.82,casp:82,cter:83,cnei:82,csec:80,cplu:82,crap:81,csin:81,cfib:0.82},
+      {pos:18,nom:"Kubica Robert",cop:"Szczepaniak Maciej",voiture:"Ford Fiesta RS WRC",asp:83,ter:84,nei:84,sec:83,plu:83,rap:82,sin:84,fib:0.83,casp:83,cter:84,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.83},
+      {pos:19,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Škoda Fabia R5",asp:83,ter:82,nei:84,sec:83,plu:83,rap:82,sin:85,fib:0.83,casp:83,cter:82,cnei:84,csec:83,cplu:83,crap:82,csin:85,cfib:0.83},
+    ],
+    cars:[
+      {nom:"Volkswagen Polo R WRC",asp:92,ter:94,nei:92,sec:87,plu:91,rap:90,sin:92,fib:0.93},
+      {nom:"Citroën DS3 WRC",asp:89,ter:92,nei:89,sec:84,plu:89,rap:88,sin:89,fib:0.91},
+      {nom:"Hyundai i20 WRC",asp:87,ter:89,nei:88,sec:83,plu:88,rap:87,sin:88,fib:0.89},
+      {nom:"Ford Fiesta RS WRC",asp:87,ter:89,nei:88,sec:82,plu:88,rap:86,sin:88,fib:0.89},
+      {nom:"Škoda Fabia R5",asp:85,ter:85,nei:85,sec:85,plu:85,rap:85,sin:85,fib:0.85},
+    ],
+  },
+  2017:{
+    drivers:[
+      {pos:1,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Ford Fiesta WRC",asp:91,ter:96,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.94,casp:91,cter:96,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.94},
+      {pos:2,nom:"Neuville Thierry",cop:"Gilsoul Nicolas",voiture:"Hyundai i20 Coupe WRC",asp:89,ter:91,nei:88,sec:84,plu:89,rap:88,sin:88,fib:0.9,casp:89,cter:91,cnei:88,csec:84,cplu:89,crap:88,csin:88,cfib:0.9},
+      {pos:3,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Toyota Yaris WRC",asp:87,ter:87,nei:90,sec:86,plu:87,rap:86,sin:91,fib:0.87,casp:87,cter:87,cnei:90,csec:86,cplu:87,crap:86,csin:91,cfib:0.87},
+      {pos:4,nom:"Tänak Ott",cop:"Järveoja Martin",voiture:"Ford Fiesta WRC",asp:87,ter:88,nei:88,sec:86,plu:87,rap:86,sin:89,fib:0.86,casp:87,cter:88,cnei:88,csec:86,cplu:87,crap:86,csin:89,cfib:0.86},
+      {pos:5,nom:"Mikkelsen Andreas",cop:"Fløene Ola",voiture:"Hyundai i20 Coupe WRC",asp:87,ter:87,nei:88,sec:85,plu:86,rap:85,sin:87,fib:0.85,casp:87,cter:87,cnei:88,csec:85,cplu:86,crap:85,csin:87,cfib:0.85},
+      {pos:6,nom:"Meeke Kris",cop:"Nagle Paul",voiture:"Citroën C3 WRC",asp:87,ter:89,nei:87,sec:83,plu:87,rap:86,sin:87,fib:0.87,casp:87,cter:89,cnei:87,csec:83,cplu:87,crap:86,csin:87,cfib:0.87},
+      {pos:7,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Hyundai i20 Coupe WRC",asp:87,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.89,casp:87,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.89},
+      {pos:8,nom:"Paddon Hayden",cop:"Kennard John",voiture:"Hyundai i20 Coupe WRC",asp:84,ter:84,nei:86,sec:84,plu:84,rap:83,sin:86,fib:0.83,casp:84,cter:84,cnei:86,csec:84,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:9,nom:"Evans Elfyn",cop:"Barritt Daniel",voiture:"Ford Fiesta WRC",asp:85,ter:86,nei:88,sec:84,plu:85,rap:84,sin:88,fib:0.85,casp:85,cter:86,cnei:88,csec:84,cplu:85,crap:84,csin:88,cfib:0.85},
+      {pos:10,nom:"Suninen Teemu",cop:"Lehtinen Jarmo",voiture:"Ford Fiesta WRC",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:86,fib:0.83,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:11,nom:"Lefebvre Stéphane",cop:"Panseri Xavier",voiture:"Citroën C3 WRC",asp:84,ter:85,nei:84,sec:82,plu:84,rap:83,sin:84,fib:0.84,casp:82,cter:84,cnei:83,csec:81,cplu:82,crap:81,csin:82,cfib:0.83},
+      {pos:12,nom:"Østberg Mads",cop:"Andersson Jonas",voiture:"Ford Fiesta WRC",asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.8,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:13,nom:"Prokop Martin",cop:"Tománek Jan",voiture:"Ford Fiesta WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:14,nom:"Bouffier Bryan",cop:"Panseri Xavier",voiture:"Citroën C3 WRC",asp:82,ter:84,nei:83,sec:81,plu:82,rap:81,sin:82,fib:0.83,casp:82,cter:84,cnei:83,csec:81,cplu:82,crap:81,csin:82,cfib:0.83},
+      {pos:15,nom:"Al-Qassimi Khalid",cop:"Orr Michael",voiture:"Citroën C3 WRC",asp:82,ter:83,nei:82,sec:80,plu:82,rap:81,sin:81,fib:0.82,casp:82,cter:83,cnei:82,csec:80,cplu:82,crap:81,csin:81,cfib:0.82},
+      {pos:16,nom:"Bertelli Lorenzo",cop:"Scattolin Simone",voiture:"Ford Fiesta WRC",asp:81,ter:82,nei:82,sec:80,plu:81,rap:80,sin:81,fib:0.81,casp:81,cter:82,cnei:82,csec:80,cplu:81,crap:80,csin:81,cfib:0.81},
+      {pos:17,nom:"Kubica Robert",cop:"Szczepaniak Maciej",voiture:"Ford Fiesta WRC",asp:83,ter:84,nei:84,sec:83,plu:83,rap:82,sin:84,fib:0.82,casp:83,cter:84,cnei:84,csec:83,cplu:83,crap:82,csin:84,cfib:0.82},
+      {pos:18,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Škoda Fabia R5",asp:84,ter:83,nei:85,sec:83,plu:83,rap:82,sin:85,fib:0.83,casp:84,cter:83,cnei:85,csec:83,cplu:83,crap:82,csin:85,cfib:0.83},
+    ],
+    cars:[
+      {nom:"Ford Fiesta WRC",asp:89,ter:90,nei:90,sec:84,plu:89,rap:88,sin:90,fib:0.9},
+      {nom:"Hyundai i20 Coupe WRC",asp:89,ter:91,nei:90,sec:85,plu:90,rap:89,sin:90,fib:0.91},
+      {nom:"Toyota Yaris WRC",asp:90,ter:91,nei:92,sec:86,plu:90,rap:89,sin:92,fib:0.91},
+      {nom:"Citroën C3 WRC",asp:88,ter:90,nei:88,sec:84,plu:88,rap:87,sin:88,fib:0.89},
+      {nom:"Škoda Fabia R5",asp:85,ter:85,nei:85,sec:85,plu:85,rap:85,sin:85,fib:0.85},
+    ],
+  },
+  2018:{
+    drivers:[
+      {pos:1,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Ford Fiesta WRC",asp:91,ter:96,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.95,casp:91,cter:96,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.95},
+      {pos:2,nom:"Neuville Thierry",cop:"Gilsoul Nicolas",voiture:"Hyundai i20 Coupe WRC",asp:90,ter:92,nei:89,sec:85,plu:90,rap:89,sin:90,fib:0.92,casp:90,cter:92,cnei:89,csec:85,cplu:90,crap:89,csin:90,cfib:0.92},
+      {pos:3,nom:"Tänak Ott",cop:"Järveoja Martin",voiture:"Toyota Yaris WRC",asp:89,ter:89,nei:89,sec:87,plu:89,rap:88,sin:90,fib:0.87,casp:89,cter:89,cnei:89,csec:87,cplu:89,crap:88,csin:90,cfib:0.87},
+      {pos:4,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Toyota Yaris WRC",asp:87,ter:87,nei:90,sec:86,plu:87,rap:86,sin:91,fib:0.86,casp:87,cter:87,cnei:90,csec:86,cplu:87,crap:86,csin:91,cfib:0.86},
+      {pos:5,nom:"Mikkelsen Andreas",cop:"Fløene Ola",voiture:"Hyundai i20 Coupe WRC",asp:86,ter:86,nei:88,sec:85,plu:86,rap:85,sin:87,fib:0.85,casp:86,cter:86,cnei:88,csec:85,cplu:86,crap:85,csin:87,cfib:0.85},
+      {pos:6,nom:"Meeke Kris",cop:"Nagle Paul",voiture:"Citroën C3 WRC",asp:86,ter:89,nei:86,sec:82,plu:87,rap:86,sin:86,fib:0.87,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.84},
+      {pos:7,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Hyundai i20 Coupe WRC",asp:87,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.88,casp:87,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.88},
+      {pos:8,nom:"Evans Elfyn",cop:"Barritt Daniel",voiture:"Ford Fiesta WRC",asp:86,ter:86,nei:88,sec:84,plu:86,rap:85,sin:87,fib:0.85,casp:86,cter:86,cnei:88,csec:84,cplu:86,crap:85,csin:87,cfib:0.85},
+      {pos:9,nom:"Lappi Esapekka",cop:"Ferm Janne",voiture:"Toyota Yaris WRC",asp:86,ter:85,nei:88,sec:86,plu:85,rap:84,sin:88,fib:0.84,casp:86,cter:85,cnei:88,csec:86,cplu:85,crap:84,csin:88,cfib:0.84},
+      {pos:10,nom:"Östberg Mads",cop:"Andersson Jonas",voiture:"Citroën C3 WRC",asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.8,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:11,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Hyundai i20 Coupe WRC",asp:89,ter:94,nei:88,sec:85,plu:89,rap:88,sin:88,fib:0.91,casp:89,cter:94,cnei:88,csec:85,cplu:89,crap:88,csin:88,cfib:0.91},
+      {pos:12,nom:"Suninen Teemu",cop:"Lehtinen Jarmo",voiture:"Ford Fiesta WRC",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:86,fib:0.83,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:13,nom:"Paddon Hayden",cop:"Kennard John",voiture:"Hyundai i20 Coupe WRC",asp:84,ter:84,nei:86,sec:84,plu:84,rap:83,sin:86,fib:0.82,casp:84,cter:84,cnei:86,csec:84,cplu:84,crap:83,csin:86,cfib:0.82},
+      {pos:14,nom:"Al-Attiyah Nasser",cop:"Bernacchini Giovanni",voiture:"Toyota Yaris WRC",asp:82,ter:84,nei:81,sec:82,plu:81,rap:81,sin:82,fib:0.81,casp:82,cter:84,cnei:81,csec:82,cplu:81,crap:81,csin:82,cfib:0.81},
+      {pos:15,nom:"Prokop Martin",cop:"Tománek Jan",voiture:"Ford Fiesta WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:16,nom:"Bertelli Lorenzo",cop:"Scattolin Simone",voiture:"Ford Fiesta WRC",asp:81,ter:82,nei:82,sec:80,plu:81,rap:80,sin:81,fib:0.81,casp:81,cter:82,cnei:82,csec:80,cplu:81,crap:80,csin:81,cfib:0.81},
+      {pos:17,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Škoda Fabia R5",asp:85,ter:84,nei:87,sec:84,plu:84,rap:83,sin:86,fib:0.83,casp:85,cter:84,cnei:87,csec:84,cplu:84,crap:83,csin:86,cfib:0.83},
+      {pos:18,nom:"Breen Craig",cop:"Nagle Paul",voiture:"Citroën C3 WRC",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.84,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.84},
+    ],
+    cars:[
+      {nom:"Ford Fiesta WRC",asp:89,ter:90,nei:90,sec:84,plu:89,rap:88,sin:90,fib:0.9},
+      {nom:"Hyundai i20 Coupe WRC",asp:90,ter:91,nei:90,sec:85,plu:90,rap:89,sin:90,fib:0.91},
+      {nom:"Toyota Yaris WRC",asp:91,ter:92,nei:93,sec:87,plu:91,rap:90,sin:93,fib:0.92},
+      {nom:"Citroën C3 WRC",asp:87,ter:89,nei:87,sec:83,plu:87,rap:86,sin:87,fib:0.88},
+      {nom:"Škoda Fabia R5",asp:85,ter:85,nei:85,sec:85,plu:85,rap:85,sin:85,fib:0.85},
+    ],
+  },
+  2019:{
+    drivers:[
+      {pos:1,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Citroën C3 WRC",asp:91,ter:95,nei:90,sec:85,plu:91,rap:89,sin:90,fib:0.93,casp:91,cter:95,cnei:90,csec:85,cplu:91,crap:89,csin:90,cfib:0.93},
+      {pos:2,nom:"Tänak Ott",cop:"Järveoja Martin",voiture:"Toyota Yaris WRC",asp:91,ter:92,nei:92,sec:87,plu:91,rap:90,sin:92,fib:0.92,casp:91,cter:92,cnei:92,csec:87,cplu:91,crap:90,csin:92,cfib:0.92},
+      {pos:3,nom:"Neuville Thierry",cop:"Gilsoul Nicolas",voiture:"Hyundai i20 Coupe WRC",asp:90,ter:92,nei:89,sec:85,plu:90,rap:89,sin:90,fib:0.91,casp:90,cter:92,cnei:89,csec:85,cplu:90,crap:89,csin:90,cfib:0.91},
+      {pos:4,nom:"Latvala Jari-Matti",cop:"Anttila Miikka",voiture:"Toyota Yaris WRC",asp:86,ter:86,nei:89,sec:85,plu:86,rap:85,sin:89,fib:0.84,casp:86,cter:86,cnei:89,csec:85,cplu:86,crap:85,csin:89,cfib:0.84},
+      {pos:5,nom:"Evans Elfyn",cop:"Barritt Daniel",voiture:"Ford Fiesta WRC",asp:86,ter:87,nei:88,sec:84,plu:86,rap:85,sin:87,fib:0.85,casp:86,cter:87,cnei:88,csec:84,cplu:86,crap:85,csin:87,cfib:0.85},
+      {pos:6,nom:"Sordo Dani",cop:"Martí Marc",voiture:"Hyundai i20 Coupe WRC",asp:87,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.88,casp:87,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.88},
+      {pos:7,nom:"Meeke Kris",cop:"Nagle Paul",voiture:"Toyota Yaris WRC",asp:87,ter:89,nei:87,sec:83,plu:87,rap:86,sin:87,fib:0.87,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.84},
+      {pos:8,nom:"Mikkelsen Andreas",cop:"Fløene Ola",voiture:"Hyundai i20 Coupe WRC",asp:86,ter:86,nei:88,sec:85,plu:86,rap:85,sin:87,fib:0.85,casp:86,cter:86,cnei:88,csec:85,cplu:86,crap:85,csin:87,cfib:0.85},
+      {pos:9,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Hyundai i20 Coupe WRC",asp:90,ter:94,nei:88,sec:85,plu:89,rap:88,sin:88,fib:0.91,casp:90,cter:94,cnei:88,csec:85,cplu:89,crap:88,csin:88,cfib:0.91},
+      {pos:10,nom:"Lappi Esapekka",cop:"Ferm Janne",voiture:"Citroën C3 WRC",asp:86,ter:85,nei:88,sec:86,plu:85,rap:84,sin:88,fib:0.84,casp:86,cter:85,cnei:88,csec:86,cplu:85,crap:84,csin:88,cfib:0.84},
+      {pos:11,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Toyota Yaris WRC",asp:87,ter:86,nei:89,sec:87,plu:86,rap:85,sin:90,fib:0.83,casp:87,cter:86,cnei:89,csec:87,cplu:86,crap:85,csin:90,cfib:0.83},
+      {pos:12,nom:"Suninen Teemu",cop:"Lehtinen Jarmo",voiture:"Ford Fiesta WRC",asp:85,ter:85,nei:86,sec:84,plu:85,rap:84,sin:87,fib:0.82,casp:85,cter:85,cnei:86,csec:84,cplu:85,crap:84,csin:87,cfib:0.82},
+      {pos:13,nom:"Breen Craig",cop:"Nagle Paul",voiture:"Citroën C3 WRC",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.84,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.84},
+      {pos:14,nom:"Prokop Martin",cop:"Tománek Jan",voiture:"Ford Fiesta WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:15,nom:"Bertelli Lorenzo",cop:"Scattolin Simone",voiture:"Ford Fiesta WRC",asp:81,ter:82,nei:82,sec:80,plu:81,rap:80,sin:81,fib:0.81,casp:81,cter:82,cnei:82,csec:80,cplu:81,crap:80,csin:81,cfib:0.81},
+      {pos:16,nom:"Al-Attiyah Nasser",cop:"Bernacchini Giovanni",voiture:"Toyota Yaris WRC",asp:82,ter:84,nei:81,sec:82,plu:81,rap:81,sin:82,fib:0.81,casp:82,cter:84,cnei:81,csec:82,cplu:81,crap:81,csin:82,cfib:0.81},
+    ],
+    cars:[
+      {nom:"Citroën C3 WRC",asp:86,ter:89,nei:87,sec:83,plu:87,rap:86,sin:87,fib:0.88},
+      {nom:"Toyota Yaris WRC",asp:91,ter:92,nei:93,sec:87,plu:91,rap:90,sin:93,fib:0.92},
+      {nom:"Hyundai i20 Coupe WRC",asp:90,ter:92,nei:91,sec:85,plu:91,rap:90,sin:91,fib:0.92},
+      {nom:"Ford Fiesta WRC",asp:89,ter:90,nei:90,sec:84,plu:89,rap:88,sin:90,fib:0.9},
+    ],
+  },
+  2020:{
+    drivers:[
+      {pos:1,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Toyota Yaris WRC",asp:91,ter:95,nei:91,sec:85,plu:91,rap:90,sin:91,fib:0.94,casp:91,cter:95,cnei:91,csec:85,cplu:91,crap:90,csin:91,cfib:0.94},
+      {pos:2,nom:"Evans Elfyn",cop:"Martin Scott",voiture:"Toyota Yaris WRC",asp:89,ter:89,nei:90,sec:86,plu:88,rap:87,sin:90,fib:0.89,casp:89,cter:89,cnei:90,csec:86,cplu:88,crap:87,csin:90,cfib:0.89},
+      {pos:3,nom:"Tänak Ott",cop:"Järveoja Martin",voiture:"Hyundai i20 Coupe WRC",asp:91,ter:93,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.93,casp:91,cter:93,cnei:93,csec:88,cplu:91,crap:90,csin:93,cfib:0.93},
+      {pos:4,nom:"Neuville Thierry",cop:"Gilsoul Nicolas",voiture:"Hyundai i20 Coupe WRC",asp:90,ter:93,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.92,casp:90,cter:93,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.92},
+      {pos:5,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Toyota Yaris WRC",asp:89,ter:88,nei:91,sec:90,plu:89,rap:88,sin:92,fib:0.88,casp:89,cter:88,cnei:91,csec:90,cplu:89,crap:88,csin:92,cfib:0.88},
+      {pos:6,nom:"Lappi Esapekka",cop:"Ferm Janne",voiture:"Ford Fiesta WRC",asp:87,ter:86,nei:89,sec:87,plu:86,rap:85,sin:89,fib:0.86,casp:87,cter:86,cnei:89,csec:87,cplu:86,crap:85,csin:89,cfib:0.86},
+      {pos:7,nom:"Suninen Teemu",cop:"Lehtinen Jarmo",voiture:"Ford Fiesta WRC",asp:85,ter:85,nei:86,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:86,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:8,nom:"Sordo Dani",cop:"del Barrio Carlos",voiture:"Hyundai i20 Coupe WRC",asp:86,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.89,casp:86,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.89},
+      {pos:9,nom:"Breen Craig",cop:"Nagle Paul",voiture:"Hyundai i20 Coupe WRC",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:10,nom:"Loeb Sébastien",cop:"Elena Daniel",voiture:"Hyundai i20 Coupe WRC",asp:89,ter:94,nei:87,sec:84,plu:90,rap:87,sin:87,fib:0.93,casp:89,cter:94,cnei:87,csec:84,cplu:90,crap:87,csin:87,cfib:0.93},
+      {pos:11,nom:"Greensmith Gus",cop:"Edmondson Elliott",voiture:"Ford Fiesta WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:12,nom:"Katsuta Takamoto",cop:"Barritt Daniel",voiture:"Toyota Yaris WRC",asp:85,ter:85,nei:86,sec:84,plu:84,rap:83,sin:86,fib:0.85,casp:85,cter:85,cnei:86,csec:84,cplu:84,crap:83,csin:86,cfib:0.85},
+      {pos:13,nom:"Loubet Pierre-Louis",cop:"Landais Vincent",voiture:"Ford Fiesta WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:14,nom:"Jocius Deividas",cop:"Varža Mindaugas",voiture:"Ford Fiesta WRC",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:15,nom:"Latvala Jari-Matti",cop:"Hänninen Juho",voiture:"Toyota Yaris WRC",asp:85,ter:84,nei:88,sec:84,plu:85,rap:84,sin:89,fib:0.84,casp:85,cter:84,cnei:88,csec:84,cplu:85,crap:84,csin:89,cfib:0.84},
+      {pos:16,nom:"Kurkela Kimmo",cop:"Hämäläinen Reeta",voiture:"Toyota Yaris WRC",asp:81,ter:80,nei:82,sec:83,plu:81,rap:80,sin:82,fib:0.8,casp:81,cter:80,cnei:82,csec:83,cplu:81,crap:80,csin:82,cfib:0.8},
+      {pos:17,nom:"Gross Georg",cop:"Mõlder Raigo",voiture:"Ford Fiesta WRC",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:18,nom:"Veiby Ole Christian",cop:"Andersson Jonas",voiture:"Hyundai i20 Coupe WRC",asp:83,ter:82,nei:84,sec:83,plu:82,rap:81,sin:84,fib:0.82,casp:83,cter:82,cnei:84,csec:83,cplu:82,crap:81,csin:84,cfib:0.82},
+    ],
+    cars:[
+      {nom:"Toyota Yaris WRC",asp:91,ter:93,nei:93,sec:87,plu:92,rap:91,sin:93,fib:0.93},
+      {nom:"Hyundai i20 Coupe WRC",asp:90,ter:92,nei:91,sec:85,plu:91,rap:90,sin:91,fib:0.92},
+      {nom:"Ford Fiesta WRC",asp:88,ter:90,nei:90,sec:84,plu:89,rap:88,sin:90,fib:0.9},
+    ],
+  },
+  2021:{
+    drivers:[
+      {pos:1,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Toyota Yaris WRC",asp:92,ter:95,nei:91,sec:85,plu:91,rap:90,sin:91,fib:0.94,casp:92,cter:95,cnei:91,csec:85,cplu:91,crap:90,csin:91,cfib:0.94},
+      {pos:2,nom:"Evans Elfyn",cop:"Martin Scott",voiture:"Toyota Yaris WRC",asp:89,ter:90,nei:90,sec:86,plu:89,rap:88,sin:90,fib:0.9,casp:89,cter:90,cnei:90,csec:86,cplu:89,crap:88,csin:90,cfib:0.9},
+      {pos:3,nom:"Neuville Thierry",cop:"Wydaeghe Martijn",voiture:"Hyundai i20 Coupe WRC",asp:90,ter:93,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.92,casp:90,cter:93,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.92},
+      {pos:4,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Toyota Yaris WRC",asp:90,ter:89,nei:92,sec:91,plu:90,rap:89,sin:93,fib:0.89,casp:90,cter:89,cnei:92,csec:91,cplu:90,crap:89,csin:93,cfib:0.89},
+      {pos:5,nom:"Tänak Ott",cop:"Järveoja Martin",voiture:"Hyundai i20 Coupe WRC",asp:91,ter:93,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.93,casp:91,cter:93,cnei:93,csec:88,cplu:91,crap:90,csin:93,cfib:0.93},
+      {pos:6,nom:"Sordo Dani",cop:"del Barrio Carlos",voiture:"Hyundai i20 Coupe WRC",asp:86,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.89,casp:86,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.89},
+      {pos:7,nom:"Katsuta Takamoto",cop:"Johnston Aaron",voiture:"Toyota Yaris WRC",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:8,nom:"Breen Craig",cop:"Nagle Paul",voiture:"Hyundai i20 Coupe WRC",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:9,nom:"Greensmith Gus",cop:"Edmondson Elliott",voiture:"Ford Fiesta WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:10,nom:"Fourmaux Adrien",cop:"Coria Alexandre",voiture:"Ford Fiesta WRC",asp:84,ter:86,nei:85,sec:83,plu:85,rap:84,sin:85,fib:0.85,casp:84,cter:86,cnei:85,csec:83,cplu:85,crap:84,csin:85,cfib:0.85},
+      {pos:11,nom:"Suninen Teemu",cop:"Lehtinen Jarmo",voiture:"Hyundai i20 Coupe WRC",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:86,fib:0.84,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:86,cfib:0.84},
+      {pos:12,nom:"Lappi Esapekka",cop:"Ferm Janne",voiture:"Ford Fiesta WRC",asp:86,ter:85,nei:88,sec:87,plu:86,rap:85,sin:89,fib:0.85,casp:86,cter:85,cnei:88,csec:87,cplu:86,crap:85,csin:89,cfib:0.85},
+      {pos:13,nom:"Solberg Oliver",cop:"Eriksen Torstein",voiture:"Hyundai i20 Coupe WRC",asp:83,ter:83,nei:85,sec:84,plu:83,rap:82,sin:85,fib:0.83,casp:83,cter:83,cnei:85,csec:84,cplu:83,crap:82,csin:85,cfib:0.83},
+      {pos:14,nom:"Loubet Pierre-Louis",cop:"Landais Vincent",voiture:"Ford Fiesta WRC",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:15,nom:"Bertelli Lorenzo",cop:"Scattolin Simone",voiture:"Ford Fiesta WRC",asp:81,ter:82,nei:82,sec:80,plu:81,rap:80,sin:81,fib:0.81,casp:81,cter:82,cnei:82,csec:80,cplu:81,crap:80,csin:81,cfib:0.81},
+    ],
+    cars:[
+      {nom:"Toyota Yaris WRC",asp:91,ter:92,nei:93,sec:87,plu:91,rap:90,sin:93,fib:0.92},
+      {nom:"Hyundai i20 Coupe WRC",asp:89,ter:91,nei:90,sec:85,plu:90,rap:89,sin:90,fib:0.91},
+      {nom:"Ford Fiesta WRC",asp:88,ter:90,nei:90,sec:84,plu:89,rap:88,sin:90,fib:0.9},
+    ],
+  },
+  2022:{
+    drivers:[
+      {pos:1,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:92,ter:91,nei:94,sec:92,plu:91,rap:90,sin:95,fib:0.9,casp:92,cter:91,cnei:94,csec:92,cplu:91,crap:90,csin:95,cfib:0.9},
+      {pos:2,nom:"Evans Elfyn",cop:"Martin Scott",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:89,ter:90,nei:90,sec:86,plu:89,rap:88,sin:90,fib:0.9,casp:89,cter:90,cnei:90,csec:86,cplu:89,crap:88,csin:90,cfib:0.9},
+      {pos:3,nom:"Neuville Thierry",cop:"Wydaeghe Martijn",voiture:"Hyundai i20 N Rally1 Hybrid",asp:90,ter:93,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.91,casp:90,cter:93,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.91},
+      {pos:4,nom:"Tänak Ott",cop:"Järveoja Martin",voiture:"Hyundai i20 N Rally1 Hybrid",asp:91,ter:93,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.93,casp:91,cter:93,cnei:93,csec:88,cplu:91,crap:90,csin:93,cfib:0.93},
+      {pos:5,nom:"Ogier Sébastien",cop:"Ingrassia Julien",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:92,ter:95,nei:91,sec:85,plu:91,rap:90,sin:91,fib:0.95,casp:92,cter:95,cnei:91,csec:85,cplu:91,crap:90,csin:91,cfib:0.95},
+      {pos:6,nom:"Sordo Dani",cop:"del Barrio Carlos",voiture:"Hyundai i20 N Rally1 Hybrid",asp:86,ter:90,nei:86,sec:82,plu:87,rap:85,sin:86,fib:0.88,casp:86,cter:90,cnei:86,csec:82,cplu:87,crap:85,csin:86,cfib:0.88},
+      {pos:7,nom:"Katsuta Takamoto",cop:"Johnston Aaron",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:8,nom:"Fourmaux Adrien",cop:"Coria Alexandre",voiture:"Ford Puma Rally1 Hybrid",asp:85,ter:87,nei:86,sec:83,plu:86,rap:85,sin:86,fib:0.84,casp:85,cter:87,cnei:86,csec:83,cplu:86,crap:85,csin:86,cfib:0.84},
+      {pos:9,nom:"Loubet Pierre-Louis",cop:"Landais Vincent",voiture:"Ford Puma Rally1 Hybrid",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:10,nom:"Lappi Esapekka",cop:"Ferm Janne",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:86,ter:85,nei:88,sec:87,plu:86,rap:85,sin:89,fib:0.85,casp:86,cter:85,cnei:88,csec:87,cplu:86,crap:85,csin:89,cfib:0.85},
+      {pos:11,nom:"Solberg Oliver",cop:"Eriksen Torstein",voiture:"Hyundai i20 N Rally1 Hybrid",asp:83,ter:83,nei:85,sec:84,plu:83,rap:82,sin:85,fib:0.83,casp:83,cter:83,cnei:85,csec:84,cplu:83,crap:82,csin:85,cfib:0.83},
+      {pos:12,nom:"Greensmith Gus",cop:"Edmondson Elliott",voiture:"Ford Puma Rally1 Hybrid",asp:82,ter:82,nei:83,sec:82,plu:82,rap:81,sin:83,fib:0.82,casp:82,cter:82,cnei:83,csec:82,cplu:82,crap:81,csin:83,cfib:0.82},
+      {pos:13,nom:"Breen Craig",cop:"Nagle Paul",voiture:"Ford Puma Rally1 Hybrid",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.84,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.84},
+      {pos:14,nom:"Mikkelsen Andreas",cop:"Fløene Ola",voiture:"Hyundai i20 N Rally1 Hybrid",asp:84,ter:85,nei:86,sec:84,plu:85,rap:84,sin:86,fib:0.83,casp:84,cter:85,cnei:86,csec:84,cplu:85,crap:84,csin:86,cfib:0.83},
+      {pos:15,nom:"Bertelli Lorenzo",cop:"Scattolin Simone",voiture:"Ford Puma Rally1 Hybrid",asp:81,ter:82,nei:82,sec:80,plu:81,rap:80,sin:81,fib:0.81,casp:81,cter:82,cnei:82,csec:80,cplu:81,crap:80,csin:81,cfib:0.81},
+    ],
+    cars:[
+      {nom:"Toyota GR Yaris Rally1 Hybrid",asp:91,ter:92,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.92},
+      {nom:"Hyundai i20 N Rally1 Hybrid",asp:89,ter:91,nei:91,sec:86,plu:90,rap:89,sin:91,fib:0.91},
+      {nom:"Ford Puma Rally1 Hybrid",asp:89,ter:91,nei:91,sec:85,plu:90,rap:89,sin:91,fib:0.91},
+    ],
+  },
+  2023:{
+    drivers:[
+      {pos:1,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:92,ter:93,nei:94,sec:92,plu:91,rap:90,sin:95,fib:0.93,casp:92,cter:93,cnei:94,csec:92,cplu:91,crap:90,csin:95,cfib:0.93},
+      {pos:2,nom:"Evans Elfyn",cop:"Martin Scott",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:90,ter:91,nei:91,sec:86,plu:89,rap:88,sin:91,fib:0.91,casp:90,cter:91,cnei:91,csec:86,cplu:89,crap:88,csin:91,cfib:0.91},
+      {pos:3,nom:"Neuville Thierry",cop:"Wydaeghe Martijn",voiture:"Hyundai i20 N Rally1 Hybrid",asp:90,ter:93,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.92,casp:90,cter:93,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.92},
+      {pos:4,nom:"Tänak Ott",cop:"Järveoja Martin",voiture:"Hyundai i20 N Rally1 Hybrid",asp:91,ter:93,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.93,casp:91,cter:93,cnei:93,csec:88,cplu:91,crap:90,csin:93,cfib:0.93},
+      {pos:5,nom:"Ogier Sébastien",cop:"Landais Vincent",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:91,ter:95,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.94,casp:91,cter:95,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.94},
+      {pos:6,nom:"Lappi Esapekka",cop:"Ferm Janne",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:86,ter:85,nei:88,sec:87,plu:86,rap:85,sin:89,fib:0.85,casp:86,cter:85,cnei:88,csec:87,cplu:86,crap:85,csin:89,cfib:0.85},
+      {pos:7,nom:"Katsuta Takamoto",cop:"Johnston Aaron",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:8,nom:"Sordo Dani",cop:"Carrera Cándido",voiture:"Hyundai i20 N Rally1 Hybrid",asp:86,ter:89,nei:85,sec:82,plu:86,rap:85,sin:85,fib:0.88,casp:86,cter:89,cnei:85,csec:82,cplu:86,crap:85,csin:85,cfib:0.88},
+      {pos:9,nom:"Suninen Teemu",cop:"Markkula Mikko",voiture:"Hyundai i20 N Rally1 Hybrid",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:86,fib:0.84,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:86,cfib:0.84},
+      {pos:10,nom:"Loubet Pierre-Louis",cop:"Gilsoul Nicolas",voiture:"Ford Puma Rally1 Hybrid",asp:83,ter:83,nei:84,sec:82,plu:83,rap:82,sin:84,fib:0.83,casp:83,cter:83,cnei:84,csec:82,cplu:83,crap:82,csin:84,cfib:0.83},
+      {pos:11,nom:"Breen Craig",cop:"Fulton James",voiture:"Ford Puma Rally1 Hybrid",asp:84,ter:84,nei:86,sec:84,plu:84,rap:83,sin:86,fib:0.84,casp:84,cter:84,cnei:86,csec:84,cplu:84,crap:83,csin:86,cfib:0.84},
+      {pos:12,nom:"Latvala Jari-Matti",cop:"Hänninen Juho",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:84,ter:83,nei:87,sec:83,plu:84,rap:83,sin:88,fib:0.83,casp:84,cter:83,cnei:87,csec:83,cplu:84,crap:83,csin:88,cfib:0.83},
+      {pos:13,nom:"Fourmaux Adrien",cop:"Coria Alexandre",voiture:"Ford Puma Rally1 Hybrid",asp:86,ter:88,nei:87,sec:83,plu:87,rap:86,sin:87,fib:0.87,casp:86,cter:88,cnei:87,csec:83,cplu:87,crap:86,csin:87,cfib:0.87},
+      {pos:14,nom:"Serderidis Jourdan",cop:"Miclotte Frédéric",voiture:"Ford Puma Rally1 Hybrid",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:15,nom:"Bertelli Lorenzo",cop:"Scattolin Simone",voiture:"Ford Puma Rally1 Hybrid",asp:81,ter:81,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:81,cter:81,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:16,nom:"Heller Alberto",cop:"Allende Luis",voiture:"Ford Puma Rally1 Hybrid",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Toyota GR Yaris Rally1 Hybrid",asp:91,ter:92,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.92},
+      {nom:"Hyundai i20 N Rally1 Hybrid",asp:89,ter:91,nei:91,sec:86,plu:90,rap:89,sin:91,fib:0.91},
+      {nom:"Ford Puma Rally1 Hybrid",asp:89,ter:91,nei:91,sec:85,plu:90,rap:89,sin:91,fib:0.91},
+    ],
+  },
+  2024:{
+    drivers:[
+      {pos:1,nom:"Neuville Thierry",cop:"Wydaeghe Martijn",voiture:"Hyundai i20 N Rally1 Hybrid",asp:91,ter:94,nei:91,sec:85,plu:91,rap:90,sin:91,fib:0.93,casp:91,cter:94,cnei:91,csec:85,cplu:91,crap:90,csin:91,cfib:0.93},
+      {pos:2,nom:"Evans Elfyn",cop:"Martin Scott",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:90,ter:91,nei:91,sec:86,plu:89,rap:88,sin:91,fib:0.91,casp:90,cter:91,cnei:91,csec:86,cplu:89,crap:88,csin:91,cfib:0.91},
+      {pos:3,nom:"Tänak Ott",cop:"Järveoja Martin",voiture:"Hyundai i20 N Rally1 Hybrid",asp:91,ter:93,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.93,casp:91,cter:93,cnei:93,csec:88,cplu:91,crap:90,csin:93,cfib:0.93},
+      {pos:4,nom:"Ogier Sébastien",cop:"Landais Vincent",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:91,ter:95,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.94,casp:91,cter:95,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.94},
+      {pos:5,nom:"Fourmaux Adrien",cop:"Coria Alexandre",voiture:"Ford Puma Rally1 Hybrid",asp:87,ter:89,nei:88,sec:84,plu:88,rap:87,sin:88,fib:0.88,casp:87,cter:89,cnei:88,csec:84,cplu:88,crap:87,csin:88,cfib:0.88},
+      {pos:6,nom:"Katsuta Takamoto",cop:"Johnston Aaron",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:7,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:92,ter:93,nei:94,sec:92,plu:91,rap:90,sin:95,fib:0.93,casp:92,cter:93,cnei:94,csec:92,cplu:91,crap:90,csin:95,cfib:0.93},
+      {pos:8,nom:"Munster Grégoire",cop:"Louka Louis",voiture:"Ford Puma Rally1 Hybrid",asp:84,ter:84,nei:85,sec:83,plu:84,rap:83,sin:85,fib:0.84,casp:84,cter:84,cnei:85,csec:83,cplu:84,crap:83,csin:85,cfib:0.84},
+      {pos:9,nom:"Sordo Dani",cop:"Carrera Cándido",voiture:"Hyundai i20 N Rally1 Hybrid",asp:86,ter:89,nei:85,sec:82,plu:86,rap:85,sin:85,fib:0.88,casp:86,cter:89,cnei:85,csec:82,cplu:86,crap:85,csin:85,cfib:0.88},
+      {pos:10,nom:"Pajari Sami",cop:"Salminen Marko",voiture:"Toyota GR Yaris Rally1 Hybrid",asp:85,ter:83,nei:87,sec:88,plu:85,rap:84,sin:88,fib:0.83,casp:85,cter:83,cnei:87,csec:88,cplu:85,crap:84,csin:88,cfib:0.83},
+      {pos:11,nom:"Mikkelsen Andreas",cop:"Eriksen Torstein",voiture:"Hyundai i20 N Rally1 Hybrid",asp:85,ter:85,nei:86,sec:84,plu:85,rap:84,sin:86,fib:0.85,casp:85,cter:85,cnei:86,csec:84,cplu:85,crap:84,csin:86,cfib:0.85},
+      {pos:12,nom:"Lappi Esapekka",cop:"Ferm Janne",voiture:"Hyundai i20 N Rally1 Hybrid",asp:85,ter:84,nei:87,sec:86,plu:85,rap:84,sin:88,fib:0.84,casp:85,cter:84,cnei:87,csec:86,cplu:85,crap:84,csin:88,cfib:0.84},
+      {pos:13,nom:"Sesks Mārtiņš",cop:"Francis Renārs",voiture:"Ford Puma Rally1 Hybrid",asp:83,ter:82,nei:84,sec:83,plu:82,rap:81,sin:84,fib:0.82,casp:83,cter:82,cnei:84,csec:83,cplu:82,crap:81,csin:84,cfib:0.82},
+      {pos:14,nom:"Bertelli Lorenzo",cop:"Scattolin Simone",voiture:"Ford Puma Rally1 Hybrid",asp:81,ter:81,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:81,cter:81,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:15,nom:"Serderidis Jourdan",cop:"Miclotte Frédéric",voiture:"Ford Puma Rally1 Hybrid",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Hyundai i20 N Rally1 Hybrid",asp:90,ter:92,nei:91,sec:86,plu:91,rap:90,sin:91,fib:0.92},
+      {nom:"Toyota GR Yaris Rally1 Hybrid",asp:91,ter:92,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.92},
+      {nom:"Ford Puma Rally1 Hybrid",asp:89,ter:91,nei:90,sec:85,plu:89,rap:88,sin:90,fib:0.91},
+    ],
+  },
+  2025:{
+    drivers:[
+      {pos:1,nom:"Rovanperä Kalle",cop:"Halttunen Jonne",voiture:"Toyota GR Yaris Rally1",asp:92,ter:93,nei:94,sec:92,plu:91,rap:90,sin:95,fib:0.93,casp:92,cter:93,cnei:94,csec:92,cplu:91,crap:90,csin:95,cfib:0.93},
+      {pos:2,nom:"Evans Elfyn",cop:"Martin Scott",voiture:"Toyota GR Yaris Rally1",asp:90,ter:91,nei:91,sec:86,plu:89,rap:88,sin:91,fib:0.91,casp:90,cter:91,cnei:91,csec:86,cplu:89,crap:88,csin:91,cfib:0.91},
+      {pos:3,nom:"Neuville Thierry",cop:"Wydaeghe Martijn",voiture:"Hyundai i20 N Rally1",asp:90,ter:94,nei:91,sec:85,plu:91,rap:90,sin:91,fib:0.93,casp:90,cter:94,cnei:91,csec:85,cplu:91,crap:90,csin:91,cfib:0.93},
+      {pos:4,nom:"Ogier Sébastien",cop:"Landais Vincent",voiture:"Toyota GR Yaris Rally1",asp:91,ter:95,nei:90,sec:85,plu:91,rap:90,sin:90,fib:0.94,casp:91,cter:95,cnei:90,csec:85,cplu:91,crap:90,csin:90,cfib:0.94},
+      {pos:5,nom:"Fourmaux Adrien",cop:"Coria Alexandre",voiture:"Ford Puma Rally1",asp:88,ter:90,nei:88,sec:84,plu:89,rap:88,sin:88,fib:0.89,casp:88,cter:90,cnei:88,csec:84,cplu:89,crap:88,csin:88,cfib:0.89},
+      {pos:6,nom:"Katsuta Takamoto",cop:"Johnston Aaron",voiture:"Toyota GR Yaris Rally1",asp:85,ter:85,nei:87,sec:84,plu:85,rap:84,sin:87,fib:0.85,casp:85,cter:85,cnei:87,csec:84,cplu:85,crap:84,csin:87,cfib:0.85},
+      {pos:7,nom:"Tänak Ott",cop:"Järveoja Martin",voiture:"Hyundai i20 N Rally1",asp:91,ter:93,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.93,casp:91,cter:93,cnei:93,csec:88,cplu:91,crap:90,csin:93,cfib:0.93},
+      {pos:8,nom:"Pajari Sami",cop:"Salminen Marko",voiture:"Toyota GR Yaris Rally1",asp:86,ter:84,nei:88,sec:89,plu:86,rap:85,sin:89,fib:0.84,casp:86,cter:84,cnei:88,csec:89,cplu:86,crap:85,csin:89,cfib:0.84},
+      {pos:9,nom:"Munster Grégoire",cop:"Louka Louis",voiture:"Ford Puma Rally1",asp:84,ter:84,nei:86,sec:83,plu:84,rap:83,sin:86,fib:0.84,casp:84,cter:84,cnei:86,csec:83,cplu:84,crap:83,csin:86,cfib:0.84},
+      {pos:10,nom:"Sesks Mārtiņš",cop:"Francis Renārs",voiture:"Ford Puma Rally1",asp:83,ter:83,nei:85,sec:83,plu:83,rap:82,sin:85,fib:0.83,casp:83,cter:83,cnei:85,csec:83,cplu:83,crap:82,csin:85,cfib:0.83},
+      {pos:11,nom:"Solberg Oliver",cop:"Edmondson Elliott",voiture:"Toyota GR Yaris Rally1",asp:84,ter:84,nei:86,sec:84,plu:84,rap:83,sin:86,fib:0.84,casp:84,cter:84,cnei:86,csec:84,cplu:84,crap:83,csin:86,cfib:0.84},
+      {pos:12,nom:"McErlean Josh",cop:"Treacy Eoin",voiture:"Ford Puma Rally1",asp:83,ter:82,nei:84,sec:83,plu:82,rap:81,sin:84,fib:0.82,casp:83,cter:82,cnei:84,csec:83,cplu:82,crap:81,csin:84,cfib:0.82},
+      {pos:13,nom:"Al-Attiyah Nasser",cop:"Carrera Cándido",voiture:"Ford Puma Rally1",asp:82,ter:82,nei:85,sec:82,plu:83,rap:81,sin:83,fib:0.81,casp:82,cter:82,cnei:85,csec:82,cplu:83,crap:81,csin:83,cfib:0.81},
+      {pos:14,nom:"Salvi Diogo",cop:"Coronado Axel",voiture:"Ford Puma Rally1",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:15,nom:"Heller Alberto",cop:"Allende Luis",voiture:"Ford Puma Rally1",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+      {pos:16,nom:"Serderidis Jourdan",cop:"Miclotte Frédéric",voiture:"Ford Puma Rally1",asp:80,ter:80,nei:81,sec:80,plu:80,rap:80,sin:81,fib:0.8,casp:80,cter:80,cnei:81,csec:80,cplu:80,crap:80,csin:81,cfib:0.8},
+    ],
+    cars:[
+      {nom:"Toyota GR Yaris Rally1",asp:91,ter:92,nei:93,sec:88,plu:91,rap:90,sin:93,fib:0.92},
+      {nom:"Hyundai i20 N Rally1",asp:90,ter:91,nei:91,sec:86,plu:90,rap:89,sin:91,fib:0.91},
+      {nom:"Ford Puma Rally1",asp:89,ter:91,nei:90,sec:85,plu:89,rap:88,sin:90,fib:0.91},
+    ],
+  },
+};
+
+const YEARS=Object.keys(DATA).map(Number);
+const PTS=[25,18,15,12,10,8,6,4,2,1];
+function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+function rndN(a,n){const c=[...a],r=[];for(let i=0;i<n&&c.length;i++){const x=Math.floor(Math.random()*c.length);r.push(c.splice(x,1)[0]);}return r;}
+function sc(e,r){return(e.asp*r.asp+e.ter*r.ter+e.nei*r.nei+e.sec*r.sec+e.plu*r.plu+e.rap*r.rap+e.sin*r.sin)/3;}
+function basePerf(d,c,v,r){return((sc(d,r)+sc(c,r)+sc(v,r))/3)*(1+(Math.random()*.1-.05));}
+function calcInc(car,r){const risk=(1-car.fib)*(1+r.cas),t=Math.random();if(t>risk)return{type:"OK",pen:0};if(t>risk*.67)return{type:"Crevaison",pen:30};if(t>risk*.33)return{type:"Panne",pen:60};return{type:"Abandon",pen:Infinity};}
+function fmtG(s){if(s===0)return"-";if(s>=60){const m=Math.floor(s/60),x=(s%60).toFixed(1);return`+${m}m${x.padStart(4,"0")}s`;}return`+${s.toFixed(1)}s`;}
+function scol(s){
+  if(s.includes("Neige")&&s.includes("Asp"))return"#94a3b8"; // mixte
+  if(s.includes("Neige"))return"#f1f5f9";   // blanc neige
+  if(s.includes("Asp"))return"#9ca3af";     // gris asphalte
+  return"#a16207";                          // marron terre
+}
+function scolBg(s){
+  if(s.includes("Neige")&&s.includes("Asp"))return"#1e2432";
+  if(s.includes("Neige"))return"#1e2432";
+  if(s.includes("Asp"))return"#1c1c1e";
+  return"#1a1208";
+}
+function vCol(v){return v>=90?"#f59e0b":v>=85?"#60a5fa":"#9ca3af";}
+function coS(d){if(!d)return{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.85,nom:""};return{asp:d.casp||80,ter:d.cter||80,nei:d.cnei||80,sec:d.csec||80,plu:d.cplu||80,rap:d.crap||80,sin:d.csin||80,fib:d.cfib||0.85,nom:d.cop||""};}
+
+let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false};
+let revealTimer=null;
+
+function init(){ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};render();}
+
+function makeDraftOffers(){
+  // Tire 1 pilote, 1 copilote, 1 voiture depuis 3 années différentes
+  const yr1=rnd(YEARS), yr2=rnd(YEARS), yr3=rnd(YEARS);
+  const dRow=rnd(DATA[yr1].drivers); // pilote
+  const cRow=rnd(DATA[yr2].drivers); // copilote (on prend sa ligne pour avoir ses stats casp/cter...)
+  const vRow=rnd(DATA[yr3].cars);    // voiture
+  return[
+    {type:"driver", nom:dRow.nom,  annee:yr1, item:dRow},
+    {type:"codr",   nom:cRow.cop,  annee:yr2, item:cRow},
+    {type:"car",    nom:vRow.nom,  annee:yr3, item:vRow},
+  ];
+}
+
+function simulate(){
+  const yd=DATA[ST.sel.carYear];
+  const carMap={};yd.cars.forEach(c=>{carMap[c.nom]=c;});
+  const rivals=yd.drivers.map(d=>{
+    const rivalCar=d.voiture?carMap[d.voiture]:null;
+    return{id:d.nom,nom:d.nom,cop:d.cop,driver:d,codr:coS(d),car:rivalCar||rnd(yd.cars)};
+  });
+  if(!ST.sel.driver||!ST.sel.codr||!ST.sel.car){console.error("simulate: missing sel items",ST.sel);return;}
+  const riskMods={prudent:{perf:0.95,fib:1.15},normal:{perf:1,fib:1},attaque:{perf:1.08,fib:0.80}};
+  const rMod=riskMods[ST.riskLevel||'normal']||riskMods.normal;
+  const playerDriver={...ST.sel.driver};
+  const playerCar={...ST.sel.car,fib:Math.min(0.99,ST.sel.car.fib*rMod.fib)};
+  const player={id:"JOUEUR",nom:ST.sel.driver.nom,cop:ST.sel.codr.nom||"",driver:playerDriver,codr:ST.sel.codr,car:playerCar,isP:true,riskPerfMod:rMod.perf};
+  const all=[player,...rivals];
+  const champ={};all.forEach(e=>{champ[e.id]=0;});
+  ST.results=ST.drawn.map(r=>{
+    const comp=all.map(e=>{const p=basePerf(e.driver,e.codr,e.car,r)*(e.riskPerfMod||1),inc=calcInc(e.car,r);return{...e,p,inc,isDNF:inc.type==="Abandon"};});
+    let fin=comp.filter(e=>!e.isDNF),dnf=comp.filter(e=>e.isDNF);
+    // Si tout le monde abandonne, ressuscite le meilleur performeur
+    if(fin.length===0){const best=comp.reduce((a,b)=>a.p>b.p?a:b);best.isDNF=false;best.inc={type:"OK",pen:0};fin=[best];dnf=comp.filter(e=>e!==best);}
+    const best=Math.max(...fin.map(e=>e.p));
+    fin.forEach(e=>{e.tempsFinal=(best-e.p)*10+e.inc.pen;});
+    fin.sort((a,b)=>a.tempsFinal-b.tempsFinal);
+    const sorted=[...fin,...dnf];
+    sorted.forEach((e,i)=>{e.gap=e.isDNF?Infinity:e.tempsFinal;e.pts=e.isDNF?0:(PTS[i]||0);e.rank=i+1;champ[e.id]=(champ[e.id]||0)+e.pts;});
+    return{r,sorted};
+  });
+  ST.champ=champ;
+}
+
+function champSoFar(){
+  const map={};
+  for(let i=0;i<=ST.cur;i++) ST.results[i].sorted.forEach(e=>{map[e.id]=(map[e.id]||0)+e.pts;});
+  return Object.entries(map).map(([id,pts])=>({id,pts})).sort((a,b)=>b.pts-a.pts);
+}
+function champFinal(){return Object.entries(ST.champ).map(([id,pts])=>({id,pts})).sort((a,b)=>b.pts-a.pts);}
+
+function revealNavChamp(){
+  setTimeout(()=>{
+    const nav=document.getElementById("simNav");
+    const champ=document.getElementById("champBlock");
+    const info=document.getElementById("playerInfo");
+    if(info){info.style.transition="opacity .6s";info.style.opacity="1";}
+    if(nav){nav.style.transition="opacity .6s";nav.style.opacity="1";nav.style.pointerEvents="auto";}
+    if(champ){champ.style.transition="opacity .6s";champ.style.opacity="1";}
+  },400);
+}
+
+function buildRevealOrder(sorted){
+  const player=sorted.find(e=>e.isP);
+  const others=[...sorted.filter(e=>!e.isP)];
+  for(let i=others.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[others[i],others[j]]=[others[j],others[i]];}
+  return[player,...others];
+}
+
+let revealOrder=[];
+let revealedEntries=[];
+
+function makeRowWithGap(e,provRank,provGap,provPts,allRevealed){
+  const dnf=e.isDNF,isP=e.isP;
+  const hasPen=e.inc?.type==="Crevaison"||e.inc?.type==="Panne";
+  const isLead=!dnf&&(e.rank===1)&&!!allRevealed;
+  if(provPts===undefined){const PTS_SCALE=[25,18,15,12,10,8,6,4,2,1];provPts=dnf?0:(typeof provRank==="number"?PTS_SCALE[provRank-1]||0:0);}
+  const div=document.createElement("div");
+  div.className="result-row";
+  div.style.cssText=`background:${isP?"#1a1020":"#0f1117"};border:1px solid ${isP?"#7c3aed":"#1f2937"};opacity:${dnf?.6:1}`;
+  div.dataset.id=e.id;
+  div.innerHTML=`
+    <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?"#4b5563":"#6b7280"};flex-shrink:0">${dnf?"DNF":provRank}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?"#c4b5fd":"#e5e7eb"}">${e.nom}${isP?'<span class="you-badge">VOUS</span>':""}</div>
+      <div style="font-size:10px;color:#6b7280">${e.cop}${e.car?` · ${e.car.nom}`:""}</div>
+    </div>
+    ${hasPen?`<span style="font-size:9px;color:${e.inc.type==="Crevaison"?"#fbbf24":"#f97316"};background:#1f2937;padding:1px 5px;border-radius:3px;flex-shrink:0">${e.inc.type}</span>`:""}
+    <div style="text-align:right;min-width:65px;flex-shrink:0">
+      <div style="font-size:11px;font-family:monospace;color:${dnf?"#ef4444":"#9ca3af"}">${dnf?"Abandon":isLead?"✓ Vainqueur":fmtG(provGap)}</div>
+      ${provPts>0?`<div style="font-size:11px;color:#60a5fa;font-weight:600">+${provPts} pts</div>`:""}
+    </div>`;
+  return div;
+}
+
+function makeRow(e,finalRank){return makeRowWithGap(e,finalRank,e.gap);}
+
+function rebuildList(){
+  const container=document.getElementById("revealList");
+  if(!container)return;
+  const sorted=[...revealedEntries].sort((a,b)=>{
+    if(a.isDNF&&!b.isDNF)return 1;if(!a.isDNF&&b.isDNF)return -1;return a.rank-b.rank;
+  });
+  container.innerHTML="";
+  sorted.forEach((e,i)=>{const div=makeRow(e,e.isDNF?"DNF":i+1);div.style.animation="none";container.appendChild(div);});
+}
+
+function startReveal(instant){
+  if(revealTimer)clearInterval(revealTimer);
+  ST.revealed=0;ST.revealing=true;
+  revealedEntries=[];
+  const sorted=ST.results[ST.cur].sorted;
+  const total=sorted.length;
+  const container=document.getElementById("revealList");
+  if(container)container.innerHTML="";
+  if(instant){
+    revealedEntries=[...sorted];
+    ST.revealed=total;ST.revealing=false;
+    const PTS_SCALE_I=[25,18,15,12,10,8,6,4,2,1];
+    if(container){container.innerHTML="";sorted.forEach((entry,i)=>{const div=makeRowWithGap(entry,entry.isDNF?"DNF":i+1,entry.gap,entry.isDNF?0:(PTS_SCALE_I[i]||0),true);div.style.animation="none";container.appendChild(div);});}
+    const ctr=document.getElementById("revealCounter");if(ctr)ctr.textContent="";
+    revealNavChamp();return;
+  }
+  revealOrder=buildRevealOrder(sorted);
+  revealTimer=setInterval(()=>{
+    const e=revealOrder[ST.revealed];if(!e)return;
+    revealedEntries.push(e);ST.revealed++;
+    const container=document.getElementById("revealList");
+    if(container){
+      const PTS_SCALE=[25,18,15,12,10,8,6,4,2,1];
+      const finishers=revealedEntries.filter(x=>!x.isDNF).sort((a,b)=>a.rank-b.rank);
+      const dnfs=revealedEntries.filter(x=>x.isDNF);
+      const toShow=[...finishers,...dnfs];
+      const trueWinnerRevealed=finishers.some(x=>x.rank===1);
+      const provLeader=finishers[0];
+      container.innerHTML="";
+      toShow.forEach((entry,i)=>{
+        const provRank=entry.isDNF?"DNF":i+1;
+        const provPts=entry.isDNF?0:(PTS_SCALE[i]||0);
+        let displayGap;
+        if(entry.isDNF)displayGap=Infinity;
+        else if(trueWinnerRevealed)displayGap=entry.gap;
+        else displayGap=entry.gap-provLeader.gap;
+        const div=makeRowWithGap(entry,provRank,displayGap,provPts,false);
+        if(entry.id===e.id){div.style.animation="fadeIn .4s ease-out";}else{div.style.animation="none";}
+        container.appendChild(div);
+      });
+    }
+    const ctr=document.getElementById("revealCounter");
+    if(ctr){const reste=total-ST.revealed;ctr.textContent=reste>0?`${reste} équipage${reste>1?"s":""} restant${reste>1?"s":""}...`:""}
+    if(ST.revealed>=total){
+      clearInterval(revealTimer);revealTimer=null;ST.revealing=false;
+      // Rebuild list with allRevealed=true to show "Vainqueur"
+      const finalContainer=document.getElementById("revealList");
+      if(finalContainer){
+        const PTS_FINAL=[25,18,15,12,10,8,6,4,2,1];
+        const finishersF=revealedEntries.filter(x=>!x.isDNF).sort((a,b)=>a.rank-b.rank);
+        const dnfsF=revealedEntries.filter(x=>x.isDNF);
+        finalContainer.innerHTML="";
+        [...finishersF,...dnfsF].forEach((entry,i)=>{
+          const div=makeRowWithGap(entry,entry.isDNF?"DNF":i+1,entry.gap,entry.isDNF?0:(PTS_FINAL[i]||0),true);
+          div.style.animation="none";finalContainer.appendChild(div);
+        });
+      }
+      const ctr2=document.getElementById("revealCounter");if(ctr2)ctr2.textContent="";
+      revealNavChamp();
+    }
+  },700);
+}
+
+function selectDraft(offer){
+  // Enregistre le choix avec l'année
+  if(offer.type==="driver"){ST.sel.driver=offer.item;ST.sel.driverYear=offer.annee;}
+  else if(offer.type==="codr"){ST.sel.codr=coS(offer.item);ST.sel.codrYear=offer.annee;}
+  else{ST.sel.car=offer.item;ST.sel.carYear=offer.annee;}
+
+  // Si les 3 types sont choisis → lancer la saison
+  if(ST.sel.driver&&ST.sel.codr&&ST.sel.car){
+    ST.drawn=rndN(RALLYES,10);
+    simulate();
+    ST.phase="recap";ST.cur=0;ST.revealed=0;ST.maxReached=0;render();return;
+  }
+
+  // Sinon tour suivant
+  ST.draftRound++;
+  ST.draftOffers=makeDraftOffers();
+  render();
+}
+
+function goToRally(idx){
+  if(revealTimer){clearInterval(revealTimer);revealTimer=null;}
+  const isNew=idx>ST.maxReached;
+  if(isNew)ST.maxReached=idx;
+  ST.cur=idx;ST.revealed=0;
+  if(isNew){ST.phase="launch";ST.riskLevel=null;render();}
+  else{ST.phase="sim";render();startReveal(true);}
+}
+
+function render(){
+  const app=document.getElementById("app");
+  if(ST.phase==="rules"){app.innerHTML=rRules();attachRulesEv();}
+  else if(ST.phase==="draft"){app.innerHTML=rDraft();attachDraftEv();}
+  else if(ST.phase==="recap"){app.innerHTML=rRecap();attachRecapEv();}
+  else if(ST.phase==="launch"){app.innerHTML=rLaunch();attachLaunchEv();}
+  else if(ST.phase==="sim"){app.innerHTML=rSim();attachSimEv();}
+  else{app.innerHTML=rResults();attachEv();}
+}
+
+function rRules(){
+  return`<div class="hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">WRC Fantasy</span>
+    </div>
+  </div>
+  <div style="padding:24px 20px 32px;display:flex;flex-direction:column;align-items:center;text-align:center">
+    <div style="font-size:42px;margin-bottom:16px">🏁</div>
+    <div style="font-weight:900;font-size:26px;color:#fff;line-height:1.2;margin-bottom:8px">Arriveras-tu à être<br>Champion du Monde ?</div>
+    <div style="font-size:14px;color:#9ca3af;margin-bottom:32px">Constitue ton équipage de légende et affronte les pilotes de l'histoire du WRC.</div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px;margin-bottom:32px;text-align:left">
+      <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">🎲</span>
+          <span style="font-size:12px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.1em">La Draft</span>
+        </div>
+        <div style="font-size:13px;color:#d1d5db;line-height:1.6">3 tours de draft. À chaque tour, un <span style="color:#fff;font-weight:600">pilote</span>, un <span style="color:#fff;font-weight:600">copilote</span> et une <span style="color:#fff;font-weight:600">voiture</span> sont proposés au hasard parmi toute l'histoire du WRC. Tu en gardes un — les types déjà choisis sont grisés. Tu disposes d'une <span style="color:#fff;font-weight:600">relance</span> utilisable une seule fois sur n'importe quel tour pour renouveler les propositions.</div>
+      </div>
+      <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="font-size:20px">🏎</span>
+          <span style="font-size:12px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.1em">La Saison</span>
+        </div>
+        <div style="font-size:13px;color:#d1d5db;line-height:1.6"><span style="color:#fff;font-weight:600">10 rallyes</span> tirés au sort parmi toute l'histoire du WRC t'attendent. Tu affrontes les équipages réels de l'année de ta voiture sur chaque rallye.</div>
+      </div>
+    </div>
+    <button id="startDraft" style="width:100%;background:#dc2626;border:2px solid #ef4444;border-radius:12px;padding:16px;font-size:16px;font-weight:900;color:#fff;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 0 24px rgba(220,38,38,.5)">
+      Démarrer la draft
+    </button>
+  </div>`;
+}
+
+function attachRulesEv(){
+  const btn=document.getElementById("startDraft");
+  if(btn){
+    btn.addEventListener("mouseenter",()=>{btn.style.background="#ef4444";});
+    btn.addEventListener("mouseleave",()=>{btn.style.background="#dc2626";});
+    btn.addEventListener("click",()=>{
+      ST.phase="draft";
+      ST.draftRound=0;
+      ST.draftOffers=makeDraftOffers();
+      render();
+    });
+  }
+}
+
+function rDraft(){
+  const round=ST.draftRound;
+  const offers=ST.draftOffers;
+  const typeLabels={driver:"Pilote",codr:"Copilote",car:"Voiture"};
+  const chosen={driver:!!ST.sel.driver,codr:!!ST.sel.codr,car:!!ST.sel.car};
+  const bars=[0,1,2].map(i=>`<div class="pbar" style="background:${i<round?"#dc2626":i===round?"#ef4444":"#1f2937"}"></div>`).join("");
+
+  // Tags des choix déjà faits
+  const tags=[];
+  if(ST.sel.driver) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Pilote · </span>${ST.sel.driver.nom}</div>`);
+  if(ST.sel.codr) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Copilote · </span>${ST.sel.codr.nom}</div>`);
+
+  const cards=offers.map(o=>{
+    const locked=chosen[o.type];
+    const typeColor=o.type==="driver"?"#60a5fa":o.type==="codr"?"#a78bfa":"#f59e0b";
+    return`<div class="draft-card ${locked?"locked":""}" data-type="${o.type}" style="
+      background:${locked?"#0a0a0a":"#0f1117"};
+      border:2px solid ${locked?"#1f2937":typeColor};
+      border-radius:12px;padding:16px;cursor:${locked?"default":"pointer"};
+      opacity:${locked?0.35:1};
+      transition:all .15s;flex:1;min-width:0;
+      ${locked?"":"box-shadow:0 0 12px "+typeColor+"22;"}
+    ">
+      <div style="font-size:9px;font-weight:700;color:${locked?"#4b5563":typeColor};text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px">${typeLabels[o.type]}</div>
+      <div style="font-weight:800;font-size:15px;color:${locked?"#374151":"#fff"};line-height:1.3;margin-bottom:6px">${o.nom}</div>
+      <div style="font-size:11px;color:${locked?"#1f2937":"#6b7280"}">${o.annee}</div>
+      ${locked?`<div style="font-size:10px;color:#374151;margin-top:6px;font-style:italic">Déjà choisi</div>`:""}
+    </div>`;
+  }).join("");
+
+  return`<div class="hdr" style="position:sticky;top:0;z-index:10">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">WRC Fantasy</span>
+    </div>
+    <div style="display:flex;gap:5px">${bars}</div>
+    ${tags.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${tags.join("")}</div>`:""}
+  </div>
+  <div style="padding:16px 20px 10px">
+    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Tour ${round+1} / 3</div>
+    <div style="font-weight:800;font-size:19px;color:#fff;margin-bottom:4px">Choisissez un élément</div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:20px">Sélectionnez le pilote, copilote ou voiture que vous souhaitez garder</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${cards}
+    </div>
+    ${!ST.rerollUsed?`
+    <div style="margin-top:16px;text-align:center">
+      <button id="rerollBtn" style="background:transparent;border:1px solid #374151;border-radius:8px;padding:8px 20px;font-size:12px;color:#6b7280;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;transition:all .15s">
+        🔀 Relancer les propositions
+      </button>
+      <div style="font-size:10px;color:#4b5563;margin-top:5px">Utilisable une seule fois</div>
+    </div>`:`
+    <div style="margin-top:16px;text-align:center">
+      <div style="font-size:11px;color:#374151;font-style:italic">Relance déjà utilisée</div>
+    </div>`}
+  </div>`;
+}
+
+function attachDraftEv(){
+  document.querySelectorAll(".draft-card:not(.locked)").forEach(card=>{
+    const type=card.dataset.type;
+    const offer=ST.draftOffers.find(o=>o.type===type);
+    card.addEventListener("mouseenter",()=>{card.style.transform="scale(1.02)";});
+    card.addEventListener("mouseleave",()=>{card.style.transform="none";});
+    card.addEventListener("click",()=>{if(offer)selectDraft(offer);});
+  });
+  const rerollBtn=document.getElementById("rerollBtn");
+  if(rerollBtn){
+    rerollBtn.addEventListener("mouseenter",()=>{rerollBtn.style.borderColor="#6b7280";rerollBtn.style.color="#e5e7eb";});
+    rerollBtn.addEventListener("mouseleave",()=>{rerollBtn.style.borderColor="#374151";rerollBtn.style.color="#6b7280";});
+    rerollBtn.addEventListener("click",()=>{
+      ST.rerollUsed=true;
+      ST.draftOffers=makeDraftOffers();
+      render();
+    });
+  }
+}
+
+const KEYS=["asp","ter","nei","sec","plu","rap","sin"];
+const LABELS={asp:"Asphalte",ter:"Terre",nei:"Neige",sec:"Sec",plu:"Pluie",rap:"Rapide",sin:"Sinueux"};
+
+function rRecap(){
+  const d=ST.sel.driver,c=ST.sel.codr,v=ST.sel.car;
+
+  function getDriverStats(nom,yr){
+    const yd=DATA[yr];if(!yd)return null;
+    return yd.drivers.find(x=>x.nom===nom)||null;
+  }
+  function getCopiloteStats(nom,yr){
+    const yd=DATA[yr];if(!yd)return null;
+    const row=yd.drivers.find(x=>x.cop===nom);
+    if(!row)return null;
+    return{asp:row.casp,ter:row.cter,nei:row.cnei,sec:row.csec,plu:row.cplu,rap:row.crap,sin:row.csin};
+  }
+  function getCarStats(nom,yr){
+    const yd=DATA[yr];if(!yd)return null;
+    return yd.cars.find(x=>x.nom===nom)||null;
+  }
+
+  // Récupère les stats avec fallbacks robustes
+  const dStats=getDriverStats(d&&d.nom,ST.sel.driverYear)||d||{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80};
+  const cStats=getCopiloteStats(c&&c.nom,ST.sel.codrYear)||c||{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80};
+  const vStats=getCarStats(v&&v.nom,ST.sel.carYear)||v||{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80};
+
+  // Moyenne des 3 items sur les 7 caractéristiques
+  const avg={};
+  KEYS.forEach(k=>{
+    const dv=Number(dStats[k])||80, cv=Number(cStats[k])||80, vv=Number(vStats[k])||80;
+    avg[k]=Math.round((dv+cv+vv)/3);
+  });
+
+  // Point fort et faible de l'ensemble
+  let best=KEYS[0],worst=KEYS[0];
+  KEYS.forEach(k=>{
+    if(avg[k]>avg[best])best=k;
+    if(avg[k]<avg[worst])worst=k;
+  });
+
+  const bloc=(title,nom,annee)=>`
+    <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px">${title} · ${annee}</div>
+      <div style="font-weight:800;font-size:17px;color:#fff">${nom}</div>
+    </div>`;
+
+  return`<div class="hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">WRC Fantasy</span>
+    </div>
+    <div style="display:flex;gap:5px">${[0,1,2].map(()=>`<div class="pbar" style="background:#dc2626"></div>`).join("")}</div>
+  </div>
+  <div style="padding:16px 20px 24px">
+    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Votre composition</div>
+    <div style="font-weight:800;font-size:20px;color:#fff;margin-bottom:16px">Récapitulatif du draft</div>
+
+    ${bloc("Pilote",d.nom,ST.sel.driverYear)}
+    ${bloc("Copilote",c.nom,ST.sel.codrYear)}
+    ${bloc("Voiture",v.nom,ST.sel.carYear)}
+
+    <div style="background:#0f1117;border:1px solid #374151;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Force de l'équipage</div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;background:#0a1a0a;border:1px solid #166534;border-radius:8px;padding:10px 12px">
+          <div style="font-size:9px;color:#4ade80;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Point fort</div>
+          <div style="font-weight:700;font-size:15px;color:#f0fdf4">${LABELS[best]}</div>
+          
+        </div>
+        <div style="flex:1;background:#1a0a0a;border:1px solid #991b1b;border-radius:8px;padding:10px 12px">
+          <div style="font-size:9px;color:#f87171;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Point faible</div>
+          <div style="font-weight:700;font-size:15px;color:#fef2f2">${LABELS[worst]}</div>
+          
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#1a0f0f;border:1px solid #dc2626;border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:#9ca3af">Concurrents de la saison :</span>
+      <span style="font-weight:900;font-size:22px;color:#ef4444">${ST.sel.carYear}</span>
+    </div>
+
+    <button id="startSeason" style="width:100%;background:#dc2626;border:2px solid #ef4444;border-radius:12px;padding:15px;font-size:16px;font-weight:900;color:#fff;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 0 24px rgba(220,38,38,.5)">
+      Démarrer la saison
+    </button>
+  </div>`;
+}
+
+function attachRecapEv(){
+  const btn=document.getElementById("startSeason");
+  if(btn){
+    btn.addEventListener("mouseenter",()=>{btn.style.background="#ef4444";});
+    btn.addEventListener("mouseleave",()=>{btn.style.background="#dc2626";});
+    btn.addEventListener("click",()=>{ST.phase="launch";render();});
+  }
+}
+
+function rLaunch(){
+  const rr=ST.results[ST.cur],{r}=rr;
+  const col=scol(r.surface);
+  const bg=scolBg(r.surface);
+  const bars=ST.results.map((_,i)=>`<div class="pbar" style="background:${i<ST.cur?"#dc2626":i===ST.cur?"#ef4444":"#1f2937"}"></div>`).join("");
+
+  const risks=[
+    {id:"prudent", label:"Prudent",  desc:"On sécurise",         perf:"-5%",  fib:"+15%", pc:"#f87171", fc:"#4ade80", bc:"#60a5fa"},
+    {id:"normal",  label:"Normal",   desc:"On roule son rythme", perf:"—",    fib:"—",    pc:"#9ca3af", fc:"#9ca3af", bc:"#6b7280"},
+    {id:"attaque", label:"Attaque",  desc:"On pousse à fond",    perf:"+8%",  fib:"-20%", pc:"#4ade80", fc:"#f87171", bc:"#ef4444"},
+  ];
+
+  const riskCards=risks.map(rx=>{
+    const sel=ST.riskLevel===rx.id;
+    return`<div data-risk="${rx.id}" style="flex:1;background:${sel?"#111827":"#0f1117"};border:2px solid ${sel?rx.bc:"#1f2937"};border-radius:10px;padding:16px 8px;cursor:pointer;text-align:center;transition:all .15s;${sel?"box-shadow:0 0 12px "+rx.bc+"44;":""}">
+      <div style="font-size:13px;font-weight:800;color:${sel?rx.bc:"#6b7280"};text-transform:uppercase;letter-spacing:.08em">${rx.label}</div>
+    </div>`;
+  }).join("");
+
+  return`<div class="hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">WRC Fantasy</span>
+    </div>
+    <div style="display:flex;gap:5px">${bars}</div>
+  </div>
+  <div style="padding:28px 20px 32px;text-align:center;background:${bg}">
+    <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.15em;margin-bottom:12px">Rallye ${ST.cur+1} / 10</div>
+    <div style="font-weight:900;font-size:34px;color:#fff;margin-bottom:16px">${r.name}</div>
+    <div style="display:inline-flex;align-items:center;gap:10px;background:${col}18;border:2px solid ${col};border-radius:10px;padding:8px 20px;margin-bottom:28px">
+      <span style="font-size:14px;font-weight:700;color:${col};letter-spacing:.05em">${r.surface}</span>
+    </div>
+    <div style="margin-bottom:24px;text-align:left">
+      <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Votre stratégie</div>
+      <div style="display:flex;gap:8px" id="riskCards">${riskCards}</div>
+    </div>
+    <button id="launchBtn" ${!ST.riskLevel?"disabled":""} style="width:100%;background:${ST.riskLevel?"#dc2626":"#1f2937"};border:2px solid ${ST.riskLevel?"#ef4444":"#374151"};border-radius:12px;padding:14px;font-size:16px;font-weight:900;color:${ST.riskLevel?"#fff":"#4b5563"};cursor:${ST.riskLevel?"pointer":"not-allowed"};letter-spacing:.06em;text-transform:uppercase;${ST.riskLevel?"box-shadow:0 0 24px rgba(220,38,38,.5);":""}transition:all .2s">
+      Lancer le rallye
+    </button>
+  </div>`;
+}
+
+function attachLaunchEv(){
+  const riskColors={prudent:"#60a5fa",normal:"#6b7280",attaque:"#ef4444"};
+  document.querySelectorAll("#riskCards > div").forEach(card=>{
+    const col=riskColors[card.dataset.risk]||"#6b7280";
+    card.addEventListener("mouseenter",()=>{
+      if(ST.riskLevel!==card.dataset.risk){
+        card.style.borderColor=col;
+        card.style.boxShadow=`0 0 16px ${col}66`;
+        card.style.transform="scale(1.03)";
+      }
+    });
+    card.addEventListener("mouseleave",()=>{
+      if(ST.riskLevel!==card.dataset.risk){
+        card.style.borderColor="#1f2937";
+        card.style.boxShadow="none";
+        card.style.transform="none";
+      }
+    });
+    card.addEventListener("click",()=>{ST.riskLevel=card.dataset.risk;render();});
+  });
+  const btn=document.getElementById("launchBtn");
+  if(btn){
+    btn.addEventListener("mouseenter",()=>{btn.style.background="#ef4444";});
+    btn.addEventListener("mouseleave",()=>{btn.style.background="#dc2626";});
+    btn.addEventListener("click",()=>{ST.phase="sim";render();startReveal(false);});
+  }
+}
+
+
+function rSim(){
+  const rr=ST.results[ST.cur],{r}=rr;
+  const col=scol(r.surface);
+  const ca=champSoFar();
+  const bars=ST.results.map((_,i)=>`<div class="pbar" style="background:${i<ST.cur?"#dc2626":i===ST.cur?"#ef4444":"#1f2937"};cursor:pointer" data-rally="${i}"></div>`).join("");
+  const prevBtn=ST.cur>0?`<button class="nav-btn" style="background:#1f2937;color:#e5e7eb" id="prevR">← Précédent</button>`:"";
+  const nextBtn=ST.cur<ST.results.length-1
+    ?`<button class="nav-btn" style="background:#dc2626;color:#fff;flex:2" id="nextR">Rallye suivant →</button>`
+    :`<button class="nav-btn" style="background:linear-gradient(135deg,#7c3aed,#dc2626);color:#fff;flex:2" id="toResults">🏆 Championnat final</button>`;
+  const champRows=ca.map((e,i)=>`
+    <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:${i<ca.length-1?"1px solid #111827":"none"};font-size:12px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="color:#4b5563;width:18px;font-size:11px">${i+1}</span>
+        <span style="color:${e.id==="JOUEUR"?"#c4b5fd":"#e5e7eb"};font-weight:${e.id==="JOUEUR"?700:400}">${e.id==="JOUEUR"?ST.sel.driver.nom+" (VOUS)":e.id}</span>
+      </div>
+      <span style="font-weight:700;color:${e.id==="JOUEUR"?"#c4b5fd":"#60a5fa"}">${e.pts}</span>
+    </div>`).join("");
+
+  // Bloc position+points joueur : masqué jusqu'à la fin de la révélation
+  const pr=rr.sorted.find(e=>e.isP),isDNF=pr?.isDNF;
+  const playerInfo=`
+    <div id="playerInfo" style="padding:12px 20px;background:#0f1117;border-bottom:1px solid #1f2937;opacity:0">
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px">${ST.sel.driver.nom} <span style="color:#4b5563">(${ST.sel.driverYear})</span> · ${ST.sel.codr.nom} <span style="color:#4b5563">(${ST.sel.codrYear})</span> · ${ST.sel.car.nom} <span style="color:#4b5563">(${ST.sel.carYear})</span></div>
+      <div style="display:flex;gap:16px;align-items:center">
+        <div><span style="font-size:11px;color:#6b7280">Position </span><span style="font-weight:900;font-size:22px;color:${isDNF?"#ef4444":"#f59e0b"}">${isDNF?"DNF":"P"+pr?.rank}</span></div>
+        ${pr?.inc?.type&&pr.inc.type!=="OK"?`<div style="background:#1f2937;border-radius:4px;padding:2px 8px;font-size:11px;color:${pr.inc.type==="Abandon"?"#ef4444":"#fbbf24"}">⚠ ${pr.inc.type}</div>`:""}
+        <div style="margin-left:auto"><span style="font-size:11px;color:#6b7280">Points </span><span style="font-weight:700;font-size:16px;color:#60a5fa">${pr?.pts||0}</span></div>
+      </div>
+    </div>`;
+
+  return`<div class="hdr">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><div style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:.1em">Rallye ${ST.cur+1}/10</div><div style="font-weight:900;font-size:19px;color:#fff">${r.name}</div></div>
+      <div style="background:${col}22;border:1px solid ${col};border-radius:4px;padding:2px 8px;font-size:11px;color:${col};font-weight:600">${r.surface}</div>
+    </div>
+    <div style="display:flex;gap:5px;margin-top:10px">${bars}</div>
+  </div>
+  ${playerInfo}
+  <div style="padding:8px 20px 2px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em">Classement du rallye</div>
+    <div id="revealCounter" style="font-size:11px;color:#4b5563;font-style:italic"></div>
+  </div>
+  <div id="revealList" style="padding:0 20px 8px"></div>
+  <div id="simNav" class="nav" style="opacity:0;pointer-events:none">${prevBtn}${nextBtn}</div>
+  <div id="champBlock" style="background:#0f1117;border:1px solid #1f2937;border-radius:8px;margin:0 20px 16px;padding:10px 14px;opacity:0">
+    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Championnat ${ST.sel.carYear} — après ${ST.cur+1} rallye${ST.cur>0?"s":""}</div>
+    ${champRows}
+  </div>`;
+}
+
+function attachSimEv(){
+  document.querySelectorAll("[data-rally]").forEach(el=>{
+    el.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}goToRally(parseInt(el.dataset.rally));});
+  });
+  const prev=document.getElementById("prevR");if(prev)prev.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}goToRally(ST.cur-1);});
+  const next=document.getElementById("nextR");if(next)next.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}goToRally(ST.cur+1);});
+  const fin=document.getElementById("toResults");if(fin)fin.addEventListener("click",()=>{ST.phase="results";render();});
+}
+
+function rResults(){
+  const ca=champFinal(),pRank=ca.findIndex(e=>e.id==="JOUEUR")+1,isChamp=pRank===1,pPts=ST.champ["JOUEUR"]||0;
+  const summary=ST.results.map(rr=>{const pr=rr.sorted.find(e=>e.isP),dnf=pr?.isDNF;
+    return`<div class="rally-card"><div style="font-size:10px;color:#6b7280;margin-bottom:2px">${rr.r.name}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;font-size:14px;color:${dnf?"#ef4444":pr?.rank===1?"#f59e0b":"#e5e7eb"}">${dnf?"DNF":"P"+pr?.rank}</span><span style="font-size:12px;color:#60a5fa;font-weight:600">${pr?.pts||0} pts</span></div>
+    ${pr?.inc?.type&&pr.inc.type!=="OK"?`<div style="font-size:9px;color:${dnf?"#ef4444":"#fbbf24"}">${pr.inc.type}</div>`:""}</div>`;
+  }).join("");
+  const fullChamp=ca.map((e,i)=>`
+    <div class="fc-row" style="background:${e.id==="JOUEUR"?"#1a1020":i===0?"#0f1200":"#0f1117"};border-color:${e.id==="JOUEUR"?"#7c3aed":i===0?"#92400e":"#1f2937"}">
+      <span style="width:18px;text-align:right;font-size:12px;font-weight:700;color:#4b5563">${i+1}</span>
+      <span style="flex:1;font-size:12px;font-weight:${e.id==="JOUEUR"?700:400};color:${e.id==="JOUEUR"?"#c4b5fd":"#e5e7eb"}">${e.id==="JOUEUR"?ST.sel.driver.nom+" (VOUS)":e.id}</span>
+      <span style="font-size:13px;font-weight:700;color:${e.id==="JOUEUR"?"#c4b5fd":"#60a5fa"}">${e.pts}</span>
+    </div>`).join("");
+  return`<div style="background:${isChamp?"linear-gradient(135deg,#78350f,#1a1a0a)":"linear-gradient(135deg,#1a0a0a,#0a0a1a)"};border-bottom:2px solid #dc2626;padding:28px 20px;text-align:center">
+    <div style="font-size:44px;margin-bottom:8px">${isChamp?"🏆":pRank<=3?"🥈":"🏁"}</div>
+    <div style="font-weight:900;font-size:24px;color:${isChamp?"#fbbf24":"#fff"}">${isChamp?"CHAMPION DU MONDE !":pRank<=3?pRank+"ème — Podium !":pRank+"ème au championnat"}</div>
+    <div style="color:#9ca3af;font-size:12px;margin-top:6px">${ST.sel.driver.nom} / ${ST.sel.codr.nom} — ${ST.sel.car.nom}</div>
+    <div style="display:inline-block;background:#1f2937;border-radius:8px;padding:6px 20px;margin-top:14px"><span style="color:#6b7280;font-size:11px">Total </span><span style="font-weight:900;font-size:26px;color:#60a5fa">${pPts} pts</span></div>
+  </div>
+  <div style="padding:12px 20px 0"><div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Résumé des rallyes</div></div>
+  <div class="rallye-grid">${summary}</div>
+  <div style="padding:0 20px"><div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Classement final championnat ${ST.sel.carYear}</div>${fullChamp}</div>
+  <div style="padding:16px 20px 32px"><button id="restart" style="width:100%;background:#dc2626;border:none;border-radius:8px;padding:13px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">🔄 Nouvelle saison</button></div>`;
+}
+
+function attachEv(){
+  const tb=document.getElementById("tirageBtn");if(tb)tb.addEventListener("click",()=>{ST.tirageState="spinning";render();setTimeout(()=>{ST.tirageState="revealed";render();},800);});
+  const cb=document.getElementById("chooseBtn");if(cb)cb.addEventListener("click",()=>{ST.phase="draft";render();});
+  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false};render();});
+}
+init();
+</script>
+</body></html>
