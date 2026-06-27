@@ -393,18 +393,11 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 const socket = io();
 
 
-// Délégation d'événement permanente sur le conteneur de cartes
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('cards-grid').addEventListener('click', (e) => {
-    const card = e.target.closest('.draft-card');
-    if (!card || card.classList.contains('grise') || card.classList.contains('spec')) return;
-    doPick(card.dataset.type);
-  });
-});
+
 const ANNEES = [1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
 const PTS_SCALE = [25,18,15,12,10,8,6,4,2,1];
 
-let G = { monId:null, monNom:'', roomCode:null, room:null, stratChoisie:null, avecRivaux:true, nbRallyes:10, _lastPropositions:null };
+let G = { monId:null, monNom:'', roomCode:null, room:null, stratChoisie:null, avecRivaux:true, nbRallyes:10 };
 let slMin=0, slMax=ANNEES.length-1;
 let revealTimer=null, revealedEntries=[], revealOrder=[];
 
@@ -488,41 +481,99 @@ function renderLobby(){
 }
 
 // ── DRAFT ──────────────────────────────────────────────────────
+// État unique du tour en cours
+G.tourActuel = null;
 
-// Source de vérité unique pour les propositions courantes
-G.propositionsActuelles = null;
+// Délégation d'événement permanente — un seul listener, indestructible
+document.getElementById('cards-grid').addEventListener('click', (e) => {
+  const card = e.target.closest('.draft-card[data-type]');
+  if (!card) return;
+  doPick(card.dataset.type);
+});
 
-function useReroll(){
-  document.getElementById('btn-reroll').disabled=true;
-  socket.emit('utiliser_relance',{code:G.roomCode});
+function doPick(type) {
+  if (!G.roomCode || !G.tourActuel) return;
+  if (G.tourActuel.joueurId !== G.monId) return;
+  socket.emit('faire_pick', { code: G.roomCode, type });
 }
 
-function doPick(type){
-  if(!G.roomCode) return;
-  // Vérifier via room state plutôt que propositionsActuelles (plus fiable)
-  if(!G.room) return;
-  const nb = G.room.joueurs.length;
-  const joueurActifId = G.room.joueurs[G.room.tourIndex % nb]?.id;
-  if(joueurActifId !== G.monId) return; // pas mon tour
-  socket.emit('faire_pick',{code:G.roomCode,type});
+function useReroll() {
+  if (!G.roomCode || !G.tourActuel) return;
+  if (G.tourActuel.joueurId !== G.monId) return;
+  document.getElementById('btn-reroll').disabled = true;
+  socket.emit('utiliser_relance', { code: G.roomCode });
 }
 
-function renderProgress(){
-  const room=G.room, nb=room.joueurs.length, total=nb*3;
-  const el=document.getElementById('prog-dots'); el.innerHTML='';
-  for(let i=0;i<total;i++){
-    const j=room.joueurs[i%nb], d=document.createElement('div');
-    d.className='prog-dot'+(i<room.tourIndex?' done':i===room.tourIndex?' cur':'');
-    d.textContent=j.nom[0].toUpperCase(); d.title=`Tour ${Math.floor(i/nb)+1} — ${j.nom}`;
+function renderDraft() {
+  if (!G.tourActuel || !G.room) return;
+  const { joueurId, joueurNom, propositions, tourGlobal } = G.tourActuel;
+  const room = G.room;
+  const nb = room.joueurs.length;
+  const tourNum = Math.floor(tourGlobal / nb) + 1;
+  const estMoi = (joueurId === G.monId);
+
+  // Header
+  document.getElementById('d-sub').textContent = `Tour ${tourNum}/3 — ${joueurNom} choisit`;
+  const whoEl = document.getElementById('d-who');
+  whoEl.textContent = estMoi ? 'À TOI DE JOUER !' : `${joueurNom} choisit…`;
+  whoEl.className = 'draft-who' + (estMoi ? ' moi' : '');
+
+  // Bouton relance
+  const j = moi();
+  document.getElementById('btn-reroll').disabled = !estMoi || !j?.relanceDisponible;
+
+  // Bannière année verrouillée
+  if (room.anneeVerrouillee) {
+    document.getElementById('verrou-banner').style.display = 'flex';
+    document.getElementById('verrou-year').textContent = room.anneeVerrouillee;
+  }
+
+  // Grille de cartes — reconstruction complète
+  const grid = document.getElementById('cards-grid');
+  grid.innerHTML = '';
+  for (const prop of propositions) {
+    const cliquable = estMoi && prop.disponible;
+    const card = document.createElement('div');
+    card.className = 'draft-card' + (!prop.disponible ? ' grise' : '') + (!cliquable ? ' spec' : '');
+    if (cliquable) card.dataset.type = prop.type;
+    card.innerHTML = `
+      <div class="c-type ${prop.type}">${prop.type==='pilote'?'🧑 Pilote':prop.type==='copilote'?'👥 Co-pilote':'🚗 Voiture'}</div>
+      <div class="c-nom">${prop.item.nom}</div>
+      <div style="font-family:'Exo 2',sans-serif;font-weight:900;font-size:22px;color:#fbbf24;margin-top:6px;letter-spacing:.05em">${prop.annee}</div>
+      ${!prop.disponible ? '<div style="margin-top:6px;font-size:10px;color:#374151">Déjà sélectionné</div>' : ''}`;
+    grid.appendChild(card);
+  }
+
+  // Progression et picks
+  renderProgress();
+  renderPicksMini();
+}
+
+function renderProgress() {
+  const room = G.room;
+  if (!room) return;
+  const nb = room.joueurs.length, total = nb * 3;
+  const el = document.getElementById('prog-dots');
+  el.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const j = room.joueurs[i % nb];
+    const d = document.createElement('div');
+    d.className = 'prog-dot' + (i < room.tourIndex ? ' done' : i === room.tourIndex ? ' cur' : '');
+    d.textContent = j.nom[0].toUpperCase();
+    d.title = `Tour ${Math.floor(i/nb)+1} — ${j.nom}`;
     el.appendChild(d);
   }
 }
-function renderPicksMini(){
-  const room=G.room, tb=document.getElementById('picks-mini'); tb.innerHTML='';
-  for(const j of room.joueurs){
-    const tr=document.createElement('tr');
-    const isMe=j.id===G.monId;
-    tr.innerHTML=`
+
+function renderPicksMini() {
+  const room = G.room;
+  if (!room) return;
+  const tb = document.getElementById('picks-mini');
+  tb.innerHTML = '';
+  for (const j of room.joueurs) {
+    const tr = document.createElement('tr');
+    const isMe = j.id === G.monId;
+    tr.innerHTML = `
       <td class="p-name" style="color:${isMe?'#dc2626':'#e5e7eb'}">${j.nom}</td>
       <td style="color:${j.picks.pilote?'#60a5fa':'#374151'};font-size:11px">${j.picks.pilote?.nom||'— Pilote'}</td>
       <td style="color:${j.picks.copilote?'#a78bfa':'#374151'};font-size:11px">${j.picks.copilote?.nom||'— Co-pilote'}</td>
@@ -530,42 +581,6 @@ function renderPicksMini(){
       <td style="font-size:10px;color:#374151">${!j.relanceDisponible?'Relance ✓':''}</td>`;
     tb.appendChild(tr);
   }
-}
-function renderPropositions(data){
-  const{joueurId,joueurNom,propositions,tourGlobal}=data;
-  const room=G.room, nb=room.joueurs.length;
-  const tourNum=Math.floor(tourGlobal/nb)+1;
-  const estMoi=joueurId===G.monId;
-  document.getElementById('d-sub').textContent=`Tour ${tourNum}/3 — ${joueurNom} choisit`;
-  const whoEl=document.getElementById('d-who');
-  whoEl.textContent=estMoi?'À TOI DE JOUER !':`${joueurNom} choisit…`;
-  whoEl.className='draft-who'+(estMoi?' moi':'');
-
-  const j=moi();
-  const btn=document.getElementById('btn-reroll');
-  btn.disabled=!estMoi||!j?.relanceDisponible;
-
-  if(room.anneeVerrouillee){
-    document.getElementById('verrou-banner').style.display='flex';
-    document.getElementById('verrou-year').textContent=room.anneeVerrouillee;
-  }
-
-  const grid=document.getElementById('cards-grid'); grid.innerHTML='';
-  for(const prop of propositions){
-    const dispo=prop.disponible;
-    const card=document.createElement('div');
-    const isClickable = estMoi && dispo;
-    card.className='draft-card'+((!dispo)?' grise':'')+(!isClickable?' spec':'');
-    if(isClickable) card.style.cursor='pointer';
-    card.innerHTML=`
-      <div class="c-type ${prop.type}">${prop.type==='pilote'?'🧑 Pilote':prop.type==='copilote'?'👥 Co-pilote':'🚗 Voiture'}</div>
-      <div class="c-nom">${prop.item.nom}</div>
-      <div style="font-family:'Exo 2',sans-serif;font-weight:900;font-size:22px;color:#fbbf24;margin-top:6px;letter-spacing:.05em">${prop.annee}</div>
-      ${!dispo?'<div style="margin-top:6px;font-size:10px;color:#374151">Déjà sélectionné</div>':''}`;
-    if(estMoi&&dispo) card.dataset.type = prop.type;
-    grid.appendChild(card);
-  }
-  renderProgress(); renderPicksMini();
 }
 
 // ── ÉQUIPES ────────────────────────────────────────────────────
@@ -781,11 +796,8 @@ function router(room){
     const estMoi=room.joueurs[room.tourIndex%room.joueurs.length]?.id===G.monId;
     const btn=document.getElementById('btn-reroll');
     if(btn)btn.disabled=!estMoi||!j?.relanceDisponible;
-    // Only re-render if no cards yet (first join during draft)
-    const cardsShown = document.getElementById('cards-grid').children.length > 0;
-    if(G._lastPropositions && !cardsShown) {
-      renderPropositions(G._lastPropositions);
-    }
+    // Si tourActuel existe, re-render (cas joueur 2 qui rejoint pendant draft)
+    if(G.tourActuel) renderDraft();
   }
   else if(room.phase==='equipes'){renderEquipes();show('equipes');}
   else if(room.phase==='strategie'){
@@ -812,26 +824,25 @@ socket.on('room_update',room=>{
   if(document.getElementById('lobby-code'))
     document.getElementById('lobby-code').textContent=room.code||'';
 });
-socket.on('nouvelles_propositions',data=>{
-  G.propositionsActuelles = data; // source de vérité unique
+socket.on('nouvelles_propositions', data => {
+  G.tourActuel = data; // source de vérité unique
   show('draft');
-  renderPropositions(data);
+  renderDraft();
 });
-socket.on('pick_effectue',({joueurNom,type,item})=>{
-  toast(`${joueurNom} → ${item.nom}`,'g');
-  // Animation shimmer sur la carte choisie
-  document.querySelectorAll('.draft-card').forEach(card=>{
-    if(card.querySelector('.c-nom')?.textContent===item.nom) card.classList.add('shimmer');
+socket.on('pick_effectue', ({ joueurNom, type, item }) => {
+  toast(`${joueurNom} → ${item.nom}`, 'g');
+  // Shimmer sur la carte choisie + bloquer tous les clics
+  document.querySelectorAll('.draft-card').forEach(card => {
+    if (card.querySelector('.c-nom')?.textContent === item.nom) card.classList.add('shimmer');
+    card.removeAttribute('data-type'); // bloque la délégation
   });
-  // Rendre toutes les cartes non-cliquables pendant le délai avant les nouvelles propositions
-  document.querySelectorAll('.draft-card').forEach(card=>{
-    card.classList.add('spec');
-    delete card.dataset.type;
-  });
-  G.propositionsActuelles = null;
+  G.tourActuel = null; // invalider le tour
 });
 socket.on('annee_verrouillee',({annee,joueur})=>toast(`${joueur} a verrouillé la saison ${annee} pour les voitures`));
-socket.on('relance_utilisee',({joueurNom})=>toast(`${joueurNom} utilise sa relance !`));
+socket.on('relance_utilisee', ({ joueurNom }) => {
+  toast(`${joueurNom} utilise sa relance !`);
+  G.tourActuel = null; // nouvelles propositions vont arriver
+});
 socket.on('strategie_validee',({joueurNom})=>{
   toast(`${joueurNom} est prêt`,'g');
   if(G.room?.phase==='strategie')renderStrat();
