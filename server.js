@@ -43,8 +43,8 @@ function newJoueur(id, nom, estHote) {
 
 function calcInc(car, rallye, strategie) {
   let fib = car.fib;
-  if (strategie === 'prudent') fib = Math.min(1, fib + 0.15);
-  if (strategie === 'attaque') fib = Math.max(0, fib - 0.20);
+  if (strategie === 'prudent') fib = Math.min(1, fib + 0.10);
+  if (strategie === 'attaque') fib = Math.max(0, fib - 0.10);
   const risk = (1-fib) * (1+rallye.cas);
   const t = Math.random();
   if (t < risk * 0.33) return { type:'Abandon', pen:999999 };
@@ -83,9 +83,9 @@ function simulerRallye(room) {
     }
     let perf = j.scoresRallyes ? j.scoresRallyes[idx] : precalcScore(pilote, copilote, voiture, rallye);
 
-    if (j.strategie === 'prudent') perf *= 0.95;
-    if (j.strategie === 'attaque') perf *= 1.08;
-    perf *= (0.95 + Math.random()*0.10);
+    if (j.strategie === 'prudent') perf *= 0.98;
+    if (j.strategie === 'attaque') perf *= 1.02;
+    perf *= (0.98 + Math.random()*0.04);
     let temps = 3600 - (perf - 85) * 10;
     if (inc.pen) temps += inc.pen;
     resultats.push({ nom:j.nom, equipe:`${pilote.nom} / ${copilote?.nom||''}`, voiture:voiture.nom, temps, points:0, incident:inc.pen?(inc.type==='Panne'?'Panne':'Crevaison'):null, estJoueur:true, id:j.id });
@@ -104,7 +104,7 @@ function simulerRallye(room) {
       const rivCop = { asp:r.driver.casp, ter:r.driver.cter, nei:r.driver.cnei, sec:r.driver.csec, plu:r.driver.cplu, rap:r.driver.crap, sin:r.driver.csin };
       const rivVoit = { asp:r.driver.vasp, ter:r.driver.vter, nei:r.driver.vnei, sec:r.driver.vsec, plu:r.driver.vplu, rap:r.driver.vrap, sin:r.driver.vsin };
       let perf = r.scoresRallyes ? r.scoresRallyes[idx] : precalcScore(r.driver, rivCop, rivVoit, rallye);
-      perf *= (0.95 + Math.random()*0.10);
+      perf *= (0.98 + Math.random()*0.04);
       let temps = 3600 - (perf - 85) * 10;
       if (inc.pen) temps += inc.pen;
       resultats.push({ nom:r.driver.pilote, equipe:`${r.driver.pilote} / ${r.driver.copilote}`, voiture:r.driver.voiture, temps, points:0, incident:inc.pen?(inc.type==='Panne'?'Panne':'Crevaison'):null, estJoueur:false });
