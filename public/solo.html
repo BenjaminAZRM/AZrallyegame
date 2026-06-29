@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WRC Fantasy</title>
+<title>AZRALLYEGAME</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif}
@@ -989,7 +989,7 @@ function scolBg(s){
 function vCol(v){return v>=90?"#f59e0b":v>=85?"#60a5fa":"#9ca3af";}
 function coS(d){if(!d)return{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.85,nom:""};return{asp:d.casp||80,ter:d.cter||80,nei:d.cnei||80,sec:d.csec||80,plu:d.cplu||80,rap:d.crap||80,sin:d.csin||80,fib:d.cfib||0.85,nom:d.cop||""};}
 
-let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false};
+let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:""};
 let revealTimer=null;
 
 function init(){ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};render();}
@@ -1070,6 +1070,8 @@ function makeRowWithGap(e,provRank,provGap,provPts,allRevealed){
   const hasPen=e.inc?.type==="Crevaison"||e.inc?.type==="Panne";
   const isLead=!dnf&&(e.rank===1)&&!!allRevealed;
   if(provPts===undefined){const PTS_SCALE=[25,18,15,12,10,8,6,4,2,1];provPts=dnf?0:(typeof provRank==="number"?PTS_SCALE[provRank-1]||0:0);}
+  const _topName=isP?(ST.playerName||"Joueur"):e.nom;
+  const _subLine=isP?`${(e.driver&&e.driver.nom)||e.nom}${e.cop?" · "+e.cop:""}${e.car?" · "+e.car.nom:""}`:`${e.cop}${e.car?" · "+e.car.nom:""}`;
   const div=document.createElement("div");
   div.className="result-row";
   div.style.cssText=`background:${isP?"#1a1020":"#0f1117"};border:1px solid ${isP?"#7c3aed":"#1f2937"};opacity:${dnf?.6:1}`;
@@ -1077,8 +1079,8 @@ function makeRowWithGap(e,provRank,provGap,provPts,allRevealed){
   div.innerHTML=`
     <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?"#4b5563":"#6b7280"};flex-shrink:0">${dnf?"DNF":provRank}</span>
     <div style="flex:1;min-width:0">
-      <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?"#c4b5fd":"#e5e7eb"}">${e.nom}${isP?'<span class="you-badge">VOUS</span>':""}</div>
-      <div style="font-size:10px;color:#6b7280">${e.cop}${e.car?` · ${e.car.nom}`:""}</div>
+      <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?"#c4b5fd":"#e5e7eb"}">${_topName}${isP?'<span class="you-badge">VOUS</span>':""}</div>
+      <div style="font-size:10px;color:#6b7280">${_subLine}</div>
     </div>
     ${hasPen?`<span style="font-size:9px;color:${e.inc.type==="Crevaison"?"#fbbf24":"#f97316"};background:#1f2937;padding:1px 5px;border-radius:3px;flex-shrink:0">${e.inc.type}</span>`:""}
     <div style="text-align:right;min-width:65px;flex-shrink:0">
@@ -1204,28 +1206,16 @@ function render(){
 function rRules(){
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">WRC Fantasy</span>
+      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">AZRALLYEGAME</span>
     </div>
   </div>
   <div style="padding:24px 20px 32px;display:flex;flex-direction:column;align-items:center;text-align:center">
     <div style="font-size:42px;margin-bottom:16px">🏁</div>
     <div style="font-weight:900;font-size:26px;color:#fff;line-height:1.2;margin-bottom:8px">Arriveras-tu à être<br>Champion du Monde ?</div>
-    <div style="font-size:14px;color:#9ca3af;margin-bottom:32px">Constitue ton équipage de légende et affronte les pilotes de l'histoire du WRC.</div>
-    <div style="width:100%;display:flex;flex-direction:column;gap:10px;margin-bottom:32px;text-align:left">
-      <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:14px 16px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">🎲</span>
-          <span style="font-size:12px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.1em">La Draft</span>
-        </div>
-        <div style="font-size:13px;color:#d1d5db;line-height:1.6">3 tours de draft. À chaque tour, un <span style="color:#fff;font-weight:600">pilote</span>, un <span style="color:#fff;font-weight:600">copilote</span> et une <span style="color:#fff;font-weight:600">voiture</span> sont proposés au hasard parmi toute l'histoire du WRC. Tu en gardes un — les types déjà choisis sont grisés. Tu disposes d'une <span style="color:#fff;font-weight:600">relance</span> utilisable une seule fois sur n'importe quel tour pour renouveler les propositions.</div>
-      </div>
-      <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:14px 16px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <span style="font-size:20px">🏎</span>
-          <span style="font-size:12px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.1em">La Saison</span>
-        </div>
-        <div style="font-size:13px;color:#d1d5db;line-height:1.6"><span style="color:#fff;font-weight:600">10 rallyes</span> tirés au sort parmi toute l'histoire du WRC t'attendent. Tu affrontes les équipages réels de l'année de ta voiture sur chaque rallye.</div>
-      </div>
+    <div style="font-size:14px;color:#9ca3af;margin-bottom:32px">Avant de commencer, entre ton nom de joueur.</div>
+    <div style="width:100%;margin-bottom:28px;text-align:left">
+      <label style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;display:block;margin-bottom:8px">Nom du joueur</label>
+      <input id="playerNameInput" type="text" maxlength="20" placeholder="Ton nom..." value="${ST.playerName||""}" style="width:100%;background:#0f1117;border:2px solid #1f2937;border-radius:10px;padding:14px 16px;font-size:16px;color:#fff;outline:none">
     </div>
     <button id="startDraft" style="width:100%;background:#dc2626;border:2px solid #ef4444;border-radius:12px;padding:16px;font-size:16px;font-weight:900;color:#fff;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 0 24px rgba(220,38,38,.5)">
       Démarrer la draft
@@ -1234,11 +1224,17 @@ function rRules(){
 }
 
 function attachRulesEv(){
+  const input=document.getElementById("playerNameInput");
+  if(input){
+    input.addEventListener("focus",()=>{input.style.borderColor="#dc2626";});
+    input.addEventListener("blur",()=>{input.style.borderColor="#1f2937";});
+  }
   const btn=document.getElementById("startDraft");
   if(btn){
     btn.addEventListener("mouseenter",()=>{btn.style.background="#ef4444";});
     btn.addEventListener("mouseleave",()=>{btn.style.background="#dc2626";});
     btn.addEventListener("click",()=>{
+      ST.playerName=(input&&input.value.trim())||"Joueur";
       ST.phase="draft";
       ST.draftRound=0;
       ST.draftOffers=makeDraftOffers();
@@ -1279,7 +1275,7 @@ function rDraft(){
 
   return`<div class="hdr" style="position:sticky;top:0;z-index:10">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">WRC Fantasy</span>
+      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">AZRALLYEGAME</span>
     </div>
     <div style="display:flex;gap:5px">${bars}</div>
     ${tags.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${tags.join("")}</div>`:""}
@@ -1372,7 +1368,7 @@ function rRecap(){
 
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">WRC Fantasy</span>
+      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">AZRALLYEGAME</span>
     </div>
     <div style="display:flex;gap:5px">${[0,1,2].map(()=>`<div class="pbar" style="background:#dc2626"></div>`).join("")}</div>
   </div>
@@ -1441,7 +1437,7 @@ function rLaunch(){
 
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">WRC Fantasy</span>
+      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">AZRALLYEGAME</span>
     </div>
     <div style="display:flex;gap:5px">${bars}</div>
   </div>
@@ -1503,7 +1499,7 @@ function rSim(){
     <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:${i<ca.length-1?"1px solid #111827":"none"};font-size:12px">
       <div style="display:flex;gap:8px;align-items:center">
         <span style="color:#4b5563;width:18px;font-size:11px">${i+1}</span>
-        <span style="color:${e.id==="JOUEUR"?"#c4b5fd":"#e5e7eb"};font-weight:${e.id==="JOUEUR"?700:400}">${e.id==="JOUEUR"?ST.sel.driver.nom+" (VOUS)":e.id}</span>
+        <span style="color:${e.id==="JOUEUR"?"#c4b5fd":"#e5e7eb"};font-weight:${e.id==="JOUEUR"?700:400}">${e.id==="JOUEUR"?(ST.playerName||"Joueur")+" (VOUS)":e.id}</span>
       </div>
       <span style="font-weight:700;color:${e.id==="JOUEUR"?"#c4b5fd":"#60a5fa"}">${e.pts}</span>
     </div>`).join("");
@@ -1559,7 +1555,7 @@ function rResults(){
   const fullChamp=ca.map((e,i)=>`
     <div class="fc-row" style="background:${e.id==="JOUEUR"?"#1a1020":i===0?"#0f1200":"#0f1117"};border-color:${e.id==="JOUEUR"?"#7c3aed":i===0?"#92400e":"#1f2937"}">
       <span style="width:18px;text-align:right;font-size:12px;font-weight:700;color:#4b5563">${i+1}</span>
-      <span style="flex:1;font-size:12px;font-weight:${e.id==="JOUEUR"?700:400};color:${e.id==="JOUEUR"?"#c4b5fd":"#e5e7eb"}">${e.id==="JOUEUR"?ST.sel.driver.nom+" (VOUS)":e.id}</span>
+      <span style="flex:1;font-size:12px;font-weight:${e.id==="JOUEUR"?700:400};color:${e.id==="JOUEUR"?"#c4b5fd":"#e5e7eb"}">${e.id==="JOUEUR"?(ST.playerName||"Joueur")+" (VOUS)":e.id}</span>
       <span style="font-size:13px;font-weight:700;color:${e.id==="JOUEUR"?"#c4b5fd":"#60a5fa"}">${e.pts}</span>
     </div>`).join("");
   return`<div style="background:${isChamp?"linear-gradient(135deg,#78350f,#1a1a0a)":"linear-gradient(135deg,#1a0a0a,#0a0a1a)"};border-bottom:2px solid #dc2626;padding:28px 20px;text-align:center">
@@ -1577,7 +1573,7 @@ function rResults(){
 function attachEv(){
   const tb=document.getElementById("tirageBtn");if(tb)tb.addEventListener("click",()=>{ST.tirageState="spinning";render();setTimeout(()=>{ST.tirageState="revealed";render();},800);});
   const cb=document.getElementById("chooseBtn");if(cb)cb.addEventListener("click",()=>{ST.phase="draft";render();});
-  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false};render();});
+  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:ST.playerName||""};render();});
 }
 init();
 </script>
