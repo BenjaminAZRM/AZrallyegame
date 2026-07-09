@@ -2,12 +2,50 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 const { RALLYES, DATA } = require('./wrc-data.js');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '200kb' }));
+
+// ─── CLASSEMENT CONTRE-LA-MONTRE (records partagés & persistants) ───────────────
+// DATA_DIR pointe vers le Volume Railway (/data) s'il existe, sinon le dossier local
+// (dans ce cas les records repartent à zéro à chaque redéploiement).
+const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/data') ? '/data' : __dirname);
+const RECORDS_FILE = path.join(DATA_DIR, 'records.json');
+const MAX_RECORDS = 5000;
+let records = [];
+try {
+  records = JSON.parse(fs.readFileSync(RECORDS_FILE, 'utf8'));
+  if (!Array.isArray(records)) records = [];
+} catch (e) { records = []; }
+function saveRecords() {
+  try { fs.writeFileSync(RECORDS_FILE, JSON.stringify(records)); }
+  catch (e) { console.error('Sauvegarde records échouée:', e.message); }
+}
+
+// Tous les essais déjà enregistrés (le jeu s'en sert pour classer le joueur)
+app.get('/api/records', (req, res) => {
+  res.json(records);
+});
+
+// Enregistre un nouvel essai terminé
+app.post('/api/records', (req, res) => {
+  const b = req.body || {};
+  const name = (typeof b.name === 'string' ? b.name : '').trim().slice(0, 24);
+  const total = Number(b.total);
+  const splits = Array.isArray(b.splits) ? b.splits.map(Number) : [];
+  if (!name || !isFinite(total) || total <= 0 || !splits.length || splits.some(x => !isFinite(x))) {
+    return res.status(400).json({ ok: false, error: 'invalid' });
+  }
+  records.push({ name, total, splits, date: Date.now() });
+  if (records.length > MAX_RECORDS) records = records.slice(records.length - MAX_RECORDS);
+  saveRecords();
+  res.json({ ok: true });
+});
 
 const MAX_JOUEURS = 20;
 const ANNEES_DISPO = Object.keys(DATA).map(Number).sort((a,b)=>a-b);
@@ -147,7 +185,9 @@ function creerRivaux(annee) {
 }
 
 function proposerItems(room, joueurId) {
-  const j = room.joueurs.find(j => j.id === joueurId);
+  const N = room.joueurs.length;
+  const roundIdx = Math.floor(room.tourIndex / N); // 0 = pilotes, 1 = copilotes, 2 = voitures
+  const type = roundIdx === 0 ? 'pilote' : roundIdx === 1 ? 'copilote' : 'voiture';
   const anneesDispos = room.anneesSelectionnees.length > 0 ? room.anneesSelectionnees : ANNEES_DISPO;
   const rndAnnee = () => anneesDispos[Math.floor(Math.random()*anneesDispos.length)];
   const rndEq = (annee) => {
@@ -155,26 +195,36 @@ function proposerItems(room, joueurId) {
     return pool[Math.floor(Math.random()*pool.length)];
   };
 
-  const anneeVoiture = room.anneeVerrouillee || rndAnnee();
-  const anneePilote  = rndAnnee();
-  const anneeCop     = rndAnnee();
-
-  const typesManquants = ['pilote','copilote','voiture'].filter(t => !j.picks[t]);
   const proposals = [];
-
-  // Pilote
-  const eqP = rndEq(anneePilote);
-  proposals.push({ type:'pilote', item:{ nom:eqP.pilote, asp:eqP.asp, ter:eqP.ter, nei:eqP.nei, sec:eqP.sec, plu:eqP.plu, rap:eqP.rap, sin:eqP.sin, fib:eqP.fib }, annee:anneePilote, disponible:typesManquants.includes('pilote') });
-
-  // Copilote
-  const eqC = rndEq(anneeCop);
-  proposals.push({ type:'copilote', item:{ nom:eqC.copilote, asp:eqC.casp, ter:eqC.cter, nei:eqC.cnei, sec:eqC.csec, plu:eqC.cplu, rap:eqC.crap, sin:eqC.csin, fib:eqC.cfib }, annee:anneeCop, disponible:typesManquants.includes('copilote') });
-
-  // Voiture — unique par annee, dédupliquée
-  const voituresAnnee = [...new Set((DATA[anneeVoiture]||DATA[ANNEES_DISPO[0]]).map(e=>e.voiture))];
-  const voitureNom = voituresAnnee[Math.floor(Math.random()*voituresAnnee.length)];
-  const eqV = (DATA[anneeVoiture]||DATA[ANNEES_DISPO[0]]).find(e=>e.voiture===voitureNom);
-  proposals.push({ type:'voiture', item:{ nom:voitureNom, asp:eqV.vasp, ter:eqV.vter, nei:eqV.vnei, sec:eqV.vsec, plu:eqV.vplu, rap:eqV.vrap, sin:eqV.vsin, fib:eqV.vfib }, annee:anneeVoiture, disponible:typesManquants.includes('voiture') });
+  const seen = new Set();
+  let guard = 0;
+  while (proposals.length < 3 && guard < 300) {
+    guard++;
+    if (type === 'pilote') {
+      const annee = rndAnnee();
+      const eq = rndEq(annee);
+      if (!eq || seen.has('p|'+eq.pilote)) continue;
+      seen.add('p|'+eq.pilote);
+      proposals.push({ type:'pilote', item:{ nom:eq.pilote, asp:eq.asp, ter:eq.ter, nei:eq.nei, sec:eq.sec, plu:eq.plu, rap:eq.rap, sin:eq.sin, fib:eq.fib }, annee, disponible:true });
+    } else if (type === 'copilote') {
+      const annee = rndAnnee();
+      const eq = rndEq(annee);
+      if (!eq || !eq.copilote || seen.has('c|'+eq.copilote)) continue;
+      seen.add('c|'+eq.copilote);
+      proposals.push({ type:'copilote', item:{ nom:eq.copilote, asp:eq.casp, ter:eq.cter, nei:eq.cnei, sec:eq.csec, plu:eq.cplu, rap:eq.crap, sin:eq.csin, fib:eq.cfib }, annee, disponible:true });
+    } else {
+      // Voiture : si l'année est déjà verrouillée par le 1er joueur, on n'y propose que des voitures de cette année.
+      const annee = room.anneeVerrouillee || rndAnnee();
+      const pool = DATA[annee] || DATA[ANNEES_DISPO[0]];
+      const voitures = [...new Set(pool.map(e => e.voiture))];
+      if (!voitures.length) continue;
+      const voitureNom = voitures[Math.floor(Math.random()*voitures.length)];
+      if (seen.has('v|'+annee+'|'+voitureNom)) continue;
+      seen.add('v|'+annee+'|'+voitureNom);
+      const eqV = pool.find(e => e.voiture === voitureNom);
+      proposals.push({ type:'voiture', item:{ nom:voitureNom, asp:eqV.vasp, ter:eqV.vter, nei:eqV.vnei, sec:eqV.vsec, plu:eqV.vplu, rap:eqV.vrap, sin:eqV.vsin, fib:eqV.vfib }, annee, disponible:true });
+    }
+  }
 
   return proposals;
 }
@@ -234,23 +284,23 @@ io.on('connection', (socket) => {
     io.to(code).emit('room_update', etatPublic(room));
   });
 
-  socket.on('faire_pick', ({ code, type }) => {
+  socket.on('faire_pick', ({ code, index }) => {
     const room = rooms[code];
     if (!room || room.phase !== 'draft') return;
     const joueurActif = room.joueurs[room.tourIndex % room.joueurs.length];
     if (joueurActif.id !== socket.id) return;
-    const prop = room.propositionsCourantes.find(p => p.type === type && p.disponible);
+    const prop = room.propositionsCourantes && room.propositionsCourantes[index];
     if (!prop) return;
 
-    joueurActif.picks[type] = prop.item;
+    joueurActif.picks[prop.type] = prop.item;
 
-    if (type === 'voiture' && !room.anneeVerrouillee) {
+    if (prop.type === 'voiture' && !room.anneeVerrouillee) {
       room.anneeVerrouillee = prop.annee;
       room.rivaux = creerRivaux(room.anneeVerrouillee);
       io.to(code).emit('annee_verrouillee', { annee:room.anneeVerrouillee, joueur:joueurActif.nom });
     }
 
-    io.to(code).emit('pick_effectue', { joueurNom:joueurActif.nom, type, item:prop.item, annee:prop.annee });
+    io.to(code).emit('pick_effectue', { joueurNom:joueurActif.nom, type:prop.type, item:prop.item, annee:prop.annee });
     room.tourIndex++;
     const total = room.joueurs.length * 3;
 
