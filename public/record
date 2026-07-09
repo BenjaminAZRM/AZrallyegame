@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AZRALLYEGAME — Contre-la-montre</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Exo 2',sans-serif;background:#0f1115;color:#e8e8ea;line-height:1.45;-webkit-tap-highlight-color:transparent}
+  #app{max-width:760px;margin:0 auto;padding:16px;min-height:100vh}
+  .brand{font-family:'Oswald',sans-serif;font-weight:700;font-size:1.4rem;letter-spacing:.14em;text-transform:uppercase}
+  .brand .az{color:#fff}.brand .r{color:#fbbf24}
+  .tag{color:#8a8a92;font-size:.82rem;margin-bottom:18px}
+  h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;color:#fbbf24;margin:18px 0 8px}
+  .card{background:#1a1d24;border:1px solid #2a2e38;border-radius:12px;padding:14px;margin-bottom:12px}
+  button{font-family:inherit;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:transform .05s}
+  button:active{transform:scale(.98)}
+  .btn-primary{background:#dc2626;color:#fff;padding:14px 20px;font-size:1rem;width:100%}
+  .launch-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 20px}
+  .launch-btn[disabled]{opacity:.5;cursor:not-allowed}
+  .leds{display:flex;gap:6px}
+  .leds i{width:9px;height:9px;border-radius:50%;background:#1f5f36;transition:background .15s,box-shadow .15s}
+  .leds i.on{background:#37ee66;box-shadow:0 0 7px #37ee66}
+  @keyframes ledOn{from{background:#1f5f36;box-shadow:none}to{background:#37ee66;box-shadow:0 0 7px #37ee66}}
+  #launchLabel{font-weight:800;letter-spacing:.04em}
+  @media(prefers-reduced-motion:reduce){.launch-btn:not([disabled]) .leds i{animation:none}}
+  .btn-primary:disabled{background:#3a2020;color:#8a6a6a;cursor:not-allowed}
+  .btn-ghost{background:#2a2e38;color:#e8e8ea;padding:10px 16px;font-size:.85rem;border:1px solid #3a3f4b}
+  input[type=text]{font-family:inherit;width:100%;background:#0f1115;border:1px solid #2a2e38;border-radius:8px;color:#fff;padding:10px;font-size:.95rem}
+  input[type=range]{width:100%;height:5px;accent-color:#fbbf24}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .row label{flex:0 0 96px;font-size:.8rem;color:#c3c3cb}
+  .setblock{margin:12px 0}
+  .setblock>label{display:block;font-size:.8rem;color:#c3c3cb;margin-bottom:5px}
+  .setblock .ends{display:flex;justify-content:space-between;font-size:.68rem;color:#8a8a92;margin-top:3px}
+  .val{flex:0 0 60px;text-align:right;font-weight:700;color:#fff;font-size:.85rem}
+  .pickbox{max-height:230px;overflow-y:auto;border:1px solid #2a2e38;border-radius:8px;margin-top:8px;background:#14171d}
+  .pickrow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+  .pickcol{flex:1 1 155px;min-width:0}
+  .pickcol h2{margin-top:0;white-space:normal}
+  .pickcol h2 .small{display:block;margin-top:2px}
+  .pick{padding:9px 11px;border-bottom:1px solid #21252e;font-size:.84rem;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+  .pick:hover{background:#20242e}
+  .pick.sel{background:#dc262633;border-left:3px solid #dc2626}
+  .pick.used{opacity:.32;cursor:not-allowed;text-decoration:line-through}
+  .pick .stat{color:#8a8a92;font-size:.74rem;white-space:nowrap}
+  .tyres{display:flex;gap:8px}
+  .tyre{flex:1;padding:11px 6px;border-radius:10px;border:2px solid #2a2e38;background:#14171d;text-align:center;cursor:pointer;font-size:.8rem;font-weight:700}
+  .tyre small{display:block;font-weight:400;color:#8a8a92;font-size:.68rem;margin-top:2px}
+  .tyre small i{font-style:italic;opacity:.8}
+  .tyre .rh-plus{color:#6bbf9a;font-style:italic}
+  .tyre .rh-moins{color:#c98a5a;font-style:italic}
+  .tyre.sel.tendre{border-color:#dc2626;background:#dc262622;color:#f87171}
+  .tyre.sel.medium{border-color:#fbbf24;background:#fbbf2422;color:#fbbf24}
+  .tyre.sel.dur{border-color:#38bdf8;background:#38bdf822;color:#38bdf8}
+  .stagehead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .surf{display:inline-block;padding:2px 9px;border-radius:10px;font-size:.72rem;font-weight:700;margin-right:6px}
+  .surf.neige{background:#38bdf822;color:#7dd3fc}.surf.terre{background:#a8742022;color:#d4a574}.surf.asph{background:#88889922;color:#c3c3cb}
+  .wx{display:inline-block;padding:2px 9px;border-radius:10px;font-size:.72rem;font-weight:700;margin-right:6px}
+  .wx.wx-s{background:#9aa39a22;color:#c9d1c9}.wx.wx-h{background:#7dd3fc22;color:#7dd3fc}.wx.wx-m{background:#38bdf822;color:#59c3f5}.wx.wx-d{background:#3b82f633;color:#93c5fd}
+  .rbbadges{display:flex;flex-direction:column;gap:3px;align-items:flex-end;flex:none}
+  .rbbadges .surf,.rbbadges .wx{margin:0;font-size:.6rem;padding:2px 7px}
+  .roadbook{margin-top:2px}
+  .rbbanner{position:relative;border-radius:10px;overflow:hidden;border:1px solid #2a2e38;margin-bottom:8px}
+  .rbbanner svg{display:block;width:100%;height:76px}
+  .rbbanner .bnr-veil{height:58px}
+  .rbcap{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:9px;padding:7px 10px}
+  .rbn{font-weight:800;color:#fbbf24;font-size:1rem;text-shadow:0 1px 4px #000;flex:none;width:18px;text-align:center}
+  .rbmid{flex:1;min-width:0}
+  .rbnom{font-weight:800;font-size:.92rem;color:#fff;text-shadow:0 1px 6px #000;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rbkm2{font-weight:500;font-size:.72rem;opacity:.85;margin-left:6px}
+  .rbrally2{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:#fff;opacity:.85;text-shadow:0 1px 4px #000}
+  .meta{color:#9aa0aa;font-size:.8rem;margin-top:6px}
+  .big-time{font-size:2.1rem;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+  .gauge{height:10px;background:#0f1115;border-radius:6px;overflow:hidden;margin-top:6px;border:1px solid #2a2e38}
+  .gauge>div{height:100%;border-radius:6px;transition:width .3s}
+  .riskbox{margin:8px 0 12px}
+  .rgauge{position:relative;overflow:hidden}
+  .rsolid{position:absolute;top:0;bottom:0;left:0;border-radius:6px 0 0 6px;background:linear-gradient(90deg,#22a34a,#4ade80)}
+  .rhatch{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,#4ade80 0 5px,#14532d 5px 10px)}
+  .rseuil{position:absolute;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 5px #000;z-index:3}
+  .pill{display:inline-block;padding:3px 10px;border-radius:12px;font-size:.78rem;font-weight:800}
+  .lb{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #2a2e38;font-size:.85rem}
+  .lb.me{color:#a78bfa;font-weight:800}
+  .prog{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+  .prog span{flex:1;min-width:14px;height:6px;border-radius:3px;background:#2a2e38}
+  .prog span.done{background:#fbbf24}.prog span.cur{background:#dc2626}
+  .small{font-size:.74rem;color:#6f6f78}
+  .kv{display:flex;justify-content:space-between;font-size:.8rem;padding:3px 0;color:#c3c3cb}
+  .kv b{color:#fff}
+  .foot{text-align:center;color:#4a4a52;font-size:.7rem;margin:24px 0 8px}
+  .banner{position:relative;border-radius:12px;overflow:hidden;border:1px solid #2a2e38;margin-bottom:12px}
+  .banner svg{display:block;width:100%;height:120px}
+  .bnr-veil{position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(180deg,transparent,rgba(10,12,16,.15) 30%,rgba(10,12,16,.86) 86%)}
+  .bnr-cap{position:absolute;left:0;right:0;bottom:0;padding:10px 14px}
+  .bnr-rly{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:#fff;opacity:.92;text-shadow:0 1px 5px #000}
+  .bnr-rly .c{color:#fbbf24;letter-spacing:-2px;margin-right:5px}
+  .bnr-nom{font-weight:800;font-size:1.4rem;line-height:1.05;margin-top:2px;text-shadow:0 2px 12px #000}
+  .bnr-km{position:absolute;top:9px;right:10px;font-weight:800;font-size:.95rem;background:rgba(10,12,16,.34);border:1px solid rgba(255,255,255,.28);padding:2px 9px;border-radius:8px;color:#fff;text-shadow:0 1px 4px #000}
+  .bnr-km small{font-size:.55rem;opacity:.85;margin-left:3px;font-weight:600}
+  .bnr-badges{position:absolute;top:38px;right:10px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;z-index:2}
+  .bnr-badges .surf,.bnr-badges .wx{margin:0;font-size:.64rem;font-weight:800;padding:2px 9px;background:rgba(8,10,14,.62);border:1px solid rgba(255,255,255,.22);text-shadow:0 1px 3px #000;box-shadow:0 1px 5px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const DATA = {"cars": [{"cat": "1997", "nom": "Ford Escort RS Cosworth", "pluie": 1, "asph": 88, "terre": 84, "neige": 80, "rap": 85, "sin": 82, "bos": 83, "lisse": 85}, {"cat": "1997", "nom": "Mitsubishi Lancer Evo IV", "pluie": 1, "asph": 84, "terre": 92, "neige": 94, "rap": 86, "sin": 95, "bos": 88, "lisse": 85}, {"cat": "1997", "nom": "Subaru Impreza 555", "pluie": 2, "asph": 85, "terre": 95, "neige": 88, "rap": 92, "sin": 88, "bos": 92, "lisse": 86}, {"cat": "1997", "nom": "Toyota Celica GT-Four (ST205)", "pluie": 0, "asph": 80, "terre": 82, "neige": 78, "rap": 83, "sin": 80, "bos": 80, "lisse": 82}, {"cat": "1998-2002", "nom": "Citroën Xsara WRC", "pluie": 0, "asph": 92, "terre": 88, "neige": 86, "rap": 88, "sin": 90, "bos": 85, "lisse": 90}, {"cat": "1998-2002", "nom": "Ford Escort WRC", "pluie": 1, "asph": 84, "terre": 82, "neige": 78, "rap": 82, "sin": 82, "bos": 82, "lisse": 82}, {"cat": "1998-2002", "nom": "Ford Focus WRC", "pluie": 1, "asph": 88, "terre": 92, "neige": 86, "rap": 90, "sin": 88, "bos": 90, "lisse": 88}, {"cat": "1998-2002", "nom": "Hyundai Accent WRC", "pluie": 0, "asph": 76, "terre": 78, "neige": 74, "rap": 78, "sin": 78, "bos": 78, "lisse": 78}, {"cat": "1998-2002", "nom": "Mitsubishi Lancer WRC", "pluie": 1, "asph": 84, "terre": 88, "neige": 92, "rap": 82, "sin": 92, "bos": 86, "lisse": 84}, {"cat": "1998-2002", "nom": "Peugeot 206 WRC", "pluie": 0, "asph": 92, "terre": 94, "neige": 85, "rap": 95, "sin": 90, "bos": 84, "lisse": 95}, {"cat": "1998-2002", "nom": "Seat Cordoba WRC", "pluie": 0, "asph": 78, "terre": 80, "neige": 76, "rap": 80, "sin": 78, "bos": 80, "lisse": 78}, {"cat": "1998-2002", "nom": "Škoda Octavia WRC", "pluie": 0, "asph": 78, "terre": 80, "neige": 82, "rap": 78, "sin": 80, "bos": 84, "lisse": 78}, {"cat": "1998-2002", "nom": "Subaru Impreza WRC", "pluie": 2, "asph": 85, "terre": 92, "neige": 88, "rap": 88, "sin": 87, "bos": 92, "lisse": 85}, {"cat": "1998-2002", "nom": "Toyota Corolla WRC", "pluie": 0, "asph": 86, "terre": 87, "neige": 84, "rap": 86, "sin": 86, "bos": 85, "lisse": 86}, {"cat": "2003-2006", "nom": "Citroën Xsara WRC", "pluie": 0, "asph": 96, "terre": 92, "neige": 90, "rap": 92, "sin": 94, "bos": 88, "lisse": 94}, {"cat": "2003-2006", "nom": "Ford Focus RS WRC", "pluie": 1, "asph": 88, "terre": 92, "neige": 88, "rap": 90, "sin": 88, "bos": 91, "lisse": 88}, {"cat": "2003-2006", "nom": "Hyundai Accent WRC", "pluie": 0, "asph": 76, "terre": 78, "neige": 74, "rap": 78, "sin": 78, "bos": 78, "lisse": 76}, {"cat": "2003-2006", "nom": "Mitsubishi Lancer WRC", "pluie": 1, "asph": 82, "terre": 84, "neige": 86, "rap": 80, "sin": 86, "bos": 84, "lisse": 82}, {"cat": "2003-2006", "nom": "Peugeot 206 WRC", "pluie": 0, "asph": 90, "terre": 90, "neige": 84, "rap": 92, "sin": 88, "bos": 83, "lisse": 92}, {"cat": "2003-2006", "nom": "Škoda Fabia WRC", "pluie": 0, "asph": 80, "terre": 82, "neige": 84, "rap": 80, "sin": 82, "bos": 84, "lisse": 80}, {"cat": "2003-2006", "nom": "Subaru Impreza WRC", "pluie": 2, "asph": 88, "terre": 92, "neige": 90, "rap": 90, "sin": 88, "bos": 92, "lisse": 86}, {"cat": "2003-2006", "nom": "Peugeot 307 WRC", "pluie": 0, "asph": 90, "terre": 86, "neige": 84, "rap": 88, "sin": 88, "bos": 80, "lisse": 90}, {"cat": "2007-2010", "nom": "Citroën C4 WRC", "pluie": 0, "asph": 96, "terre": 94, "neige": 92, "rap": 94, "sin": 94, "bos": 90, "lisse": 94}, {"cat": "2007-2010", "nom": "Ford Focus RS WRC", "pluie": 1, "asph": 90, "terre": 94, "neige": 90, "rap": 92, "sin": 90, "bos": 93, "lisse": 90}, {"cat": "2007-2010", "nom": "Subaru Impreza WRC", "pluie": 2, "asph": 84, "terre": 86, "neige": 86, "rap": 84, "sin": 84, "bos": 88, "lisse": 82}, {"cat": "2007-2010", "nom": "Škoda Fabia WRC", "pluie": 0, "asph": 80, "terre": 80, "neige": 82, "rap": 78, "sin": 82, "bos": 82, "lisse": 80}, {"cat": "2007-2010", "nom": "Suzuki SX4 WRC", "pluie": 0, "asph": 80, "terre": 80, "neige": 80, "rap": 80, "sin": 82, "bos": 80, "lisse": 80}, {"cat": "2007-2010", "nom": "Peugeot 307 WRC", "pluie": 0, "asph": 82, "terre": 80, "neige": 78, "rap": 82, "sin": 82, "bos": 76, "lisse": 84}, {"cat": "2011-2016", "nom": "Citroën DS3 WRC", "pluie": 0, "asph": 94, "terre": 92, "neige": 90, "rap": 92, "sin": 93, "bos": 88, "lisse": 93}, {"cat": "2011-2016", "nom": "Ford Fiesta RS WRC", "pluie": 1, "asph": 88, "terre": 92, "neige": 88, "rap": 90, "sin": 88, "bos": 92, "lisse": 88}, {"cat": "2011-2016", "nom": "Mini John Cooper Works WRC", "pluie": 0, "asph": 85, "terre": 86, "neige": 82, "rap": 86, "sin": 85, "bos": 86, "lisse": 84}, {"cat": "2011-2016", "nom": "Volkswagen Polo R WRC", "pluie": 0, "asph": 96, "terre": 98, "neige": 96, "rap": 97, "sin": 95, "bos": 94, "lisse": 96}, {"cat": "2011-2016", "nom": "Hyundai i20 WRC", "pluie": 0, "asph": 84, "terre": 86, "neige": 84, "rap": 85, "sin": 84, "bos": 85, "lisse": 84}, {"cat": "2017-2021", "nom": "Ford Fiesta WRC", "pluie": 1, "asph": 92, "terre": 93, "neige": 90, "rap": 92, "sin": 92, "bos": 92, "lisse": 91}, {"cat": "2017-2021", "nom": "Hyundai i20 Coupe WRC", "pluie": 0, "asph": 94, "terre": 94, "neige": 92, "rap": 93, "sin": 94, "bos": 92, "lisse": 93}, {"cat": "2017-2021", "nom": "Toyota Yaris WRC", "pluie": 0, "asph": 92, "terre": 96, "neige": 94, "rap": 95, "sin": 92, "bos": 92, "lisse": 93}, {"cat": "2017-2021", "nom": "Citroën C3 WRC", "pluie": 0, "asph": 92, "terre": 88, "neige": 88, "rap": 88, "sin": 90, "bos": 84, "lisse": 91}, {"cat": "2022-2024", "nom": "Toyota GR Yaris Rally1 Hybrid", "pluie": 0, "asph": 94, "terre": 96, "neige": 95, "rap": 95, "sin": 94, "bos": 93, "lisse": 94}, {"cat": "2022-2024", "nom": "Hyundai i20 N Rally1 Hybrid", "pluie": 0, "asph": 92, "terre": 93, "neige": 90, "rap": 92, "sin": 92, "bos": 90, "lisse": 91}, {"cat": "2022-2024", "nom": "Ford Puma Rally1 Hybrid", "pluie": 0, "asph": 92, "terre": 90, "neige": 92, "rap": 90, "sin": 91, "bos": 89, "lisse": 91}, {"cat": "2025", "nom": "Toyota GR Yaris Rally1", "pluie": 0, "asph": 94, "terre": 95, "neige": 95, "rap": 95, "sin": 94, "bos": 93, "lisse": 94}, {"cat": "2025", "nom": "Hyundai i20 N Rally1", "pluie": 0, "asph": 93, "terre": 94, "neige": 91, "rap": 93, "sin": 93, "bos": 91, "lisse": 92}, {"cat": "2025", "nom": "Ford Puma Rally1", "pluie": 0, "asph": 90, "terre": 89, "neige": 90, "rap": 89, "sin": 90, "bos": 88, "lisse": 90}], "crews": [{"nom": "Sébastien Ogier - Julien Ingrassia", "asph": 98, "terre": 98, "neige": 94, "rap": 96, "sin": 97, "bos": 94, "lisse": 96, "fib": 95, "pluie": 3}, {"nom": "Sébastien Loeb - Daniel Elena", "asph": 99, "terre": 96, "neige": 92, "rap": 95, "sin": 98, "bos": 92, "lisse": 97, "fib": 96, "pluie": 3}, {"nom": "Kalle Rovanperä - Jonne Halttunen", "asph": 93, "terre": 97, "neige": 96, "rap": 97, "sin": 91, "bos": 93, "lisse": 93, "fib": 92, "pluie": 2}, {"nom": "Ott Tänak - Martin Järveoja", "asph": 92, "terre": 96, "neige": 96, "rap": 97, "sin": 89, "bos": 94, "lisse": 92, "fib": 86, "pluie": 2}, {"nom": "Tommi Mäkinen - Kaj Lindström", "asph": 90, "terre": 95, "neige": 97, "rap": 92, "sin": 96, "bos": 92, "lisse": 93, "fib": 88, "pluie": 3}, {"nom": "Marcus Grönholm - Timo Rautiainen", "asph": 88, "terre": 97, "neige": 96, "rap": 97, "sin": 90, "bos": 93, "lisse": 86, "fib": 89, "pluie": 2}, {"nom": "Thierry Neuville - Nicolas Gilsoul", "asph": 93, "terre": 92, "neige": 92, "rap": 93, "sin": 93, "bos": 90, "lisse": 92, "fib": 88, "pluie": 2}, {"nom": "Colin McRae - Nicky Grist", "asph": 88, "terre": 95, "neige": 88, "rap": 97, "sin": 90, "bos": 94, "lisse": 88, "fib": 78, "pluie": 3}, {"nom": "Carlos Sainz - Marc Martí", "asph": 92, "terre": 93, "neige": 90, "rap": 92, "sin": 91, "bos": 90, "lisse": 91, "fib": 92, "pluie": 2}, {"nom": "Elfyn Evans - Scott Martin", "asph": 92, "terre": 93, "neige": 92, "rap": 91, "sin": 90, "bos": 88, "lisse": 91, "fib": 93, "pluie": 2}, {"nom": "Juha Kankkunen - Juha Repo", "asph": 88, "terre": 93, "neige": 93, "rap": 92, "sin": 90, "bos": 92, "lisse": 88, "fib": 90, "pluie": 2}, {"nom": "Richard Burns - Robert Reid", "asph": 88, "terre": 93, "neige": 90, "rap": 91, "sin": 90, "bos": 92, "lisse": 90, "fib": 92, "pluie": 3}, {"nom": "Petter Solberg - Phil Mills", "asph": 86, "terre": 93, "neige": 93, "rap": 93, "sin": 87, "bos": 94, "lisse": 87, "fib": 83, "pluie": 3}, {"nom": "Jari-Matti Latvala - Miikka Anttila", "asph": 88, "terre": 94, "neige": 94, "rap": 93, "sin": 86, "bos": 91, "lisse": 86, "fib": 80, "pluie": 1}, {"nom": "Mikko Hirvonen - Jarmo Lehtinen", "asph": 88, "terre": 93, "neige": 92, "rap": 90, "sin": 88, "bos": 91, "lisse": 88, "fib": 93, "pluie": 1}, {"nom": "Didier Auriol - Denis Giraudet", "asph": 92, "terre": 90, "neige": 86, "rap": 90, "sin": 92, "bos": 86, "lisse": 91, "fib": 86, "pluie": 3}, {"nom": "Markko Märtin - Michael Park", "asph": 88, "terre": 92, "neige": 88, "rap": 93, "sin": 88, "bos": 88, "lisse": 90, "fib": 86, "pluie": 1}, {"nom": "Kris Meeke - Paul Nagle", "asph": 89, "terre": 91, "neige": 88, "rap": 92, "sin": 89, "bos": 88, "lisse": 88, "fib": 78, "pluie": 1}, {"nom": "Oliver Solberg - Elliott Edmondson", "asph": 87, "terre": 90, "neige": 92, "rap": 91, "sin": 86, "bos": 90, "lisse": 88, "fib": 80, "pluie": 0}, {"nom": "Dani Sordo - Marc Martí", "asph": 94, "terre": 88, "neige": 85, "rap": 88, "sin": 92, "bos": 84, "lisse": 92, "fib": 93, "pluie": 0}, {"nom": "Andreas Mikkelsen - Anders Jæger", "asph": 88, "terre": 90, "neige": 92, "rap": 88, "sin": 87, "bos": 89, "lisse": 88, "fib": 89, "pluie": 1}, {"nom": "Craig Breen - Paul Nagle", "asph": 89, "terre": 90, "neige": 90, "rap": 88, "sin": 89, "bos": 89, "lisse": 87, "fib": 84, "pluie": 1}, {"nom": "Esapekka Lappi - Janne Ferm", "asph": 86, "terre": 91, "neige": 93, "rap": 90, "sin": 86, "bos": 90, "lisse": 86, "fib": 83, "pluie": 1}, {"nom": "François Duval - Stéphane Prévot", "asph": 91, "terre": 88, "neige": 84, "rap": 90, "sin": 89, "bos": 84, "lisse": 90, "fib": 78, "pluie": 1}, {"nom": "François Delecour - Daniel Grataloup", "asph": 92, "terre": 84, "neige": 82, "rap": 87, "sin": 92, "bos": 85, "lisse": 92, "fib": 80, "pluie": 1}, {"nom": "Adrien Fourmaux - Alexandre Coria", "asph": 88, "terre": 88, "neige": 87, "rap": 89, "sin": 88, "bos": 86, "lisse": 88, "fib": 80, "pluie": 0}, {"nom": "Takamoto Katsuta - Aaron Johnston", "asph": 87, "terre": 89, "neige": 89, "rap": 88, "sin": 86, "bos": 86, "lisse": 87, "fib": 85, "pluie": 0}, {"nom": "Harri Rovanperä - Risto Pietiläinen", "asph": 84, "terre": 90, "neige": 88, "rap": 90, "sin": 84, "bos": 88, "lisse": 84, "fib": 84, "pluie": 1}, {"nom": "Freddy Loix - Sven Smeets", "asph": 92, "terre": 84, "neige": 84, "rap": 84, "sin": 90, "bos": 82, "lisse": 90, "fib": 83, "pluie": 1}, {"nom": "Mads Østberg - Jonas Andersson", "asph": 84, "terre": 90, "neige": 86, "rap": 89, "sin": 84, "bos": 88, "lisse": 84, "fib": 82, "pluie": 1}, {"nom": "Gilles Panizzi - Hervé Panizzi", "asph": 97, "terre": 80, "neige": 78, "rap": 83, "sin": 95, "bos": 76, "lisse": 95, "fib": 88, "pluie": -3}, {"nom": "Teemu Suninen - Mikko Markkula", "asph": 84, "terre": 88, "neige": 88, "rap": 88, "sin": 84, "bos": 86, "lisse": 86, "fib": 80, "pluie": 0}, {"nom": "Philippe Bugalski - Jean-Paul Chiaroni", "asph": 95, "terre": 80, "neige": 80, "rap": 85, "sin": 93, "bos": 78, "lisse": 92, "fib": 85, "pluie": -2}, {"nom": "Hayden Paddon - John Kennard", "asph": 84, "terre": 89, "neige": 87, "rap": 87, "sin": 84, "bos": 86, "lisse": 85, "fib": 85, "pluie": 1}, {"nom": "Juho Hänninen - Tomi Tuominen", "asph": 86, "terre": 86, "neige": 88, "rap": 85, "sin": 84, "bos": 85, "lisse": 88, "fib": 85, "pluie": 0}, {"nom": "Toni Gardemeister - Paavo Lukander", "asph": 86, "terre": 86, "neige": 86, "rap": 85, "sin": 86, "bos": 84, "lisse": 85, "fib": 85, "pluie": 0}, {"nom": "Kenneth Eriksson - Tina Thörner", "asph": 82, "terre": 88, "neige": 90, "rap": 86, "sin": 84, "bos": 86, "lisse": 82, "fib": 86, "pluie": 1}, {"nom": "Stig Blomqvist - Ana Goñi", "asph": 82, "terre": 88, "neige": 90, "rap": 86, "sin": 82, "bos": 88, "lisse": 82, "fib": 84, "pluie": 2}, {"nom": "Stéphane Sarrazin - Denis Giraudet", "asph": 92, "terre": 80, "neige": 80, "rap": 86, "sin": 90, "bos": 78, "lisse": 90, "fib": 85, "pluie": 0}, {"nom": "Chris Atkinson - Glenn Macneall", "asph": 84, "terre": 88, "neige": 82, "rap": 88, "sin": 84, "bos": 86, "lisse": 84, "fib": 82, "pluie": 0}, {"nom": "Jan Kopecký - Filip Schovánek", "asph": 90, "terre": 83, "neige": 82, "rap": 83, "sin": 89, "bos": 80, "lisse": 88, "fib": 86, "pluie": -2}, {"nom": "Jesús Puras - Marc Martí", "asph": 92, "terre": 80, "neige": 80, "rap": 82, "sin": 90, "bos": 78, "lisse": 92, "fib": 82, "pluie": -2}, {"nom": "Eric Camilli - Benjamin Veillas", "asph": 87, "terre": 84, "neige": 81, "rap": 84, "sin": 86, "bos": 84, "lisse": 86, "fib": 82, "pluie": 0}, {"nom": "Gianluigi Galli - Guido d'Amore", "asph": 86, "terre": 86, "neige": 80, "rap": 88, "sin": 84, "bos": 82, "lisse": 86, "fib": 78, "pluie": 0}, {"nom": "Stéphane Lefebvre - Gabin Moreau", "asph": 88, "terre": 83, "neige": 80, "rap": 83, "sin": 86, "bos": 82, "lisse": 87, "fib": 82, "pluie": 0}, {"nom": "Armin Schwarz - Manfred Hiemer", "asph": 86, "terre": 84, "neige": 82, "rap": 84, "sin": 85, "bos": 82, "lisse": 85, "fib": 75, "pluie": 0}, {"nom": "Gus Greensmith - Elliott Edmondson", "asph": 84, "terre": 84, "neige": 82, "rap": 83, "sin": 84, "bos": 83, "lisse": 84, "fib": 80, "pluie": 0}, {"nom": "Grégoire Munster - Louis Louka", "asph": 84, "terre": 83, "neige": 80, "rap": 83, "sin": 84, "bos": 83, "lisse": 84, "fib": 82, "pluie": 0}, {"nom": "Joshua McErlean - Eoin Treacy", "asph": 83, "terre": 84, "neige": 82, "rap": 83, "sin": 83, "bos": 83, "lisse": 83, "fib": 82, "pluie": 0}, {"nom": "Jani Paasonen - Jani Vainikka", "asph": 80, "terre": 85, "neige": 85, "rap": 84, "sin": 80, "bos": 84, "lisse": 80, "fib": 80, "pluie": 0}], "stages": [{"rallye": "Rallye Monte-Carlo", "nom": "Col de Turini", "km": 31.2, "diff": 90, "humid": 100, "asph": 85, "terre": 0, "neige": 15, "rap": 15, "sin": 85, "bos": 35, "lisse": 65}, {"rallye": "Rallye de Suède", "nom": "Vargåsen", "km": 24.6, "diff": 65, "humid": 75, "asph": 0, "terre": 0, "neige": 100, "rap": 70, "sin": 30, "bos": 55, "lisse": 45}, {"rallye": "Rallye du Portugal", "nom": "Fafe", "km": 11.2, "diff": 65, "humid": 50, "asph": 0, "terre": 100, "neige": 0, "rap": 55, "sin": 45, "bos": 65, "lisse": 35}, {"rallye": "Tour de Corse", "nom": "Pont du Fango – N.D. de la Serra", "km": 27.77, "diff": 80, "humid": 50, "asph": 100, "terre": 0, "neige": 0, "rap": 10, "sin": 90, "bos": 30, "lisse": 70}, {"rallye": "Rallye de l'Acropole", "nom": "Tarzan", "km": 23.4, "diff": 88, "humid": 0, "asph": 0, "terre": 100, "neige": 0, "rap": 35, "sin": 65, "bos": 85, "lisse": 15}, {"rallye": "Rallye Arctique", "nom": "Aittajärvi", "km": 22.5, "diff": 70, "humid": 0, "asph": 0, "terre": 0, "neige": 100, "rap": 80, "sin": 20, "bos": 65, "lisse": 35}, {"rallye": "Rallye d'Allemagne", "nom": "Panzerplatte Lang", "km": 41.1, "diff": 75, "humid": 75, "asph": 100, "terre": 0, "neige": 0, "rap": 50, "sin": 50, "bos": 40, "lisse": 60}, {"rallye": "Rallye de Finlande", "nom": "Ouninpohja", "km": 33.0, "diff": 80, "humid": 0, "asph": 0, "terre": 100, "neige": 0, "rap": 90, "sin": 10, "bos": 60, "lisse": 40}, {"rallye": "Rallye de Catalogne", "nom": "El Montmell", "km": 24.1, "diff": 50, "humid": 0, "asph": 100, "terre": 0, "neige": 0, "rap": 55, "sin": 45, "bos": 30, "lisse": 70}, {"rallye": "Rally Norway", "nom": "Finnskogen", "km": 35.8, "diff": 65, "humid": 0, "asph": 0, "terre": 0, "neige": 100, "rap": 75, "sin": 25, "bos": 54, "lisse": 46}, {"rallye": "Rallye de Nouvelle-Zélande", "nom": "Whaanga Coast", "km": 29.8, "diff": 60, "humid": 75, "asph": 0, "terre": 100, "neige": 0, "rap": 70, "sin": 30, "bos": 50, "lisse": 50}, {"rallye": "Rallye Sanremo", "nom": "Ronde", "km": 44.4, "diff": 60, "humid": 0, "asph": 100, "terre": 0, "neige": 0, "rap": 25, "sin": 75, "bos": 30, "lisse": 70}, {"rallye": "RAC Rally", "nom": "Sweet Lamb – Hafren", "km": 24.4, "diff": 85, "humid": 100, "asph": 0, "terre": 100, "neige": 0, "rap": 55, "sin": 45, "bos": 70, "lisse": 30}]};
+const BANNERS = ["<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s1\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#5aa7d8\"/><stop offset=\".55\" stop-color=\"#a8d4ec\"/><stop offset=\"1\" stop-color=\"#e9f5fc\"/></linearGradient>\n      <linearGradient id=\"r1\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#3a3f48\"/><stop offset=\"1\" stop-color=\"#20232a\"/></linearGradient>\n      <radialGradient id=\"sun1\" cx=\"82%\" cy=\"15%\" r=\"42%\"><stop offset=\"0\" stop-color=\"#fff7e0\" stop-opacity=\".9\"/><stop offset=\"1\" stop-color=\"#fff7e0\" stop-opacity=\"0\"/></radialGradient>\n      <filter id=\"b1\"><feGaussianBlur stdDeviation=\"3.2\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s1)\"/><rect width=\"360\" height=\"190\" fill=\"url(#sun1)\"/>\n      <g filter=\"url(#b1)\" fill=\"#fff\" opacity=\".85\"><ellipse cx=\"70\" cy=\"40\" rx=\"34\" ry=\"10\"/><ellipse cx=\"240\" cy=\"30\" rx=\"30\" ry=\"9\"/></g>\n      <path d=\"M0,96 L70,50 L130,88 L200,42 L270,84 L360,52 L360,120 L0,120Z\" fill=\"#bcd6e6\" opacity=\".8\"/>\n      <path d=\"M0,112 L60,64 L120,104 L190,58 L250,100 L320,68 L360,100 L360,190 L0,190Z\" fill=\"#eaf2f9\"/>\n      <path d=\"M60,64 L80,92 L96,76 M190,58 L212,90 L232,74\" fill=\"none\" stroke=\"#9fb3c6\" stroke-width=\"2.5\" opacity=\".7\"/>\n      <g fill=\"#254236\"><path d=\"M0,152 Q60,120 92,152 L130,152 Q152,124 176,152Z\"/><path d=\"M232,152 Q258,122 288,152 L360,152Z\"/></g>\n      <g fill=\"#1c3329\"><path d=\"M28,148 l7,-16 l7,16z\"/><path d=\"M255,150 l8,-18 l8,18z\"/><path d=\"M320,152 l8,-20 l8,20z\"/></g>\n      <path d=\"M104,190 Q128,150 158,122 L170,122 Q198,150 224,190 Z\" fill=\"#eef5fc\"/>\n      <path d=\"M158,122 C154,146 134,168 122,190 L206,190 C196,168 176,146 170,122 Z\" fill=\"url(#r1)\"/>\n      <path d=\"M164,126 C162,150 160,170 160,190\" fill=\"none\" stroke=\"#ffd23a\" stroke-width=\"2\" stroke-dasharray=\"5 8\" opacity=\".5\"/>\n      <g fill=\"#152a20\"><path d=\"M12,190 l12,-30 l12,30z\"/><path d=\"M300,190 l14,-34 l14,34z\"/></g>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s2\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#8fb8d8\"/><stop offset=\"1\" stop-color=\"#eaf3f9\"/></linearGradient>\n      <linearGradient id=\"r2\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#c6d6e6\"/><stop offset=\"1\" stop-color=\"#f2f8fd\"/></linearGradient>\n      <filter id=\"b2\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s2)\"/>\n      <g filter=\"url(#b2)\" fill=\"#fff\" opacity=\".8\"><ellipse cx=\"110\" cy=\"34\" rx=\"40\" ry=\"10\"/><ellipse cx=\"270\" cy=\"40\" rx=\"34\" ry=\"9\"/></g>\n      <path d=\"M0,100 L360,90 L360,120 L0,120Z\" fill=\"#aebfcf\" opacity=\".6\"/>\n      <!-- snowy spruce forest -->\n      <g fill=\"#dfe9f2\"><path d=\"M0,150 L360,150 L360,120 Q180,108 0,124Z\"/></g>\n      <g fill=\"#274a3c\"><path d=\"M20,140 l9,-26 l9,26z\"/><path d=\"M46,144 l8,-22 l8,22z\"/><path d=\"M70,138 l9,-28 l9,28z\"/><path d=\"M300,140 l9,-26 l9,26z\"/><path d=\"M330,144 l8,-22 l8,22z\"/><path d=\"M352,138 l9,-28 l9,28z\"/></g>\n      <g fill=\"#fff\" opacity=\".85\"><path d=\"M20,132 l9,-8 l9,8z\"/><path d=\"M300,132 l9,-8 l9,8z\"/><path d=\"M352,130 l9,-8 l9,8z\"/></g>\n      <!-- crest / Colin's Crest -->\n      <path d=\"M150,120 Q180,112 210,120 L300,190 L60,190Z\" fill=\"url(#r2)\"/>\n      <path d=\"M178,124 L184,124 L188,150 L174,150 Z M168,158 L200,158 L214,190 L156,190Z\" fill=\"#cfe0f0\" opacity=\".6\"/>\n      <path d=\"M0,150 Q80,138 150,120 L60,190 L0,190Z\" fill=\"#eef5fb\"/><path d=\"M360,150 Q280,138 210,120 L300,190 L360,190Z\" fill=\"#eef5fb\"/>\n      <g fill=\"#1f3b30\"><path d=\"M18,190 l12,-30 l12,30z\"/><path d=\"M328,190 l13,-32 l13,32z\"/></g>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s3\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#5aa0d4\"/><stop offset=\"1\" stop-color=\"#dfeef6\"/></linearGradient>\n      <linearGradient id=\"r3\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#a97c4a\"/><stop offset=\"1\" stop-color=\"#d8b880\"/></linearGradient>\n      <filter id=\"b3\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s3)\"/>\n      <g filter=\"url(#b3)\" fill=\"#fff\" opacity=\".85\"><ellipse cx=\"80\" cy=\"34\" rx=\"34\" ry=\"9\"/><ellipse cx=\"250\" cy=\"28\" rx=\"30\" ry=\"8\"/></g>\n      <path d=\"M0,84 L90,58 L180,80 L280,56 L360,80 L360,120 L0,120Z\" fill=\"#7f9a6a\" opacity=\".8\"/>\n      <!-- green terraced hills -->\n      <path d=\"M0,110 Q90,92 180,108 T360,102 L360,190 L0,190Z\" fill=\"#4f7a3e\"/>\n      <path d=\"M0,132 Q100,120 200,132 T360,128\" fill=\"none\" stroke=\"#3d6230\" stroke-width=\"3\" opacity=\".6\"/>\n      <g fill=\"#6b6b6b\"><rect x=\"60\" y=\"112\" width=\"6\" height=\"6\"/><rect x=\"250\" y=\"108\" width=\"7\" height=\"7\"/></g>\n      <!-- gravel road with Fafe jump crest + spectator banks -->\n      <path d=\"M150,116 Q180,106 210,116 L296,190 L64,190Z\" fill=\"url(#r3)\"/>\n      <path d=\"M178,120 L184,120 L186,146 L172,146Z M166,156 L202,156 L214,190 L154,190Z\" fill=\"#efd7ab\" opacity=\".55\"/>\n      <g fill=\"#9c6f3f\" opacity=\".55\"><circle cx=\"130\" cy=\"172\" r=\"1.5\"/><circle cx=\"150\" cy=\"178\" r=\"1.7\"/><circle cx=\"180\" cy=\"168\" r=\"1.4\"/></g>\n      <path d=\"M0,150 Q80,140 150,116 L64,190 L0,190Z\" fill=\"#3f6633\"/><path d=\"M360,148 Q285,140 210,116 L296,190 L360,190Z\" fill=\"#3f6633\"/>\n      <g fill=\"#2c4a26\"><path d=\"M22,190 l11,-26 l11,26z\"/><path d=\"M328,190 l12,-28 l12,28z\"/></g>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s4\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#3f8fce\"/><stop offset=\"1\" stop-color=\"#cdeaf4\"/></linearGradient>\n      <linearGradient id=\"r4\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#2b303a\"/><stop offset=\"1\" stop-color=\"#474d57\"/></linearGradient>\n      <filter id=\"b4\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s4)\"/>\n      <g filter=\"url(#b4)\" fill=\"#fff\" opacity=\".8\"><ellipse cx=\"90\" cy=\"30\" rx=\"30\" ry=\"8\"/><ellipse cx=\"270\" cy=\"36\" rx=\"34\" ry=\"9\"/></g>\n      <!-- distant maquis mountains -->\n      <path d=\"M0,80 L70,50 L140,78 L220,48 L300,76 L360,58 L360,96 L0,96Z\" fill=\"#7f9e86\" opacity=\".75\"/>\n      <!-- sea -->\n      <rect y=\"92\" width=\"360\" height=\"26\" fill=\"#2f7fb0\"/><rect y=\"90\" width=\"360\" height=\"4\" fill=\"#bfe6f0\" opacity=\".7\"/>\n      <path d=\"M0,102 h360 M0,110 h360\" stroke=\"#5aa0c6\" stroke-width=\"1\" opacity=\".4\"/>\n      <!-- green cliff + winding tarmac -->\n      <path d=\"M0,118 Q120,104 240,120 T360,116 L360,190 L0,190Z\" fill=\"#3d6b46\"/>\n      <path d=\"M162,116 C158,140 134,166 122,190 L206,190 C194,166 172,140 168,116 Z\" fill=\"url(#r4)\"/>\n      <path d=\"M162,116 C158,140 134,166 122,190 M168,116 C172,140 194,166 206,190\" fill=\"none\" stroke=\"#cdd4dc\" stroke-width=\"1.2\" opacity=\".35\"/>\n      <path d=\"M165,120 C163,146 160,168 160,190\" fill=\"none\" stroke=\"#e6c15a\" stroke-width=\"2\" stroke-dasharray=\"5 8\" opacity=\".6\"/>\n      <g fill=\"#2c4f34\"><path d=\"M300,150 q8,-16 16,0z\"/><path d=\"M330,156 q6,-12 12,0z\"/></g>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s5\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#d9c266\"/><stop offset=\"1\" stop-color=\"#f3e8bd\"/></linearGradient>\n      <linearGradient id=\"r5\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#a07640\"/><stop offset=\"1\" stop-color=\"#caa063\"/></linearGradient>\n      <filter id=\"b5\"><feGaussianBlur stdDeviation=\"3.5\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s5)\"/>\n      <g filter=\"url(#b5)\" fill=\"#fff\" opacity=\".5\"><ellipse cx=\"180\" cy=\"40\" rx=\"120\" ry=\"16\"/></g>\n      <path d=\"M0,88 L80,58 L160,86 L240,56 L320,84 L360,66 L360,120 L0,120Z\" fill=\"#b98b4e\" opacity=\".85\"/>\n      <path d=\"M0,108 L110,92 L220,110 L360,96 L360,190 L0,190Z\" fill=\"#9c6f38\"/>\n      <!-- rocky texture -->\n      <g fill=\"#7a5628\" opacity=\".6\"><path d=\"M40,120 l10,-6 l8,8z\"/><path d=\"M280,116 l12,-7 l9,9z\"/><circle cx=\"140\" cy=\"126\" r=\"4\"/></g>\n      <g fill=\"#5c7a3c\"><path d=\"M30,116 q6,-14 12,0z\"/><path d=\"M300,112 q7,-15 14,0z\"/><path d=\"M200,120 q5,-12 10,0z\"/></g>\n      <!-- dusty rough gravel road -->\n      <path d=\"M152,116 L208,116 L300,190 L60,190Z\" fill=\"url(#r5)\"/>\n      <path d=\"M170,124 l7,4 l-6,10 l-8,-4z M150,150 l40,3 l-10,20 l-42,-2z\" fill=\"#8a5f2e\" opacity=\".5\"/>\n      <g fill=\"#e8d4a0\" opacity=\".4\"><path d=\"M120,170 l30,4 l-6,10 l-30,-3z\"/></g>\n      <g fill=\"#7a5628\"><circle cx=\"130\" cy=\"176\" r=\"3\"/><circle cx=\"200\" cy=\"170\" r=\"2.5\"/></g>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s6\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#7d9fc4\"/><stop offset=\".5\" stop-color=\"#d8c8d0\"/><stop offset=\"1\" stop-color=\"#f6ede2\"/></linearGradient>\n      <linearGradient id=\"r6\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#cfd8e4\"/><stop offset=\"1\" stop-color=\"#f4f0ec\"/></linearGradient>\n      <radialGradient id=\"sun6\" cx=\"30%\" cy=\"26%\" r=\"30%\"><stop offset=\"0\" stop-color=\"#fff0d0\" stop-opacity=\".95\"/><stop offset=\"1\" stop-color=\"#fff0d0\" stop-opacity=\"0\"/></radialGradient>\n      <filter id=\"b6\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s6)\"/><rect width=\"360\" height=\"190\" fill=\"url(#sun6)\"/>\n      <circle cx=\"108\" cy=\"50\" r=\"16\" fill=\"#ffe9c0\" filter=\"url(#b6)\"/>\n      <path d=\"M0,110 L360,102 L360,150 L0,150Z\" fill=\"#e6ddd6\" opacity=\".8\"/>\n      <!-- sparse snow-laden pines with long shadows -->\n      <g fill=\"#3a4a52\"><path d=\"M40,128 l8,-22 l8,22z\"/><path d=\"M70,132 l7,-18 l7,18z\"/><path d=\"M300,128 l8,-22 l8,22z\"/><path d=\"M334,132 l7,-18 l7,18z\"/></g>\n      <g fill=\"#fff\"><path d=\"M40,110 l8,-6 l8,6z\"/><path d=\"M300,110 l8,-6 l8,6z\"/></g>\n      <g stroke=\"#c9b8c4\" stroke-width=\"4\" opacity=\".5\"><line x1=\"48\" y1=\"130\" x2=\"80\" y2=\"140\"/><line x1=\"308\" y1=\"130\" x2=\"276\" y2=\"140\"/></g>\n      <!-- fast straight snow road -->\n      <path d=\"M164,116 L196,116 L280,190 L80,190Z\" fill=\"url(#r6)\"/>\n      <path d=\"M178,122 l4,0 l-2,24 l-6,0z M172,152 l16,0 l-4,38 l-22,0z\" fill=\"#dbe6f0\" opacity=\".6\"/>\n      <path d=\"M0,150 Q80,138 164,116 L80,190 L0,190Z\" fill=\"#f4f0ec\"/><path d=\"M360,150 Q280,138 196,116 L280,190 L360,190Z\" fill=\"#f4f0ec\"/>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s7\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6aa6d4\"/><stop offset=\"1\" stop-color=\"#e2eff6\"/></linearGradient>\n      <linearGradient id=\"r7\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#7d818a\"/><stop offset=\"1\" stop-color=\"#b4b9c2\"/></linearGradient>\n      <filter id=\"b7\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s7)\"/>\n      <g filter=\"url(#b7)\" fill=\"#fff\" opacity=\".85\"><ellipse cx=\"100\" cy=\"34\" rx=\"34\" ry=\"9\"/><ellipse cx=\"260\" cy=\"30\" rx=\"30\" ry=\"8\"/></g>\n      <path d=\"M0,88 Q90,70 180,86 T360,82 L360,120 L0,120Z\" fill=\"#7a9c68\" opacity=\".8\"/>\n      <!-- vineyard rows on hill -->\n      <path d=\"M0,108 Q100,94 200,108 T360,104 L360,150 L0,150Z\" fill=\"#5f7f45\"/>\n      <g stroke=\"#4a6636\" stroke-width=\"1.4\" opacity=\".6\"><path d=\"M0,120 Q100,110 220,122\"/><path d=\"M0,132 Q120,122 240,134\"/></g>\n      <!-- wide concrete road + hinkelstein blocks -->\n      <path d=\"M150,116 L210,116 L300,190 L60,190Z\" fill=\"url(#r7)\"/>\n      <path d=\"M178,122 l4,0 l-3,24 l-8,0z M168,152 l28,0 l-6,38 l-40,0z\" fill=\"#e6e8ec\" opacity=\".5\"/>\n      <g fill=\"#e8e8ea\"><rect x=\"125\" y=\"123\" width=\"6\" height=\"8\" rx=\"1.5\"/><rect x=\"91\" y=\"144\" width=\"8\" height=\"11\" rx=\"2\"/><rect x=\"57\" y=\"167\" width=\"11\" height=\"16\" rx=\"2\"/><rect x=\"229\" y=\"123\" width=\"6\" height=\"8\" rx=\"1.5\"/><rect x=\"256\" y=\"144\" width=\"8\" height=\"11\" rx=\"2\"/><rect x=\"288\" y=\"167\" width=\"11\" height=\"16\" rx=\"2\"/></g>\n      <path d=\"M0,150 Q80,138 150,116 L60,190 L0,190Z\" fill=\"#4f6b3a\"/><path d=\"M360,150 Q285,138 210,116 L300,190 L360,190Z\" fill=\"#4f6b3a\"/>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s8\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#4f9bd6\"/><stop offset=\"1\" stop-color=\"#e2f1f6\"/></linearGradient>\n      <linearGradient id=\"r8\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#c9a978\"/><stop offset=\"1\" stop-color=\"#e8d4ab\"/></linearGradient>\n      <filter id=\"b8\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s8)\"/>\n      <g filter=\"url(#b8)\" fill=\"#fff\" opacity=\".9\"><ellipse cx=\"90\" cy=\"32\" rx=\"40\" ry=\"11\"/><ellipse cx=\"280\" cy=\"38\" rx=\"34\" ry=\"9\"/></g>\n      <path d=\"M0,90 Q90,72 180,86 T360,82 L360,120 L0,120Z\" fill=\"#7fa6b8\" opacity=\".7\"/>\n      <ellipse cx=\"300\" cy=\"104\" rx=\"46\" ry=\"6\" fill=\"#bfe0ee\" opacity=\".8\"/>\n      <path d=\"M0,106 L360,98 L360,150 L0,152Z\" fill=\"#2f5a34\"/>\n      <g fill=\"#24492a\"><path d=\"M20,116 l8,-20 l8,20z\"/><path d=\"M44,120 l9,-24 l9,24z\"/><path d=\"M70,114 l7,-18 l7,18z\"/><path d=\"M330,116 l8,-20 l8,20z\"/><path d=\"M352,120 l8,-22 l8,22z\"/></g>\n      <g stroke=\"#e8ecec\" stroke-width=\"2\"><line x1=\"96\" y1=\"120\" x2=\"96\" y2=\"98\"/><line x1=\"104\" y1=\"122\" x2=\"104\" y2=\"100\"/></g>\n      <path d=\"M150,116 Q160,110 176,116 L235,190 L40,190Z\" fill=\"url(#r8)\"/>\n      <path d=\"M160,120 L166,120 L168,138 L158,138Z M150,150 L182,150 L200,190 L120,190Z\" fill=\"#f0e2c2\" opacity=\".55\"/>\n      <g fill=\"#b8996a\" opacity=\".6\"><circle cx=\"120\" cy=\"172\" r=\"1.5\"/><circle cx=\"150\" cy=\"178\" r=\"1.7\"/><circle cx=\"180\" cy=\"168\" r=\"1.3\"/></g>\n      <path d=\"M0,150 Q80,140 150,116 L120,190 L0,190Z\" fill=\"#3d6b3e\"/><path d=\"M360,148 Q280,140 176,116 L235,190 L360,190Z\" fill=\"#3d6b3e\"/>\n      <g><rect x=\"20\" y=\"142\" width=\"4\" height=\"48\" fill=\"#e6ebe9\"/><path d=\"M14,152 q8,-14 16,0z\" fill=\"#356b3a\"/></g>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s9\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#5aa0d4\"/><stop offset=\"1\" stop-color=\"#eef2df\"/></linearGradient>\n      <linearGradient id=\"r9\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#33383f\"/><stop offset=\"1\" stop-color=\"#4a5058\"/></linearGradient>\n      <filter id=\"b9\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s9)\"/>\n      <g filter=\"url(#b9)\" fill=\"#fff\" opacity=\".85\"><ellipse cx=\"260\" cy=\"32\" rx=\"34\" ry=\"9\"/></g>\n      <path d=\"M0,86 L90,62 L180,84 L280,60 L360,82 L360,120 L0,120Z\" fill=\"#a89a5e\" opacity=\".7\"/>\n      <!-- dry vineyard/almond hills -->\n      <path d=\"M0,108 Q100,94 200,108 T360,104 L360,190 L0,190Z\" fill=\"#8a9a52\"/>\n      <g stroke=\"#6f7f3e\" stroke-width=\"1.4\" opacity=\".55\"><path d=\"M0,124 Q120,114 240,126\"/><path d=\"M0,138 Q100,128 220,140\"/></g>\n      <g fill=\"#5c7a3c\"><path d=\"M40,116 q7,-14 14,0z\"/><path d=\"M300,112 q8,-15 16,0z\"/></g>\n      <!-- winding warm tarmac -->\n      <path d=\"M176,112 C176,138 184,164 192,190 L262,190 C250,164 200,138 196,112 Z\" fill=\"url(#r9)\"/>\n      <path d=\"M176,112 C176,138 184,164 192,190 M196,112 C200,138 250,164 262,190\" fill=\"none\" stroke=\"#cdd4dc\" stroke-width=\"1.2\" opacity=\".35\"/>\n      <path d=\"M186,116 C186,142 210,168 226,190\" fill=\"none\" stroke=\"#e6c15a\" stroke-width=\"2\" stroke-dasharray=\"5 8\" opacity=\".6\"/>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s10\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#7fa3c4\"/><stop offset=\"1\" stop-color=\"#e6eef5\"/></linearGradient>\n      <linearGradient id=\"r10\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#c6d6e6\"/><stop offset=\"1\" stop-color=\"#eef5fb\"/></linearGradient>\n      <filter id=\"b10\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s10)\"/>\n      <g filter=\"url(#b10)\" fill=\"#fff\" opacity=\".75\"><ellipse cx=\"160\" cy=\"34\" rx=\"50\" ry=\"10\"/></g>\n      <path d=\"M0,96 L360,88 L360,120 L0,120Z\" fill=\"#9fb0c2\" opacity=\".6\"/>\n      <!-- dense dark spruce corridor -->\n      <g fill=\"#213b30\"><path d=\"M0,150 L0,92 L8,100 L16,86 L26,100 L36,88 L46,102 L56,90 L62,102 L62,150Z\"/><path d=\"M360,150 L360,88 L352,100 L342,84 L332,100 L322,88 L312,102 L302,90 L298,150Z\"/></g>\n      <g fill=\"#2b4a3a\"><path d=\"M20,130 l10,-34 l10,34z\"/><path d=\"M44,140 l9,-28 l9,28z\"/><path d=\"M300,132 l10,-34 l10,34z\"/><path d=\"M328,140 l9,-28 l9,28z\"/><path d=\"M350,128 l10,-36 l10,36z\"/></g>\n      <g fill=\"#fff\" opacity=\".7\"><path d=\"M20,104 l10,-10 l10,10z\"/><path d=\"M300,106 l10,-10 l10,10z\"/></g>\n      <path d=\"M162,116 L198,116 L286,190 L74,190Z\" fill=\"url(#r10)\"/>\n      <path d=\"M176,122 l4,0 l-2,26 l-6,0z M170,154 l18,0 l-4,36 l-24,0z\" fill=\"#d5e2ef\" opacity=\".6\"/>\n      <path d=\"M60,150 Q110,136 162,116 L74,190 L60,190Z\" fill=\"#e8f1fa\"/><path d=\"M300,150 Q250,136 198,116 L286,190 L300,190Z\" fill=\"#e8f1fa\"/>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s11\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#5aa6da\"/><stop offset=\"1\" stop-color=\"#dceef4\"/></linearGradient>\n      <linearGradient id=\"r11\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#b89a6a\"/><stop offset=\"1\" stop-color=\"#dcc593\"/></linearGradient>\n      <filter id=\"b11\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s11)\"/>\n      <g filter=\"url(#b11)\" fill=\"#fff\" opacity=\".85\"><ellipse cx=\"70\" cy=\"30\" rx=\"30\" ry=\"8\"/><ellipse cx=\"250\" cy=\"34\" rx=\"34\" ry=\"9\"/></g>\n      <!-- sea across the horizon -->\n      <rect y=\"86\" width=\"360\" height=\"22\" fill=\"#2f7fb0\" opacity=\".9\"/><rect y=\"84\" width=\"360\" height=\"3\" fill=\"#bfe6f0\" opacity=\".7\"/>\n      <path d=\"M0,108 Q46,90 96,104 L128,108 L0,108Z\" fill=\"#5a8f52\" opacity=\".9\"/>\n      <!-- rolling emerald hills -->\n      <path d=\"M0,112 Q90,102 180,110 T360,106 L360,190 L0,190Z\" fill=\"#5f9a4e\"/>\n      <path d=\"M0,120 Q110,100 240,122 T360,116\" fill=\"none\" stroke=\"#4d8040\" stroke-width=\"3\" opacity=\".5\"/>\n      <g fill=\"#fff\" opacity=\".85\"><circle cx=\"60\" cy=\"108\" r=\"1.6\"/><circle cx=\"90\" cy=\"116\" r=\"1.6\"/><circle cx=\"130\" cy=\"110\" r=\"1.6\"/></g>\n      <!-- smooth coastal gravel -->\n      <path d=\"M166,114 C162,138 150,164 144,190 L214,190 C206,164 194,138 192,114 Z\" fill=\"url(#r11)\"/>\n      <path d=\"M179,118 C176,142 168,166 162,190\" fill=\"none\" stroke=\"#efe0c0\" stroke-width=\"1.6\" stroke-dasharray=\"4 7\" opacity=\".55\"/>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s12\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#e9a85e\"/><stop offset=\".55\" stop-color=\"#f6d6a2\"/><stop offset=\"1\" stop-color=\"#f8ecd6\"/></linearGradient>\n      <linearGradient id=\"r12\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#33383f\"/><stop offset=\"1\" stop-color=\"#4a5058\"/></linearGradient>\n      <filter id=\"b12\"><feGaussianBlur stdDeviation=\"3\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s12)\"/>\n      <circle cx=\"180\" cy=\"42\" r=\"18\" fill=\"#fff2cf\" opacity=\".9\" filter=\"url(#b12)\"/>\n      <rect y=\"78\" width=\"360\" height=\"22\" fill=\"#c98a58\" opacity=\".45\"/>\n      <!-- olive terraces -->\n      <path d=\"M0,96 Q90,80 180,94 T360,90 L360,190 L0,190Z\" fill=\"#7c8a4e\"/>\n      <path d=\"M0,118 Q120,106 240,120 T360,114\" fill=\"none\" stroke=\"#5f6b38\" stroke-width=\"3\" opacity=\".5\"/>\n      <g fill=\"#5c7040\"><circle cx=\"50\" cy=\"112\" r=\"6\"/><circle cx=\"300\" cy=\"108\" r=\"6\"/><circle cx=\"330\" cy=\"120\" r=\"5\"/></g>\n      <!-- winding tarmac -->\n      <path d=\"M178,108 C172,134 150,164 142,190 L212,190 C204,164 196,134 194,108 Z\" fill=\"url(#r12)\"/>\n      <path d=\"M178,108 C172,134 150,164 142,190 M194,108 C196,134 204,164 212,190\" fill=\"none\" stroke=\"#cdd4dc\" stroke-width=\"1.2\" opacity=\".35\"/>\n      <path d=\"M186,112 C182,138 168,166 160,190\" fill=\"none\" stroke=\"#e6c15a\" stroke-width=\"2\" stroke-dasharray=\"5 8\" opacity=\".6\"/>\n    </svg>", "<svg viewBox=\"0 0 360 190\" preserveAspectRatio=\"xMidYMid slice\">\n      <defs><linearGradient id=\"s13\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#9db0bd\"/><stop offset=\"1\" stop-color=\"#e4ecec\"/></linearGradient>\n      <linearGradient id=\"r13\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6b5638\"/><stop offset=\"1\" stop-color=\"#96794f\"/></linearGradient>\n      <filter id=\"b13\"><feGaussianBlur stdDeviation=\"4\"/></filter></defs>\n      <rect width=\"360\" height=\"190\" fill=\"url(#s13)\"/>\n      <g filter=\"url(#b13)\" fill=\"#fff\" opacity=\".7\"><ellipse cx=\"180\" cy=\"44\" rx=\"140\" ry=\"20\"/></g>\n      <!-- misty forested moor -->\n      <path d=\"M0,94 Q90,80 180,92 T360,88 L360,120 L0,120Z\" fill=\"#8a9a8e\" opacity=\".7\"/>\n      <g fill=\"#33513a\"><path d=\"M20,120 l9,-26 l9,26z\"/><path d=\"M46,124 l8,-22 l8,22z\"/><path d=\"M300,120 l9,-26 l9,26z\"/><path d=\"M330,124 l8,-22 l8,22z\"/><path d=\"M352,118 l9,-28 l9,28z\"/></g>\n      <g filter=\"url(#b13)\" fill=\"#dfe6e4\" opacity=\".45\"><ellipse cx=\"120\" cy=\"108\" rx=\"60\" ry=\"10\"/></g>\n      <path d=\"M0,116 Q120,102 240,118 T360,112 L360,190 L0,190Z\" fill=\"#4a6b3e\"/>\n      <!-- muddy gravel road -->\n      <path d=\"M158,120 L206,120 L296,190 L64,190Z\" fill=\"url(#r13)\"/>\n      <path d=\"M176,126 l6,0 l2,22 l-12,0z M156,152 l40,2 l-8,36 l-46,-2z\" fill=\"#7d6440\" opacity=\".6\"/>\n      <g fill=\"#4a3a22\" opacity=\".5\"><ellipse cx=\"150\" cy=\"176\" rx=\"14\" ry=\"4\"/><ellipse cx=\"200\" cy=\"166\" rx=\"10\" ry=\"3\"/></g>\n      <path d=\"M0,150 Q80,140 158,120 L64,190 L0,190Z\" fill=\"#3d5a33\"/><path d=\"M360,150 Q285,140 206,120 L296,190 L360,190Z\" fill=\"#3d5a33\"/>\n    </svg>"];
+
+/* ---------- MOTEUR (constantes calées) ---------- */
+const ENG = {
+  wItems:2.0, wSetup:0.3, wPneu:0.3, wRythme:1.0,
+  vref:90, pref:80, sCoef:0.4,
+  accSeuil:100, multBase:0.95, multK:0.38,
+  flouBase:5, flouDiff:8, flouFib:24,
+  FLOOR:70,
+  tyres:{
+    tendre:{base:97,seuil:10,mort:20,label:'Tendre',col:'#f87171'},
+    medium:{base:87,seuil:20,mort:36,label:'Médium',col:'#fbbf24'},
+    dur:{base:84,seuil:30,mort:70,label:'Dur',col:'#38bdf8'}
+  }
+};
+const ck=['asph','terre','neige','rap','sin','bos','lisse'];
+function noteOn(e,st){let s=0;ck.forEach(k=>s+=e[k]*st[k]);return s/300;}
+function tyreAt(km,c){const co=(c.base-ENG.FLOOR)/Math.max(0.5,c.mort-c.seuil);return Math.max(ENG.FLOOR,Math.min(100,c.base-co*Math.max(0,km-c.seuil)));}
+function tyreNote(key,km,p){const b=ENG.tyres[key],pe=(p||0)*(p||0);const c={base:b.base,seuil:b.seuil,mort:b.mort};if(key==='tendre'){c.seuil+=4*pe;c.mort+=4*pe;}else if(key==='medium'){c.seuil+=2*pe;c.mort+=2*pe;}else if(key==='dur'){c.base-=4*pe;}const N=60;let s=0;for(let i=0;i<=N;i++)s+=tyreAt(i/N*km,c);return s/(N+1);}
+
+function computeStage(st, crew, car, tyreKey, rythme, setupRap, setupBos){
+  const pTyre=(st.humid||0)/100;                                   // pneu : 0/0.5/0.75/1
+  const pRain=st.humid>=100?0.6:st.humid>=75?0.4:st.humid>=50?0.2:0; // coef pluie : 0/0.2/0.4/0.6
+  const rain=((crew.pluie||0)+(car.pluie||0))*pRain;
+  const items=(noteOn(crew,st)+noteOn(car,st))/2 + rain;
+  const rRap=100-Math.abs(st.rap-setupRap);
+  const rBos=100-Math.abs(st.bos-setupBos);
+  const setup=(rRap+rBos)/2;
+  const pneu=tyreNote(tyreKey,st.km,pTyre);
+  const rythmeNote=80+(rythme/100)*20;
+  const score=(ENG.wItems*items+ENG.wSetup*setup+ENG.wPneu*pneu+ENG.wRythme*rythmeNote)/(ENG.wItems+ENG.wSetup+ENG.wPneu+ENG.wRythme);
+  const vitesse=ENG.vref+(score-ENG.pref)*ENG.sCoef;
+  const baseTime=(3600/vitesse)*st.km;
+  const mult=ENG.multBase+(st.diff/100)*ENG.multK;
+  const accPts=rythme*mult;
+  const flou=ENG.flouBase+(st.diff/100)*ENG.flouDiff+((100-crew.fib)/100)*ENG.flouFib;
+  return {items,setup,pneu,rythmeNote,score,vitesse,baseTime,mult,accPts,flou};
+}
+
+/* ---------- STOCKAGE (serveur, avec cache mémoire) ---------- */
+const Store=(()=>{
+  let mem={};
+  function get(k){try{const v=localStorage.getItem(k);return v;}catch(e){return mem[k]||null;}}
+  function set(k,v){try{localStorage.setItem(k,v);}catch(e){mem[k]=v;}}
+  let _runs=[]; // cache des essais du serveur (rempli au chargement)
+  return {
+    runs(){return _runs;},
+    // Récupère tous les essais déjà enregistrés (tous les joueurs)
+    async load(){
+      try{
+        const res=await fetch('/api/records',{cache:'no-store'});
+        const data=await res.json();
+        _runs=Array.isArray(data)?data:[];
+      }catch(e){_runs=[];}
+    },
+    // Ajoute un essai : visible tout de suite en local + envoyé au serveur
+    addRun(r){
+      _runs.push(r);
+      try{
+        fetch('/api/records',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)}).catch(()=>{});
+      }catch(e){}
+    },
+    lastName(){return get('azr_name')||'';},
+    saveName(n){set('azr_name',n);}
+  };
+})();
+
+/* ---------- ÉTAT ---------- */
+let G=null;
+function newGame(name){
+  G={name,idx:0,usedCrews:new Set(),usedCars:new Set(),cum:0,counter:0,splits:[],results:[],
+     sel:{crew:null,car:null,carId:null,tyre:null,rythme:55,setupRap:50,setupBos:50}};
+}
+
+/* ---------- HELPERS ---------- */
+function fmtTime(s){const sign=s<0?'-':'';s=Math.abs(s);const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const sec=s-h*3600-m*60;if(h>0)return sign+h+':'+String(m).padStart(2,'0')+':'+sec.toFixed(1).padStart(4,'0');return sign+m+':'+sec.toFixed(1).padStart(4,'0');}
+function fmtGap(s){const sg=s>=0?'+':'−';s=Math.abs(s);if(s<60)return sg+s.toFixed(1)+'s';const m=Math.floor(s/60);return sg+m+':'+(s-m*60).toFixed(1).padStart(4,'0');}
+function fmtGapShort(s){if(s<60)return s.toFixed(1)+'s';const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(1).padStart(4,'0');}
+function fmtPerson(p){const particles=['al','de','van','von','der','del','di','da','le','la','du'];const parts=p.trim().split(' ');let sur=[parts.pop()];while(parts.length&&particles.includes(parts[parts.length-1].toLowerCase()))sur.unshift(parts.pop());return sur.join(' ').toUpperCase()+(parts.length?' '+parts.join(' '):'');}
+function fmtCrew(nom){return nom.split(' - ').map(fmtPerson).join(' - ');}
+function surfaceOf(st){
+  if(st.neige>=50&&st.asph>0)return {cls:'neige',txt:'Asphalte + neige (mixte)'};
+  if(st.neige>=50)return {cls:'neige',txt:'Neige'};
+  if(st.terre>=50)return {cls:'terre',txt:'Terre'};
+  return {cls:'asph',txt:'Asphalte'};
+}
+function weatherOf(st){
+  const h=st.humid||0;
+  if(h>=100)return{cls:'wx-d',txt:'Détrempé'};
+  if(h>=75)return{cls:'wx-m',txt:'Mouillé'};
+  if(h>=50)return{cls:'wx-h',txt:'Humide'};
+  return{cls:'wx-s',txt:'Sec'};
+}
+function speedDesc(r){return r>=80?'très rapide':r>=65?'rapide':r>=55?'plutôt rapide':r>=45?'équilibré':r>=35?'plutôt sinueux':r>=20?'sinueux':'très sinueux';}
+function reliefDesc(b){return b>=70?'très cassante':b>=55?'cassante':b>=45?'moyenne':b>=30?'plutôt lisse':'lisse';}
+function tierOf(pts){if(pts>120)return{name:'Sortie de route',pen:30,col:'#dc2626'};if(pts>110)return{name:'Tête à queue',pen:20,col:'#f97316'};if(pts>ENG.accSeuil)return{name:'Tout droit',pen:10,col:'#fbbf24'};return{name:null,pen:0,col:'#6f6f78'};}
+const app=()=>document.getElementById('app');
+function windowedBoard(entries){
+  const n=entries.length;const leader=entries[0]?entries[0].value:0;const meIdx=entries.findIndex(e=>e.me);
+  const show=new Set([0]);for(let i=meIdx-5;i<=meIdx+5;i++){if(i>=0&&i<n)show.add(i);}
+  const idxs=[...show].sort((a,b)=>a-b);let html='',prev=-1;
+  idxs.forEach(i=>{
+    if(i-prev>1)html+=`<div class="lb" style="opacity:.35;justify-content:center">⋯</div>`;
+    const e=entries[i];const gap=i===0?'':`<span class="small" style="color:#8a8a92;margin-left:8px">+${fmtGapShort(e.value-leader)}</span>`;
+    html+=`<div class="lb ${e.me?'me':''}"><span>${i+1}. ${e.name}</span><b>${fmtTime(e.value)}${gap}</b></div>`;prev=i;
+  });
+  return html;
+}
+function stageEntries(idx,myTime){
+  const arr=Store.runs().filter(r=>r.splits.length>idx).map(r=>({name:r.name,value:r.splits[idx],me:false}));
+  arr.push({name:G.name,value:myTime,me:true});arr.sort((a,b)=>a.value-b.value);return arr;
+}
+function cumEntries(idx,myCum){
+  const arr=Store.runs().filter(r=>r.splits.length>idx).map(r=>{let c=0;for(let i=0;i<=idx;i++)c+=r.splits[i];return{name:r.name,value:c,me:false};});
+  arr.push({name:G.name,value:myCum,me:true});arr.sort((a,b)=>a.value-b.value);return arr;
+}
+
+/* ---------- ÉCRAN ACCUEIL ---------- */
+function screenHome(){
+  const last=Store.lastName();
+  app().innerHTML=`
+    <div class="brand"><span class="az">AZ</span><span class="r">RALLYE</span><span class="az">GAME</span></div>
+    <div class="tag">Time-attack — bats le meilleur temps</div>
+    <div class="card">
+      <p style="font-size:.9rem;margin-bottom:12px">Un rallye de <b>${DATA.stages.length} spéciales mythiques</b>, une de chaque caractère. Avant chaque spéciale tu choisis ton <b>équipage</b>, ta <b>voiture</b>, ton <b>pneu</b>, ton <b>rythme</b> et tes <b>réglages</b>. Chaque équipage et chaque voiture ne servent qu'<b>une seule fois</b>.</p>
+      <p class="small" style="margin-bottom:14px">Tout est déterministe : mêmes choix → même temps. Le classement te compare aux joueurs déjà passés.</p>
+      <label class="small">Ton nom</label>
+      <input id="pname" type="text" maxlength="18" placeholder="Pilote..." value="${last}">
+      <div style="height:12px"></div>
+      <button class="btn-primary" id="start">Démarrer le rallye</button>
+    </div>
+    ${leaderboardCard(null)}
+    <div class="foot">AZRALLYEGAME — Simulation amateur, non officielle.</div>`;
+  document.getElementById('start').onclick=()=>{
+    const n=(document.getElementById('pname').value||'').trim()||'Anonyme';
+    Store.saveName(n);newGame(n);screenRoadbook();
+  };
+}
+
+/* ---------- ÉCRAN SPÉCIALE ---------- */
+function screenRoadbook(){
+  const rows=DATA.stages.map((st,i)=>{
+    const su=surfaceOf(st), w=weatherOf(st);
+    return `<div class="rbbanner">
+      ${BANNERS[i]||''}
+      <div class="bnr-veil"></div>
+      <div class="rbcap">
+        <span class="rbn">${i+1}</span>
+        <div class="rbmid">
+          <div class="rbnom">${st.nom}<span class="rbkm2">${st.km} km</span></div>
+          <div class="rbrally2">${st.rallye}</div>
+        </div>
+        <div class="rbbadges">
+          <span class="surf ${su.cls}">${su.txt}</span>
+          <span class="wx ${w.cls}">${w.txt}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  const totalKm=DATA.stages.reduce((a,st)=>a+st.km,0).toFixed(1);
+  app().innerHTML=`
+    <div class="brand"><span class="az">AZ</span><span class="r">RALLYE</span><span class="az">GAME</span></div>
+    <div class="tag">Road book — ${DATA.stages.length} spéciales · ${totalKm} km</div>
+    <div class="card">
+      <p class="small" style="margin-bottom:10px">Voici l'itinéraire complet. Chaque équipage et chaque voiture ne servent qu'<b>une seule fois</b> : repère les surfaces et planifie tes forces sur les 13 spéciales avant de t'élancer.</p>
+      <div class="roadbook">${rows}</div>
+    </div>
+    <button class="btn-primary" id="go">Commencer la spéciale 1 ›</button>
+    <div class="foot">La difficulté de chaque spéciale, elle, se découvre en pilotant.</div>`;
+  document.getElementById('go').onclick=()=>screenStage();
+}
+
+function screenStage(){
+  const st=DATA.stages[G.idx];const surf=surfaceOf(st);const weather=weatherOf(st);
+  let prog='';for(let i=0;i<DATA.stages.length;i++)prog+=`<span class="${i<G.idx?'done':i===G.idx?'cur':''}"></span>`;
+  app().innerHTML=`
+    <div class="prog">${prog}</div>
+    <div class="banner">
+      ${BANNERS[G.idx]||''}
+      <div class="bnr-veil"></div>
+      <div class="bnr-km">${st.km.toFixed(1)}<small>KM</small></div>
+      <div class="bnr-badges">
+        <span class="surf ${surf.cls}">${surf.txt}</span>
+        <span class="wx ${weather.cls}">${weather.txt}</span>
+      </div>
+      <div class="bnr-cap">
+        <div class="bnr-rly"><span class="c">›››</span>${st.rallye} · Spéciale ${G.idx+1}/${DATA.stages.length}</div>
+        <div class="bnr-nom">${st.nom}</div>
+      </div>
+    </div>
+
+    <div class="pickrow">
+      <div class="pickcol">
+        <h2>Équipage <span class="small" id="crewPick" style="color:#8a8a92">— à choisir</span></h2>
+        <div class="card" style="padding:10px">
+          <input type="text" id="crewSearch" placeholder="Rechercher...">
+          <div class="pickbox" id="crewList"></div>
+        </div>
+      </div>
+      <div class="pickcol">
+        <h2>Voiture <span class="small" id="carPick" style="color:#8a8a92">— à choisir</span></h2>
+        <div class="card" style="padding:10px">
+          <input type="text" id="carSearch" placeholder="Rechercher...">
+          <div class="pickbox" id="carList"></div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Pneu</h2>
+    <div class="card">
+      <div class="tyres" id="tyres"></div>
+      <div class="small" id="tyreInfo" style="margin-top:8px"></div>
+    </div>
+
+    <h2>Rythme & réglages</h2>
+    <div class="card">
+      <div class="row"><label>Rythme</label><input type="range" id="rythme" min="0" max="100" step="1" value="${G.sel.rythme}"></div>
+      <div class="riskbox">
+        <div class="small" style="margin-bottom:6px">Risque d'accident</div>
+        <div class="gauge rgauge">
+          <div id="riskSolid" class="rsolid"></div>
+          <div id="riskHatch" class="rhatch"></div>
+          <div id="riskSeuil" class="rseuil"></div>
+        </div>
+        <div class="small" style="margin-top:6px;font-size:.68rem;color:#7a7a82">Le trait blanc = seuil d'erreur de pilotage. La zone hachurée est incertaine.</div>
+      </div>
+      <div class="setblock">
+        <label>Transmission</label>
+        <input type="range" id="setRap" min="0" max="100" step="1" value="${G.sel.setupRap}">
+        <div class="ends"><span>Sinueux</span><span>Rapide</span></div>
+      </div>
+      <div class="setblock">
+        <label>Suspension</label>
+        <input type="range" id="setBos" min="0" max="100" step="1" value="${G.sel.setupBos}">
+        <div class="ends"><span>Lisse</span><span>Bosselé</span></div>
+      </div>
+      <div class="small">Règle au plus proche du caractère de la spéciale (tu n'as que la description, à toi de juger).</div>
+    </div>
+
+    <button class="btn-primary launch-btn" id="launch" disabled>
+      <span class="leds"><i data-k="crew"></i><i data-k="car"></i><i data-k="tyre"></i><i data-k="rythme"></i><i data-k="trans"></i><i data-k="susp"></i></span>
+      <span id="launchLabel">Choisis un équipage et une voiture</span>
+    </button>
+    <div class="foot">Temps cumulé : ${fmtTime(G.cum)}</div>`;
+
+  G.touched={tyre:false,rythme:false,trans:false,susp:false};
+  renderCrewList('');renderCarList('');renderTyres();
+  document.getElementById('crewSearch').oninput=e=>renderCrewList(e.target.value);
+  document.getElementById('carSearch').oninput=e=>renderCarList(e.target.value);
+  const bind=(id,key,tk)=>{const el=document.getElementById(id);el.oninput=()=>{G.sel[key]=+el.value;if(tk)G.touched[tk]=true;updateLaunch();if(id==='rythme')updateRisk();};};
+  bind('rythme','rythme','rythme');bind('setRap','setupRap','trans');bind('setBos','setupBos','susp');
+  document.getElementById('launch').onclick=launchStage;
+  updateLaunch();updateRisk();
+}
+
+function pilotKey(nom){return fmtPerson(nom.split(' - ')[0]);}
+function renderCrewList(filter){
+  const box=document.getElementById('crewList');const f=filter.toLowerCase();
+  box.innerHTML=DATA.crews.filter(c=>c.nom.toLowerCase().includes(f)).slice().sort((a,b)=>pilotKey(a.nom).localeCompare(pilotKey(b.nom),'fr')).map(c=>{
+    const used=G.usedCrews.has(c.nom);const sel=G.sel.crew&&G.sel.crew.nom===c.nom;
+    return `<div class="pick ${used?'used':''} ${sel?'sel':''}" data-crew="${c.nom.replace(/"/g,'&quot;')}">
+      <span>${fmtCrew(c.nom)}</span></div>`;
+  }).join('')||'<div class="pick" style="opacity:.5">Aucun résultat</div>';
+  box.querySelectorAll('.pick[data-crew]').forEach(el=>el.onclick=()=>{
+    const name=el.getAttribute('data-crew');if(G.usedCrews.has(name))return;
+    G.sel.crew=DATA.crews.find(c=>c.nom===name);renderCrewList(filter);
+    document.getElementById('crewPick').textContent='✓ '+fmtCrew(G.sel.crew.nom);document.getElementById('crewPick').style.color='#4ade80';
+    updateLaunch();updateRisk();
+  });
+}
+function renderCarList(filter){
+  const box=document.getElementById('carList');const f=filter.toLowerCase();
+  box.innerHTML=DATA.cars.map((c,idx)=>({c,idx})).filter(o=>(o.c.nom+' '+o.c.cat).toLowerCase().includes(f)).map(({c,idx})=>{
+    const used=G.usedCars.has(idx);const sel=G.sel.carId===idx;
+    return `<div class="pick ${used?'used':''} ${sel?'sel':''}" data-id="${idx}">
+      <span>${c.nom}</span><span class="stat">${c.cat.split(' (')[0]}</span></div>`;
+  }).join('')||'<div class="pick" style="opacity:.5">Aucun résultat</div>';
+  box.querySelectorAll('.pick[data-id]').forEach(el=>el.onclick=()=>{
+    const idx=+el.getAttribute('data-id');if(G.usedCars.has(idx))return;
+    G.sel.car=DATA.cars[idx];G.sel.carId=idx;renderCarList(filter);
+    document.getElementById('carPick').textContent='✓ '+G.sel.car.nom+' ('+G.sel.car.cat.split(' (')[0]+')';document.getElementById('carPick').style.color='#4ade80';
+    updateLaunch();
+  });
+}
+function renderTyres(){
+  const st=DATA.stages[G.idx];const box=document.getElementById('tyres');
+  const rainHint={tendre:['rh-plus','plus endurant sous la pluie'],medium:['rh-plus','plus endurant sous la pluie'],dur:['rh-moins','moins performant sous la pluie']};
+  box.innerHTML=Object.keys(ENG.tyres).map(k=>{
+    const t=ENG.tyres[k];const sel=G.sel.tyre===k;const[cls,txt]=rainHint[k];
+    return `<div class="tyre ${k} ${sel?'sel':''}" data-tyre="${k}">${t.label}<small>usure dès ≈ ${t.seuil} km <i>(sur le sec)</i><br><span class="${cls}">${txt}</span></small></div>`;
+  }).join('');
+  box.querySelectorAll('.tyre').forEach(el=>el.onclick=()=>{G.sel.tyre=el.getAttribute('data-tyre');G.touched.tyre=true;renderTyres();updateLaunch();});
+  document.getElementById('tyreInfo').textContent="Sous la pluie, les gommes tendres s'usent moins vite : elles restent bonnes plus longtemps, alors que le dur perd de son mordant.";
+}
+function updateRisk(){
+  const solid=document.getElementById('riskSolid');if(!solid)return;
+  const hatch=document.getElementById('riskHatch');
+  const st=DATA.stages[G.idx], crew=G.sel.crew, GMAX=150;
+  const pos=v=>Math.max(0,Math.min(100,v/GMAX*100));
+  document.getElementById('riskSeuil').style.left=pos(ENG.accSeuil)+'%';
+  if(!crew){solid.style.width='0%';hatch.style.width='0%';return;}
+  const mult=ENG.multBase+(st.diff/100)*ENG.multK;
+  const pts=G.sel.rythme*mult;
+  const flou=ENG.flouBase+(st.diff/100)*ENG.flouDiff+((100-crew.fib)/100)*ENG.flouFib;
+  const seed=(st.diff*7+crew.fib*13+17)%100;
+  const frac=0.15+(seed/100)*0.60;
+  const solidEnd=Math.max(0,pts-flou*frac);
+  const hatchEnd=Math.min(GMAX,pts+flou*(1-frac));
+  solid.style.width=pos(solidEnd)+'%';
+  hatch.style.left=pos(solidEnd)+'%';
+  hatch.style.width=Math.max(0,pos(hatchEnd)-pos(solidEnd))+'%';
+}
+function updateLaunch(){
+  const s=G.sel,t=G.touched||{};
+  const states={crew:!!s.crew,car:!!s.car,tyre:!!t.tyre,rythme:!!t.rythme,trans:!!t.trans,susp:!!t.susp};
+  document.querySelectorAll('#launch .leds i').forEach(led=>led.classList.toggle('on',!!states[led.dataset.k]));
+  const done=Object.values(states).filter(Boolean).length;
+  const ok=done===6;
+  const b=document.getElementById('launch');if(b)b.disabled=!ok;
+  const lbl=document.getElementById('launchLabel');if(lbl)lbl.textContent=ok?'PARTEZ ›››':('Complète tes choix — '+done+'/6');
+}
+
+/* ---------- LANCEMENT & RÉSULTAT ---------- */
+function launchStage(){
+  const st=DATA.stages[G.idx];const s=G.sel;
+  const c=computeStage(st,s.crew,s.car,s.tyre,s.rythme,s.setupRap,s.setupBos);
+  const tier=tierOf(c.accPts);
+  const stageTime=c.baseTime+tier.pen;
+  G.cum+=stageTime;G.splits.push(stageTime);
+  G.usedCrews.add(s.crew.nom);G.usedCars.add(s.carId);
+  G.results.push({st,crew:s.crew,car:s.car,tyre:s.tyre,c,tier,stageTime});
+  screenResult(G.results[G.results.length-1]);
+}
+
+function provisionalRank(stageIdx,cum){
+  const runs=Store.runs().filter(r=>r.splits.length>stageIdx);
+  let better=0;
+  runs.forEach(r=>{let cu=0;for(let i=0;i<=stageIdx;i++)cu+=r.splits[i];if(cu<cum)better++;});
+  return {rank:better+1,total:runs.length+1};
+}
+
+function screenResult(r){
+  const last=G.idx===DATA.stages.length-1;
+  const sEnt=stageEntries(G.idx,r.stageTime);
+  const cEnt=cumEntries(G.idx,G.cum);
+  const sPos=sEnt.findIndex(e=>e.me)+1, cPos=cEnt.findIndex(e=>e.me)+1;
+  app().innerHTML=`
+    <div class="card">
+      <div class="small">${r.st.rallye} · ${r.st.nom} (${r.st.km.toFixed(1)} km)</div>
+      <div class="big-time">${fmtTime(r.stageTime)}</div>
+      <div class="small">${r.c.vitesse.toFixed(1)} km/h de moyenne</div>
+      ${r.tier.pen>0?`<div style="margin-top:10px"><span class="pill" style="background:${r.tier.col}22;color:${r.tier.col}">⚠ ${r.tier.name} +${r.tier.pen}s</span></div>`:''}
+      <div class="small" style="margin-top:10px">${r.crew.nom.split(' - ')[0]} · ${r.car.nom} · ${ENG.tyres[r.tyre].label}</div>
+    </div>
+    <h2>Classement de la spéciale — ${sPos}${sPos===1?'er':'e'} sur ${sEnt.length}</h2>
+    <div class="card" style="padding:6px 14px">${windowedBoard(sEnt)}</div>
+    <h2>Classement général — ${cPos}${cPos===1?'er':'e'} sur ${cEnt.length}</h2>
+    <div class="card" style="padding:6px 14px">${windowedBoard(cEnt)}</div>
+    <button class="btn-primary" id="next">${last?'Voir le classement final':'Spéciale suivante'}</button>`;
+  document.getElementById('next').onclick=()=>{
+    if(last){finishGame();}
+    else{G.idx++;G.sel={crew:null,car:null,carId:null,tyre:null,rythme:55,setupRap:50,setupBos:50};screenStage();}
+  };
+}
+
+/* ---------- FIN ---------- */
+function finishGame(){
+  Store.addRun({name:G.name,total:G.cum,splits:G.splits.slice(),date:Date.now()});
+  screenFinal();
+}
+function leaderboardCard(meTotal){
+  const runs=Store.runs().slice().sort((a,b)=>a.total-b.total).slice(0,10);
+  if(runs.length===0)return `<h2>Classement</h2><div class="card"><div class="small">Aucun temps enregistré pour l'instant. Sois le premier !</div></div>`;
+  const leadT=runs[0]?runs[0].total:0;
+  let rows='';runs.forEach((r,i)=>{
+    const me=meTotal!==null&&Math.abs(r.total-meTotal)<0.05;
+    const gap=i===0?'':`<span class="small" style="color:#8a8a92;margin-left:8px">+${fmtGapShort(r.total-leadT)}</span>`;
+    rows+=`<div class="lb ${me?'me':''}"><span>${i+1}. ${r.name}</span><b>${fmtTime(r.total)}${gap}</b></div>`;
+  });
+  return `<h2>Classement — meilleurs temps</h2><div class="card" style="padding:6px 14px">${rows}</div>`;
+}
+function screenFinal(){
+  const runs=Store.runs().slice().sort((a,b)=>a.total-b.total);
+  const myIdx=runs.findIndex(r=>Math.abs(r.total-G.cum)<0.05&&r.name===G.name);
+  const leadT=runs[0]?runs[0].total:0;
+  let rows='';runs.forEach((r,i)=>{const me=i===myIdx;const gap=i===0?'':`<span class="small" style="color:#8a8a92;margin-left:8px">+${fmtGapShort(r.total-leadT)}</span>`;rows+=`<div class="lb ${me?'me':''}"><span>${i+1}. ${r.name}</span><b>${fmtTime(r.total)}${gap}</b></div>`;});
+  app().innerHTML=`
+    <div class="brand"><span class="az">Rallye</span> <span class="r">terminé</span></div>
+    <div class="card" style="text-align:center;margin-top:12px">
+      <div class="small">${G.name} — temps total</div>
+      <div class="big-time">${fmtTime(G.cum)}</div>
+      <div style="margin-top:8px"><span class="pill" style="background:#fbbf2422;color:#fbbf24">${myIdx+1}${myIdx===0?'er':'e'} sur ${runs.length}</span></div>
+    </div>
+    <h2>Classement final — tous les finishers (${runs.length})</h2>
+    <div class="card" style="padding:6px 14px;max-height:55vh;overflow-y:auto">${rows}</div>
+    <button class="btn-primary" id="replay">Rejouer</button>
+    <button class="btn-ghost" id="splits" style="width:100%;margin-top:8px">Voir mes temps par spéciale</button>
+    <div class="foot">AZRALLYEGAME — Simulation amateur, non officielle.</div>`;
+  document.getElementById('replay').onclick=()=>Store.load().then(screenHome);
+  document.getElementById('splits').onclick=()=>{
+    let h='<h2>Mes spéciales</h2><div class="card" style="padding:6px 14px">';
+    G.results.forEach((r,i)=>{
+      const times=Store.runs().filter(x=>x.splits.length>i).map(x=>x.splits[i]);
+      const y=times.length;const pos=times.filter(t=>t<r.stageTime-0.0001).length+1;
+      h+=`<div class="lb"><span>${i+1}. ${r.st.nom}</span><b>${fmtTime(r.stageTime)} <span class="small" style="color:#a78bfa">${pos}ᵉ/${y}</span></b></div>`;
+    });
+    h+='</div>';
+    document.getElementById('splits').insertAdjacentHTML('beforebegin',h);
+    document.getElementById('splits').remove();
+  };
+}
+
+Store.load().then(screenHome);
+</script>
+</body>
+</html>
