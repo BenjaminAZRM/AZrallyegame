@@ -6,6 +6,7 @@
 <title>AZrallyegame — Multijoueur</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="/socket.io/socket.io.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -13,8 +14,8 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 
 /* HEADER */
 .hdr{background:linear-gradient(135deg,#1a0a0a 0%,#0a0a1a 100%);border-bottom:2px solid #dc2626;padding:14px 20px;position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between}
-.hdr-logo{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:900;color:#fff;letter-spacing:.05em;text-transform:uppercase}
-.hdr-logo span{color:#dc2626;font-style:italic}
+.hdr-logo{font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:#fff;letter-spacing:.12em;text-transform:uppercase}
+.hdr-logo span{color:#fbbf24;font-style:normal}
 .hdr-code{font-size:18px;font-weight:900;letter-spacing:4px;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);padding:3px 12px;border-radius:6px;cursor:pointer;display:none}
 .hdr-phase{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em}
 
@@ -51,7 +52,7 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 
 /* ═══ HOME ═══ */
 #scr-home{text-align:center;padding-top:60px}
-.home-title{font-family:'Exo 2',sans-serif;font-size:72px;font-weight:900;color:#fff;line-height:.9;margin-bottom:8px;text-transform:uppercase;letter-spacing:-.02em}
+.home-title{font-family:'Oswald',sans-serif;font-size:72px;font-weight:700;color:#fff;line-height:.9;margin-bottom:8px;text-transform:uppercase;letter-spacing:.02em}
 .home-sub{font-size:13px;color:#6b7280;letter-spacing:.12em;text-transform:uppercase;margin-bottom:40px}
 .home-form{max-width:280px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .div-or{display:flex;align-items:center;gap:10px;color:#374151;font-size:12px}
@@ -201,7 +202,7 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 <body>
 
 <div class="hdr">
-  <div class="hdr-logo">AZ<span>RALLYE</span>game</div>
+  <div class="hdr-logo">AZ<span>RALLYE</span>GAME</div>
   <div class="hdr-code" id="hdr-code" onclick="copyCode()" title="Copier le code"></div>
   <div class="hdr-phase" id="hdr-phase"></div>
 </div>
@@ -209,7 +210,7 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
 
 <!-- HOME -->
 <div class="scr on" id="scr-home">
-  <div class="home-title">AZ<span style="color:#dc2626;font-style:italic">RALLYE</span>game</div>
+  <div class="home-title">AZ<span style="color:#fbbf24">RALLYE</span>GAME</div>
   <div class="home-sub">Mode Multijoueur</div>
   <div class="home-form">
     <input class="inp" id="nom-inp" placeholder="Ton prénom (5 lettres max)" maxlength="5">
@@ -492,15 +493,15 @@ G.tourActuel = null;
 
 // Délégation d'événement permanente — un seul listener, indestructible
 document.getElementById('cards-grid').addEventListener('click', (e) => {
-  const card = e.target.closest('.draft-card[data-type]');
+  const card = e.target.closest('.draft-card[data-idx]');
   if (!card) return;
-  doPick(card.dataset.type);
+  doPick(parseInt(card.dataset.idx, 10));
 });
 
-function doPick(type) {
+function doPick(index) {
   if (!G.roomCode || !G.tourActuel) return;
   if (G.tourActuel.joueurId !== G.monId) return;
-  socket.emit('faire_pick', { code: G.roomCode, type });
+  socket.emit('faire_pick', { code: G.roomCode, index });
 }
 
 function useReroll() {
@@ -519,7 +520,9 @@ function renderDraft() {
   const estMoi = (joueurId === G.monId);
 
   // Header
-  document.getElementById('d-sub').textContent = `Tour ${tourNum}/3 — ${joueurNom} choisit`;
+  const typeTour = propositions[0]?.type;
+  const labelType = typeTour === 'pilote' ? 'un pilote' : typeTour === 'copilote' ? 'un copilote' : 'une voiture';
+  document.getElementById('d-sub').textContent = `Tour ${tourNum}/3 — ${joueurNom} choisit ${labelType}`;
   const whoEl = document.getElementById('d-who');
   whoEl.textContent = estMoi ? 'À TOI DE JOUER !' : `${joueurNom} choisit…`;
   whoEl.className = 'draft-who' + (estMoi ? ' moi' : '');
@@ -534,21 +537,20 @@ function renderDraft() {
     document.getElementById('verrou-year').textContent = room.anneeVerrouillee;
   }
 
-  // Grille de cartes — reconstruction complète
+  // Grille de cartes — reconstruction complète (3 cartes du même type)
   const grid = document.getElementById('cards-grid');
   grid.innerHTML = '';
-  for (const prop of propositions) {
-    const cliquable = estMoi && prop.disponible;
+  propositions.forEach((prop, i) => {
+    const cliquable = estMoi;
     const card = document.createElement('div');
-    card.className = 'draft-card' + (!prop.disponible ? ' grise' : '') + (!cliquable ? ' spec' : '');
-    if (cliquable) card.dataset.type = prop.type;
+    card.className = 'draft-card' + (!cliquable ? ' spec' : '');
+    if (cliquable) card.dataset.idx = i;
     card.innerHTML = `
       <div class="c-type ${prop.type}">${prop.type==='pilote'?'🧑 Pilote':prop.type==='copilote'?'👥 Co-pilote':'🚗 Voiture'}</div>
       <div class="c-nom">${prop.item.nom}</div>
-      <div style="font-family:'Exo 2',sans-serif;font-weight:900;font-size:22px;color:#fbbf24;margin-top:6px;letter-spacing:.05em">${prop.annee}</div>
-      ${!prop.disponible ? '<div style="margin-top:6px;font-size:10px;color:#374151">Déjà sélectionné</div>' : ''}`;
+      <div style="font-family:'Exo 2',sans-serif;font-weight:900;font-size:22px;color:#fbbf24;margin-top:6px;letter-spacing:.05em">${prop.annee}</div>`;
     grid.appendChild(card);
-  }
+  });
 
   // Progression et picks
   renderProgress();
@@ -914,7 +916,7 @@ socket.on('pick_effectue', ({ joueurNom, type, item }) => {
   // Shimmer sur la carte choisie + bloquer tous les clics
   document.querySelectorAll('.draft-card').forEach(card => {
     if (card.querySelector('.c-nom')?.textContent === item.nom) card.classList.add('shimmer');
-    card.removeAttribute('data-type'); // bloque la délégation
+    card.removeAttribute('data-idx'); // bloque la délégation
   });
   G.tourActuel = null; // invalider le tour
 });
