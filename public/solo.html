@@ -1,6 +1,11 @@
 <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AZRALLYEGAME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+.azbrand{font-family:'Oswald',sans-serif;font-weight:700;font-size:17px;letter-spacing:.14em;text-transform:uppercase;color:#fff}
+.azbrand i{color:#fbbf24;font-style:normal}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif}
 .hdr{background:linear-gradient(135deg,#1a0a0a 0%,#0a0a1a 100%);border-bottom:2px solid #dc2626;padding:16px 20px;position:sticky;top:0;z-index:10}
@@ -995,16 +1000,29 @@ let revealTimer=null;
 function init(){ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};render();}
 
 function makeDraftOffers(){
-  // Tire 1 pilote, 1 copilote, 1 voiture depuis 3 années différentes
-  const yr1=rnd(YEARS), yr2=rnd(YEARS), yr3=rnd(YEARS);
-  const dRow=rnd(DATA[yr1].drivers); // pilote
-  const cRow=rnd(DATA[yr2].drivers); // copilote (on prend sa ligne pour avoir ses stats casp/cter...)
-  const vRow=rnd(DATA[yr3].cars);    // voiture
-  return[
-    {type:"driver", nom:dRow.nom,  annee:yr1, item:dRow},
-    {type:"codr",   nom:cRow.cop,  annee:yr2, item:cRow},
-    {type:"car",    nom:vRow.nom,  annee:yr3, item:vRow},
-  ];
+  // Tour 0 = 3 pilotes, Tour 1 = 3 copilotes, Tour 2 = 3 voitures.
+  // 3 propositions distinctes, tirées au hasard dans toute l'histoire du WRC.
+  const type=ST.draftRound===0?"driver":ST.draftRound===1?"codr":"car";
+  const offers=[],seen=new Set();
+  let guard=0;
+  while(offers.length<3 && guard<300){
+    guard++;
+    const yr=rnd(YEARS);
+    if(type==="driver"){
+      const row=rnd(DATA[yr].drivers);
+      if(seen.has("d|"+row.nom))continue; seen.add("d|"+row.nom);
+      offers.push({type:"driver",nom:row.nom,annee:yr,item:row});
+    }else if(type==="codr"){
+      const row=rnd(DATA[yr].drivers);
+      if(!row.cop||seen.has("c|"+row.cop))continue; seen.add("c|"+row.cop);
+      offers.push({type:"codr",nom:row.cop,annee:yr,item:row});
+    }else{
+      const row=rnd(DATA[yr].cars);
+      if(seen.has("v|"+yr+"|"+row.nom))continue; seen.add("v|"+yr+"|"+row.nom);
+      offers.push({type:"car",nom:row.nom,annee:yr,item:row});
+    }
+  }
+  return offers;
 }
 
 function simulate(){
@@ -1206,7 +1224,7 @@ function render(){
 function rRules(){
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">AZRALLYEGAME</span>
+      <span class="azbrand">AZ<i>RALLYE</i>GAME</span>
     </div>
   </div>
   <div style="padding:24px 20px 32px;display:flex;flex-direction:column;align-items:center;text-align:center">
@@ -1247,7 +1265,9 @@ function rDraft(){
   const round=ST.draftRound;
   const offers=ST.draftOffers;
   const typeLabels={driver:"Pilote",codr:"Copilote",car:"Voiture"};
-  const chosen={driver:!!ST.sel.driver,codr:!!ST.sel.codr,car:!!ST.sel.car};
+  const roundType=round===0?"driver":round===1?"codr":"car";
+  const typeColor=roundType==="driver"?"#60a5fa":roundType==="codr"?"#a78bfa":"#f59e0b";
+  const consigne=round===0?"Choisis ton pilote":round===1?"Choisis ton copilote":"Choisis ta voiture";
   const bars=[0,1,2].map(i=>`<div class="pbar" style="background:${i<round?"#dc2626":i===round?"#ef4444":"#1f2937"}"></div>`).join("");
 
   // Tags des choix déjà faits
@@ -1255,35 +1275,31 @@ function rDraft(){
   if(ST.sel.driver) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Pilote · </span>${ST.sel.driver.nom}</div>`);
   if(ST.sel.codr) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Copilote · </span>${ST.sel.codr.nom}</div>`);
 
-  const cards=offers.map(o=>{
-    const locked=chosen[o.type];
-    const typeColor=o.type==="driver"?"#60a5fa":o.type==="codr"?"#a78bfa":"#f59e0b";
-    return`<div class="draft-card ${locked?"locked":""}" data-type="${o.type}" style="
-      background:${locked?"#0a0a0a":"#0f1117"};
-      border:2px solid ${locked?"#1f2937":typeColor};
-      border-radius:12px;padding:16px;cursor:${locked?"default":"pointer"};
-      opacity:${locked?0.35:1};
+  const cards=offers.map((o,i)=>{
+    return`<div class="draft-card" data-idx="${i}" style="
+      background:#0f1117;
+      border:2px solid ${typeColor};
+      border-radius:12px;padding:16px;cursor:pointer;
       transition:all .15s;flex:1;min-width:0;
-      ${locked?"":"box-shadow:0 0 12px "+typeColor+"22;"}
+      box-shadow:0 0 12px ${typeColor}22;
     ">
-      <div style="font-size:9px;font-weight:700;color:${locked?"#4b5563":typeColor};text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px">${typeLabels[o.type]}</div>
-      <div style="font-weight:800;font-size:15px;color:${locked?"#374151":"#fff"};line-height:1.3;margin-bottom:6px">${o.nom}</div>
-      <div style="font-size:11px;color:${locked?"#1f2937":"#6b7280"}">${o.annee}</div>
-      ${locked?`<div style="font-size:10px;color:#374151;margin-top:6px;font-style:italic">Déjà choisi</div>`:""}
+      <div style="font-size:9px;font-weight:700;color:${typeColor};text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px">${typeLabels[o.type]}</div>
+      <div style="font-weight:800;font-size:15px;color:#fff;line-height:1.3;margin-bottom:6px">${o.nom}</div>
+      <div style="font-size:11px;color:#6b7280">${o.annee}</div>
     </div>`;
   }).join("");
 
   return`<div class="hdr" style="position:sticky;top:0;z-index:10">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">AZRALLYEGAME</span>
+      <span class="azbrand">AZ<i>RALLYE</i>GAME</span>
     </div>
     <div style="display:flex;gap:5px">${bars}</div>
     ${tags.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${tags.join("")}</div>`:""}
   </div>
   <div style="padding:16px 20px 10px">
     <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Tour ${round+1} / 3</div>
-    <div style="font-weight:800;font-size:19px;color:#fff;margin-bottom:4px">Choisissez un élément</div>
-    <div style="font-size:12px;color:#6b7280;margin-bottom:20px">Sélectionnez le pilote, copilote ou voiture que vous souhaitez garder</div>
+    <div style="font-weight:800;font-size:19px;color:#fff;margin-bottom:4px">${consigne}</div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:20px">3 propositions au hasard dans toute l'histoire du WRC${round===2?" — ton choix fixe l'année des concurrents":""}</div>
     <div style="display:flex;flex-direction:column;gap:10px">
       ${cards}
     </div>
@@ -1301,9 +1317,9 @@ function rDraft(){
 }
 
 function attachDraftEv(){
-  document.querySelectorAll(".draft-card:not(.locked)").forEach(card=>{
-    const type=card.dataset.type;
-    const offer=ST.draftOffers.find(o=>o.type===type);
+  document.querySelectorAll(".draft-card").forEach(card=>{
+    const idx=parseInt(card.dataset.idx);
+    const offer=ST.draftOffers[idx];
     card.addEventListener("mouseenter",()=>{card.style.transform="scale(1.02)";});
     card.addEventListener("mouseleave",()=>{card.style.transform="none";});
     card.addEventListener("click",()=>{if(offer)selectDraft(offer);});
@@ -1368,7 +1384,7 @@ function rRecap(){
 
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">AZRALLYEGAME</span>
+      <span class="azbrand">AZ<i>RALLYE</i>GAME</span>
     </div>
     <div style="display:flex;gap:5px">${[0,1,2].map(()=>`<div class="pbar" style="background:#dc2626"></div>`).join("")}</div>
   </div>
@@ -1437,7 +1453,7 @@ function rLaunch(){
 
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <span style="font-weight:900;font-size:16px;letter-spacing:.15em;color:#fff;text-transform:uppercase">AZRALLYEGAME</span>
+      <span class="azbrand">AZ<i>RALLYE</i>GAME</span>
     </div>
     <div style="display:flex;gap:5px">${bars}</div>
   </div>
