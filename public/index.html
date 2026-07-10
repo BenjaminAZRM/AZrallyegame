@@ -14,8 +14,8 @@
     --line:#2a2f37;
     --fog:#8b929c;
     --paper:#eceef1;
-    --amber:#ff8a00;     /* orange "panneau de service" */
-    --amber-soft:#ffb14d;
+    --amber:#fbbf24;     /* or AZRALLYEGAME */
+    --amber-soft:#ffd77a;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -95,7 +95,7 @@
   /* ── Les deux modes : cartes "carton de pointage" ── */
   .grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
     gap:18px;
   }
   @media (max-width:640px){ .grid{grid-template-columns:1fr} }
@@ -206,6 +206,15 @@
         <h2>Défi entre amis</h2>
         <p>Crée une salle, partage le code à tes amis et affronte-les manche après manche.</p>
         <span class="go">Créer une salle <span class="chev">→</span></span>
+      </a>
+
+      <!-- ── CARTE CONTRE-LA-MONTRE ── -->
+      <!-- 👉 Pour changer le lien, modifie l'adresse dans href="..." ci-dessous -->
+      <a class="card" href="/record.html">
+        <div class="num">SS3 · CHRONO</div>
+        <h2>Contre-la-montre</h2>
+        <p>Une spéciale mythique, un seul objectif : le meilleur temps. Dose ton rythme et évite la sortie de route.</p>
+        <span class="go">Prendre le départ <span class="chev">→</span></span>
       </a>
 
     </div>
