@@ -164,11 +164,14 @@ const Store=(()=>{
         _runs=Array.isArray(data)?data:[];
       }catch(e){_runs=[];}
     },
-    // Ajoute un essai : visible tout de suite en local + envoyé au serveur
+    // Ajoute un essai : visible tout de suite en local + envoyé au serveur (identité vérifiée par le jeton)
     addRun(r){
       _runs.push(r);
       try{
-        fetch('/api/records',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(r)}).catch(()=>{});
+        var tok=''; try{tok=localStorage.getItem('azr_token')||'';}catch(e){}
+        fetch('/api/records',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(r)})
+          .then(function(res){ if(res.status===401){ try{localStorage.removeItem('azr_user');localStorage.removeItem('azr_token');}catch(e){} } })
+          .catch(function(){});
       }catch(e){}
     },
     lastName(){return get('azr_name')||'';},
@@ -228,24 +231,18 @@ function cumEntries(idx,myCum){
 
 /* ---------- ÉCRAN ACCUEIL ---------- */
 function screenHome(){
-  const last=Store.lastName();
   app().innerHTML=`
     <div class="brand"><span class="az">AZ</span><span class="r">RALLYE</span><span class="az">GAME</span></div>
     <div class="tag">Time-attack — bats le meilleur temps</div>
     <div class="card">
       <p style="font-size:.9rem;margin-bottom:12px">Un rallye de <b>${DATA.stages.length} spéciales mythiques</b>, une de chaque caractère. Avant chaque spéciale tu choisis ton <b>équipage</b>, ta <b>voiture</b>, ton <b>pneu</b>, ton <b>rythme</b> et tes <b>réglages</b>. Chaque équipage et chaque voiture ne servent qu'<b>une seule fois</b>.</p>
-      <p class="small" style="margin-bottom:14px">Tout est déterministe : mêmes choix → même temps. Le classement te compare aux joueurs déjà passés.</p>
-      <label class="small">Ton nom</label>
-      <input id="pname" type="text" maxlength="18" placeholder="Pilote..." value="${last}">
-      <div style="height:12px"></div>
+      <p class="small" style="margin-bottom:12px">Tout est déterministe : mêmes choix → même temps. Le classement te compare aux autres joueurs déjà passés.</p>
+      <p class="small" style="margin-bottom:14px">Pilote : <b style="color:#fbbf24">${AZUSER}</b></p>
       <button class="btn-primary" id="start">Démarrer le rallye</button>
     </div>
     ${leaderboardCard(null)}
     <div class="foot">AZRALLYEGAME — Simulation amateur, non officielle.</div>`;
-  document.getElementById('start').onclick=()=>{
-    const n=(document.getElementById('pname').value||'').trim()||'Anonyme';
-    Store.saveName(n);newGame(n);screenRoadbook();
-  };
+  document.getElementById('start').onclick=()=>{ newGame(AZUSER); screenRoadbook(); };
 }
 
 /* ---------- ÉCRAN SPÉCIALE ---------- */
@@ -521,7 +518,8 @@ function screenFinal(){
   };
 }
 
-Store.load().then(screenHome);
+var AZUSER=''; try{ AZUSER=localStorage.getItem('azr_user')||''; }catch(e){}
+if(!AZUSER){ location.replace('/'); } else { Store.load().then(screenHome); }
 </script>
 </body>
 </html>
