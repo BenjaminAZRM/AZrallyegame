@@ -213,7 +213,6 @@ body{background:#0a0a0f;color:#e5e7eb;font-family:'Inter',system-ui,sans-serif;m
   <div class="home-title">AZ<span style="color:#fbbf24">RALLYE</span>GAME</div>
   <div class="home-sub">Mode Multijoueur</div>
   <div class="home-form">
-    <input class="inp" id="nom-inp" placeholder="Ton prénom (5 lettres max)" maxlength="5">
     <button class="btn btn-red" onclick="goConfig()">Créer une room</button>
     <div class="div-or">ou rejoindre</div>
     <input class="inp" id="code-inp" placeholder="Code (ex: W4K9)" maxlength="4" style="text-transform:uppercase;letter-spacing:4px;text-align:center">
@@ -405,6 +404,9 @@ const ANNEES = [1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009
 const PTS_SCALE = [25,18,15,12,10,8,6,4,2,1];
 
 let G = { monId:null, monNom:'', roomCode:null, room:null, stratChoisie:null, avecRivaux:true, nbRallyes:10, tourActuel:null, historiqueResultats:[] };
+var AZUSER=''; try{ AZUSER=localStorage.getItem('azr_user')||''; }catch(e){}
+if(!AZUSER){ location.replace('/'); }
+G.monNom = AZUSER.trim().slice(0,12);
 let slMin=0, slMax=ANNEES.length-1;
 let revealTimer=null, revealedEntries=[], revealOrder=[];
 
@@ -453,23 +455,18 @@ function setNbRallyes(n){
   document.querySelectorAll('.nb-card').forEach(el=>el.classList.toggle('sel-nb',parseInt(el.dataset.nb)===n));
 }
 function goConfig(){
-  const nom=document.getElementById('nom-inp').value.trim();
-  if(!nom){toast('Entre ton prénom','r');return;}
-  G.monNom=nom; initSlider(); show('config');
+  initSlider(); show('config');
 }
 function openRoom(){
   const sel=ANNEES.slice(slMin,slMax+1);
   socket.emit('ouvrir_room',{nom:G.monNom,avecRivaux:G.avecRivaux,anneesSelectionnees:sel,nbRallyes:G.nbRallyes});
 }
 function joinRoom(){
-  const nom=document.getElementById('nom-inp').value.trim();
   const code=document.getElementById('code-inp').value.trim().toUpperCase();
-  if(!nom){toast('Entre ton prénom','r');return;}
   if(code.length!==4){toast('Le code fait 4 caractères','r');return;}
-  G.monNom=nom; socket.emit('rejoindre_room',{code,nom});
+  socket.emit('rejoindre_room',{code,nom:G.monNom});
 }
 document.getElementById('code-inp').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
-document.getElementById('nom-inp').addEventListener('keydown',e=>{if(e.key==='Enter')goConfig();});
 
 // ── LOBBY ──────────────────────────────────────────────────────
 function launchDraft(){socket.emit('lancer_draft',{code:G.roomCode});}
