@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { RALLYES, DATA } = require('./wrc-data.js');
 
 const app = express();
@@ -27,24 +28,150 @@ function saveRecords() {
   catch (e) { console.error('Sauvegarde records échouée:', e.message); }
 }
 
+// ─── SÉCURITÉ : jetons de session signés + limitation anti-attaque ───────────────
+app.set('trust proxy', 1); // Railway est derrière un proxy → pour lire la vraie IP
+
+// Secret de signature, stable (env var, sinon fichier persistant sur le Volume)
+const SECRET_FILE = path.join(DATA_DIR, 'secret.key');
+let TOKEN_SECRET = process.env.TOKEN_SECRET || '';
+if (!TOKEN_SECRET) {
+  try { TOKEN_SECRET = fs.readFileSync(SECRET_FILE, 'utf8').trim(); } catch (e) {}
+  if (!TOKEN_SECRET) {
+    TOKEN_SECRET = crypto.randomBytes(48).toString('hex');
+    try { fs.writeFileSync(SECRET_FILE, TOKEN_SECRET); } catch (e) { console.error('Écriture secret échouée:', e.message); }
+  }
+}
+const TOKEN_TTL = 30 * 24 * 3600 * 1000; // 30 jours
+function b64u(buf){ return Buffer.from(buf).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function signToken(username){
+  const payload = b64u(JSON.stringify({ u: username, exp: Date.now() + TOKEN_TTL }));
+  const sig = b64u(crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest());
+  return payload + '.' + sig;
+}
+function verifyToken(token){
+  if (typeof token !== 'string' || token.indexOf('.') < 0) return null;
+  const parts = token.split('.');
+  const payload = parts[0], sig = parts[1] || '';
+  const expected = b64u(crypto.createHmac('sha256', TOKEN_SECRET).update(payload).digest());
+  if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+  let data;
+  try { data = JSON.parse(Buffer.from(payload.replace(/-/g,'+').replace(/_/g,'/'), 'base64').toString()); } catch (e) { return null; }
+  if (!data || !data.u || !data.exp || Date.now() > data.exp) return null;
+  return data.u;
+}
+function tokenFrom(req){ return verifyToken(String(req.headers.authorization || '').replace(/^Bearer /, '')); }
+
+// Limiteur de débit en mémoire (par clé : IP, compte…)
+const rl = {};
+function rateLimit(key, max, windowMs){
+  const now = Date.now();
+  const arr = (rl[key] || []).filter(t => now - t < windowMs);
+  arr.push(now);
+  rl[key] = arr;
+  return arr.length <= max;
+}
+setInterval(() => { const now = Date.now(); for (const k in rl){ rl[k] = rl[k].filter(t => now - t < 3600000); if (!rl[k].length) delete rl[k]; } }, 3600000).unref();
+
+// Blocage temporaire d'un compte après trop d'échecs de connexion
+const failedLogins = {};
+function noteLoginFail(key){
+  const f = failedLogins[key] || { count: 0, until: 0 };
+  f.count++;
+  if (f.count >= 5) { f.until = Date.now() + 15 * 60000; f.count = 0; }
+  failedLogins[key] = f;
+}
+
 // Tous les essais déjà enregistrés (le jeu s'en sert pour classer le joueur)
 app.get('/api/records', (req, res) => {
   res.json(records);
 });
 
-// Enregistre un nouvel essai terminé
+// Enregistre un nouvel essai terminé (identité vérifiée par le jeton)
 app.post('/api/records', (req, res) => {
+  const user = tokenFrom(req);
+  if (!user) return res.status(401).json({ ok: false, error: 'Session expirée — reconnecte-toi.' });
+  if (!rateLimit('rec:' + user, 30, 3600000)) return res.status(429).json({ ok: false, error: 'Trop d’envois, réessaie plus tard.' });
   const b = req.body || {};
-  const name = (typeof b.name === 'string' ? b.name : '').trim().slice(0, 24);
   const total = Number(b.total);
   const splits = Array.isArray(b.splits) ? b.splits.map(Number) : [];
-  if (!name || !isFinite(total) || total <= 0 || !splits.length || splits.some(x => !isFinite(x))) {
+  if (!isFinite(total) || total <= 0 || !splits.length || splits.some(x => !isFinite(x))) {
     return res.status(400).json({ ok: false, error: 'invalid' });
   }
-  records.push({ name, total, splits, date: Date.now() });
+  records.push({ name: user, total, splits, date: Date.now() }); // nom = identité du jeton, pas du corps
   if (records.length > MAX_RECORDS) records = records.slice(records.length - MAX_RECORDS);
   saveRecords();
   res.json({ ok: true });
+});
+
+// ─── COMPTES JOUEURS (inscription / connexion) ──────────────────────────────────
+// Chaque joueur crée son propre compte. Les codes sont chiffrés (scrypt + sel),
+// jamais stockés en clair. Fichier persistant sur le Volume (comme les records).
+const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
+let accounts = {};
+try {
+  accounts = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8'));
+  if (!accounts || typeof accounts !== 'object') accounts = {};
+} catch (e) { accounts = {}; }
+function saveAccounts() {
+  try { fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(accounts)); }
+  catch (e) { console.error('Sauvegarde comptes échouée:', e.message); }
+}
+function hashCode(code, salt) {
+  return crypto.scryptSync(String(code), salt, 64).toString('hex');
+}
+
+// Créer un compte
+app.post('/api/register', (req, res) => {
+  if (!rateLimit('reg:' + req.ip, 5, 3600000)) {
+    return res.status(429).json({ ok: false, error: 'Trop de créations de compte depuis ce réseau. Réessaie plus tard.' });
+  }
+  const b = req.body || {};
+  const username = (typeof b.username === 'string' ? b.username : '').trim().slice(0, 20);
+  const code = typeof b.code === 'string' ? b.code : '';
+  if (username.length < 3 || !/^[\p{L}0-9 _-]+$/u.test(username)) {
+    return res.status(400).json({ ok: false, error: 'Identifiant invalide (3 à 20 caractères : lettres, chiffres, espace, - ou _).' });
+  }
+  if (code.length < 6 || code.length > 128) {
+    return res.status(400).json({ ok: false, error: 'Code invalide (6 caractères minimum).' });
+  }
+  const key = username.toLowerCase();
+  if (accounts[key]) {
+    return res.status(409).json({ ok: false, error: 'Cet identifiant est déjà pris.' });
+  }
+  const salt = crypto.randomBytes(16).toString('hex');
+  accounts[key] = { name: username, salt, hash: hashCode(code, salt), created: Date.now() };
+  saveAccounts();
+  res.json({ ok: true, username, token: signToken(username) });
+});
+
+// Se connecter
+app.post('/api/login', (req, res) => {
+  if (!rateLimit('login:' + req.ip, 20, 900000)) {
+    return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie dans quelques minutes.' });
+  }
+  const b = req.body || {};
+  const username = (typeof b.username === 'string' ? b.username : '').trim();
+  const code = typeof b.code === 'string' ? b.code : '';
+  const key = username.toLowerCase();
+  const lock = failedLogins[key];
+  if (lock && lock.until > Date.now()) {
+    return res.status(429).json({ ok: false, error: 'Compte temporairement bloqué (trop d’essais). Réessaie plus tard.' });
+  }
+  const acc = accounts[key];
+  // Message générique (on ne révèle pas si l'identifiant existe)
+  if (!acc) { noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou code incorrect.' }); }
+  const h = hashCode(code, acc.salt);
+  const ok = h.length === acc.hash.length && crypto.timingSafeEqual(Buffer.from(h), Buffer.from(acc.hash));
+  if (!ok) { noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou code incorrect.' }); }
+  delete failedLogins[key];
+  res.json({ ok: true, username: acc.name, token: signToken(acc.name) });
+});
+
+// Vérifier une session (jeton)
+app.get('/api/me', (req, res) => {
+  const user = tokenFrom(req);
+  if (!user) return res.status(401).json({ ok: false });
+  res.json({ ok: true, username: user });
 });
 
 const MAX_JOUEURS = 20;
@@ -255,7 +382,7 @@ io.on('connection', (socket) => {
       rivaux:[], pointsRivaux:{},
       derniersResultats:null, propositionsCourantes:null,
     };
-    rooms[code].joueurs.push(newJoueur(socket.id, (nom||'Hôte').trim().slice(0,5), true));
+    rooms[code].joueurs.push(newJoueur(socket.id, (nom||'Hôte').trim().slice(0,12), true));
     socket.join(code);
     socket.emit('room_creee', { code });
     io.to(code).emit('room_update', etatPublic(rooms[code]));
@@ -267,7 +394,7 @@ io.on('connection', (socket) => {
     if (room.phase !== 'lobby') { socket.emit('erreur', 'Partie déjà commencée'); return; }
     if (room.joueurs.length >= MAX_JOUEURS) { socket.emit('erreur', `Room pleine (max ${MAX_JOUEURS})`); return; }
     if (room.joueurs.find(j => j.id === socket.id)) return;
-    room.joueurs.push(newJoueur(socket.id, (nom||'Joueur').trim().slice(0,5), false));
+    room.joueurs.push(newJoueur(socket.id, (nom||'Joueur').trim().slice(0,12), false));
     socket.join(code);
     socket.emit('room_rejointe', { code });
     io.to(code).emit('room_update', etatPublic(room));
