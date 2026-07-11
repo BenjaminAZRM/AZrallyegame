@@ -997,7 +997,7 @@ function coS(d){if(!d)return{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fi
 let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:""};
 let revealTimer=null;
 
-function init(){ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};render();}
+function init(){var _u;try{_u=localStorage.getItem('azr_user');}catch(e){}if(!_u){location.replace('/');return;}ST.playerName=_u;ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};render();}
 
 function makeDraftOffers(){
   // Tour 0 = 3 pilotes, Tour 1 = 3 copilotes, Tour 2 = 3 voitures.
@@ -1227,14 +1227,11 @@ function rRules(){
       <span class="azbrand">AZ<i>RALLYE</i>GAME</span>
     </div>
   </div>
-  <div style="padding:24px 20px 32px;display:flex;flex-direction:column;align-items:center;text-align:center">
+  <div style="padding:24px 20px 40px;display:flex;flex-direction:column;align-items:center;text-align:center">
     <div style="font-size:42px;margin-bottom:16px">🏁</div>
     <div style="font-weight:900;font-size:26px;color:#fff;line-height:1.2;margin-bottom:8px">Arriveras-tu à être<br>Champion du Monde ?</div>
-    <div style="font-size:14px;color:#9ca3af;margin-bottom:32px">Avant de commencer, entre ton nom de joueur.</div>
-    <div style="width:100%;margin-bottom:28px;text-align:left">
-      <label style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;display:block;margin-bottom:8px">Nom du joueur</label>
-      <input id="playerNameInput" type="text" maxlength="20" placeholder="Ton nom..." value="${ST.playerName||""}" style="width:100%;background:#0f1117;border:2px solid #1f2937;border-radius:10px;padding:14px 16px;font-size:16px;color:#fff;outline:none">
-    </div>
+    <div style="font-size:14px;color:#9ca3af;margin-bottom:6px">Bienvenue <span style="color:#fbbf24;font-weight:700">${ST.playerName||"Pilote"}</span>.</div>
+    <div style="font-size:13px;color:#6b7280;margin-bottom:32px">Constitue ton équipage et lance ta saison.</div>
     <button id="startDraft" style="width:100%;background:#dc2626;border:2px solid #ef4444;border-radius:12px;padding:16px;font-size:16px;font-weight:900;color:#fff;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 0 24px rgba(220,38,38,.5)">
       Démarrer la draft
     </button>
@@ -1242,17 +1239,11 @@ function rRules(){
 }
 
 function attachRulesEv(){
-  const input=document.getElementById("playerNameInput");
-  if(input){
-    input.addEventListener("focus",()=>{input.style.borderColor="#dc2626";});
-    input.addEventListener("blur",()=>{input.style.borderColor="#1f2937";});
-  }
   const btn=document.getElementById("startDraft");
   if(btn){
     btn.addEventListener("mouseenter",()=>{btn.style.background="#ef4444";});
     btn.addEventListener("mouseleave",()=>{btn.style.background="#dc2626";});
     btn.addEventListener("click",()=>{
-      ST.playerName=(input&&input.value.trim())||"Joueur";
       ST.phase="draft";
       ST.draftRound=0;
       ST.draftOffers=makeDraftOffers();
