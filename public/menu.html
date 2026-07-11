@@ -181,6 +181,10 @@
 
   <header>
     <div class="mark">AZ<span>RALLYE</span>GAME</div>
+    <div style="font-size:12px;color:var(--fog);letter-spacing:.06em;text-transform:uppercase">
+      <span id="who"></span>
+      <b id="logout" style="color:var(--amber);cursor:pointer;margin-left:12px">Déconnexion</b>
+    </div>
   </header>
 
   <main>
@@ -221,6 +225,16 @@
   </main>
 
   <footer>AZRALLYEGAME — Simulation amateur, non officielle</footer>
+
+<script>
+  (function(){
+    var u; try{ u=localStorage.getItem('azr_user'); }catch(e){}
+    if(!u){ location.replace('/'); return; }
+    var who=document.getElementById('who'); if(who) who.textContent='Connecté : '+u;
+    var lo=document.getElementById('logout');
+    if(lo) lo.onclick=function(){ try{ localStorage.removeItem('azr_user'); localStorage.removeItem('azr_token'); }catch(e){} location.replace('/'); };
+  })();
+</script>
 
 </body>
 </html>
