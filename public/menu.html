@@ -224,15 +224,48 @@
     </div>
   </main>
 
-  <footer>AZRALLYEGAME — Simulation amateur, non officielle</footer>
+  <footer>
+    AZRALLYEGAME — Simulation amateur, non officielle<br>
+    <span style="text-transform:none;letter-spacing:normal;font-size:11px">
+      <b id="export" style="color:var(--amber);cursor:pointer">Télécharger mes données</b> ·
+      <b id="delete" style="color:var(--amber);cursor:pointer">Supprimer mon compte</b> ·
+      <a href="/confidentialite.html" style="color:var(--amber)">Confidentialité</a>
+    </span>
+  </footer>
 
 <script>
   (function(){
-    var u; try{ u=localStorage.getItem('azr_user'); }catch(e){}
+    var u,t; try{ u=localStorage.getItem('azr_user'); t=localStorage.getItem('azr_token'); }catch(e){}
     if(!u){ location.replace('/'); return; }
     var who=document.getElementById('who'); if(who) who.textContent='Connecté : '+u;
     var lo=document.getElementById('logout');
     if(lo) lo.onclick=function(){ try{ localStorage.removeItem('azr_user'); localStorage.removeItem('azr_token'); }catch(e){} location.replace('/'); };
+
+    // RGPD — récupérer ses données
+    document.getElementById('export').onclick=async function(){
+      try{
+        var res=await fetch('/api/me/export',{headers:{'Authorization':'Bearer '+t}});
+        if(!res.ok){ alert('Session expirée, reconnecte-toi.'); return; }
+        var blob=await res.blob(), a=document.createElement('a');
+        a.href=URL.createObjectURL(blob); a.download='azrallyegame-mes-donnees.json'; a.click();
+        URL.revokeObjectURL(a.href);
+      }catch(e){ alert('Téléchargement impossible pour le moment.'); }
+    };
+
+    // RGPD — supprimer son compte (définitif, code redemandé)
+    document.getElementById('delete').onclick=async function(){
+      if(!confirm('Supprimer définitivement ton compte et tous tes temps ? Cette action est irréversible.')) return;
+      var code=prompt('Confirme avec ton code :');
+      if(!code) return;
+      try{
+        var res=await fetch('/api/me/delete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify({code:code})});
+        var d=await res.json();
+        if(!res.ok||!d.ok){ alert(d.error||'Suppression impossible.'); return; }
+        try{ localStorage.removeItem('azr_user'); localStorage.removeItem('azr_token'); }catch(e){}
+        alert('Ton compte et tes données ont été supprimés.');
+        location.replace('/');
+      }catch(e){ alert('Suppression impossible pour le moment.'); }
+    };
   })();
 </script>
 

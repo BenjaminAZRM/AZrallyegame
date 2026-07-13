@@ -106,6 +106,20 @@
         <label for="code2">Confirme le code</label>
         <input id="code2" type="password" autocomplete="new-password" placeholder="Retape ton code">
         <div class="hint">6 caractères minimum. Choisis un code dédié à AZRALLYEGAME (pas un mot de passe important).</div>
+
+        <label for="question">Question secrète</label>
+        <input id="question" type="text" maxlength="120" placeholder="Ex : le surnom de mon premier chien ?">
+        <label for="answer">Réponse</label>
+        <input id="answer" type="text" maxlength="80" placeholder="Ta réponse">
+        <div class="hint">Elle servira à récupérer ton code si tu l'oublies. Choisis une réponse que personne ne peut deviner.</div>
+      </div>
+
+      <div id="recover-wrap" class="hidden">
+        <div id="recover-q" class="hint" style="margin-top:14px;color:var(--gold)"></div>
+        <label for="ranswer">Réponse à la question secrète</label>
+        <input id="ranswer" type="text" maxlength="80" placeholder="Ta réponse">
+        <label for="ncode">Nouveau code</label>
+        <input id="ncode" type="password" autocomplete="new-password" placeholder="Nouveau code (6 car. min)">
       </div>
 
       <div class="err" id="err"></div>
@@ -113,6 +127,7 @@
       <button class="submit" id="submit">Se connecter</button>
 
       <div class="swap" id="swap"></div>
+      <div class="swap" style="margin-top:8px"><b id="forgot">Code oublié ?</b></div>
     </div>
   </main>
 
@@ -128,37 +143,78 @@
 
   function setMode(m){
     mode=m;
-    var reg=(m==='register');
-    $('tab-login').classList.toggle('on',!reg);
+    var reg=(m==='register'), rec=(m==='recover');
+    $('tab-login').classList.toggle('on',!reg&&!rec);
     $('tab-register').classList.toggle('on',reg);
     $('confirm-wrap').classList.toggle('hidden',!reg);
-    $('h1').textContent=reg?'Créer un compte':'Connexion';
-    $('eyebrow').textContent=reg?'Nouveau pilote':'Bienvenue';
-    $('submit').textContent=reg?'Créer mon compte':'Se connecter';
-    $('code').setAttribute('autocomplete',reg?'new-password':'current-password');
-    $('swap').innerHTML=reg
+    $('recover-wrap').classList.toggle('hidden',!rec);
+    $('code').parentNode.querySelector('label[for=code]').style.display=rec?'none':'block';
+    $('code').style.display=rec?'none':'block';
+    $('h1').textContent=reg?'Créer un compte':rec?'Code oublié':'Connexion';
+    $('eyebrow').textContent=reg?'Nouveau pilote':rec?'Récupération':'Bienvenue';
+    $('submit').textContent=reg?'Créer mon compte':rec?'Réinitialiser mon code':'Se connecter';
+    $('forgot').parentNode.style.display=rec?'none':'block';
+    $('swap').innerHTML=(reg||rec)
       ? 'Déjà un compte ? <b id="go-login">Se connecter</b>'
       : 'Pas encore de compte ? <b id="go-register">Créer un compte</b>';
     var gl=$('go-login'); if(gl) gl.onclick=function(){setMode('login');};
     var gr=$('go-register'); if(gr) gr.onclick=function(){setMode('register');};
     err.textContent='';
+    if(rec) $('recover-q').textContent='';
   }
   $('tab-login').onclick=function(){setMode('login');};
   $('tab-register').onclick=function(){setMode('register');};
 
+  // Code oublié : on récupère d'abord la question secrète du compte
+  $('forgot').onclick=async function(){
+    var username=$('username').value.trim();
+    if(!username){ err.textContent='Entre d\u2019abord ton identifiant.'; return; }
+    err.textContent='';
+    try{
+      var res=await fetch('/api/recover/question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username})});
+      var data=await res.json();
+      if(!res.ok||!data.ok){ err.textContent=(data&&data.error)||'Impossible de récupérer la question.'; return; }
+      setMode('recover');
+      $('recover-q').textContent='Question : '+data.question;
+    }catch(e){ err.textContent='Serveur injoignable.'; }
+  };
+
+  function enter(){ localStorage.setItem; }
+
   async function submit(){
     err.textContent='';
     var username=$('username').value.trim();
+    var btn=$('submit');
+
+    if(mode==='recover'){
+      var ans=$('ranswer').value.trim(), nc=$('ncode').value;
+      if(!ans||!nc){ err.textContent='Remplis la réponse et le nouveau code.'; return; }
+      if(nc.length<6){ err.textContent='Nouveau code trop court (6 caractères minimum).'; return; }
+      btn.disabled=true;
+      try{
+        var r=await fetch('/api/recover/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username,answer:ans,newCode:nc})});
+        var d=await r.json();
+        if(!r.ok||!d.ok){ err.textContent=(d&&d.error)||'Échec.'; btn.disabled=false; return; }
+        try{ localStorage.setItem('azr_user',d.username); localStorage.setItem('azr_token',d.token||''); }catch(e){}
+        location.href='/menu.html';
+      }catch(e){ err.textContent='Serveur injoignable.'; btn.disabled=false; }
+      return;
+    }
+
     var code=$('code').value;
     if(!username || !code){ err.textContent='Remplis l\u2019identifiant et le code.'; return; }
+    var body={username:username,code:code};
     if(mode==='register'){
       if(code.length<6){ err.textContent='Code trop court (6 caractères minimum).'; return; }
       if($('code2').value!==code){ err.textContent='Les deux codes ne correspondent pas.'; return; }
+      var q=$('question').value.trim(), a=$('answer').value.trim();
+      if(q.length<5||a.length<3){ err.textContent='Renseigne une question secrète et sa réponse.'; return; }
+      body.question=q; body.answer=a;
     }
-    var btn=$('submit'); btn.disabled=true;
+    btn.disabled=true;
     var endpoint=(mode==='register')?'/api/register':'/api/login';
     try{
-      var res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username,code:code})});
+      var res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       var data=await res.json();
       if(!res.ok || !data.ok){ err.textContent=(data && data.error) || 'Une erreur est survenue.'; btn.disabled=false; return; }
       try{ localStorage.setItem('azr_user', data.username); localStorage.setItem('azr_token', data.token||''); }catch(e){}

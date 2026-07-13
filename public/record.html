@@ -164,12 +164,13 @@ const Store=(()=>{
         _runs=Array.isArray(data)?data:[];
       }catch(e){_runs=[];}
     },
-    // Ajoute un essai : visible tout de suite en local + envoyé au serveur (identité vérifiée par le jeton)
-    addRun(r){
+    // Ajoute un essai : affiché tout de suite en local, et envoyé au serveur sous forme
+    // de CHOIX — c'est le serveur qui recalcule le temps officiel (anti-triche).
+    addRun(r,picks){
       _runs.push(r);
       try{
         var tok=''; try{tok=localStorage.getItem('azr_token')||'';}catch(e){}
-        fetch('/api/records',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(r)})
+        fetch('/api/records',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({picks:picks})})
           .then(function(res){ if(res.status===401){ try{localStorage.removeItem('azr_user');localStorage.removeItem('azr_token');}catch(e){} } })
           .catch(function(){});
       }catch(e){}
@@ -182,7 +183,7 @@ const Store=(()=>{
 /* ---------- ÉTAT ---------- */
 let G=null;
 function newGame(name){
-  G={name,idx:0,usedCrews:new Set(),usedCars:new Set(),cum:0,counter:0,splits:[],results:[],
+  G={name,idx:0,usedCrews:new Set(),usedCars:new Set(),cum:0,counter:0,splits:[],picks:[],results:[],
      sel:{crew:null,car:null,carId:null,tyre:null,rythme:55,setupRap:50,setupBos:50}};
 }
 
@@ -435,6 +436,8 @@ function launchStage(){
   const tier=tierOf(c.accPts);
   const stageTime=c.baseTime+tier.pen;
   G.cum+=stageTime;G.splits.push(stageTime);
+  // Choix conservés : c'est ce qui sera envoyé au serveur, qui recalculera le temps.
+  G.picks.push({crewIdx:DATA.crews.indexOf(s.crew),carIdx:s.carId,tyre:s.tyre,rythme:s.rythme,setupRap:s.setupRap,setupBos:s.setupBos});
   G.usedCrews.add(s.crew.nom);G.usedCars.add(s.carId);
   G.results.push({st,crew:s.crew,car:s.car,tyre:s.tyre,c,tier,stageTime});
   screenResult(G.results[G.results.length-1]);
@@ -473,7 +476,7 @@ function screenResult(r){
 
 /* ---------- FIN ---------- */
 function finishGame(){
-  Store.addRun({name:G.name,total:G.cum,splits:G.splits.slice(),date:Date.now()});
+  Store.addRun({name:G.name,total:G.cum,splits:G.splits.slice(),date:Date.now()},G.picks.slice());
   screenFinal();
 }
 function leaderboardCard(meTotal){
