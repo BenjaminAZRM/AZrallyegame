@@ -5,6 +5,10 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { RALLYES, DATA } = require('./wrc-data.js');
+// Moteur du contre-la-montre (pour recalculer les temps côté serveur = anti-triche)
+let RECORD = null;
+try { RECORD = require('./record-data.js'); }
+catch (e) { console.error('record-data.js manquant → anti-triche inactif :', e.message); }
 
 const app = express();
 const server = http.createServer(app);
@@ -26,6 +30,154 @@ try {
 function saveRecords() {
   try { fs.writeFileSync(RECORDS_FILE, JSON.stringify(records)); }
   catch (e) { console.error('Sauvegarde records échouée:', e.message); }
+}
+
+// ─── BASE DE DONNÉES (Postgres si disponible, sinon repli fichier) ───────────────
+// Postgres évite la corruption/perte de données quand plusieurs joueurs écrivent
+// en même temps — indispensable pour un jeu public.
+let pool = null;
+let dbReady = false;
+if (process.env.DATABASE_URL) {
+  try {
+    const { Pool } = require('pg');
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: /localhost|127\.0\.0\.1|\.railway\.internal/.test(process.env.DATABASE_URL) ? false : { rejectUnauthorized: false },
+      max: 5,
+    });
+  } catch (e) {
+    console.error('Module pg indisponible → repli fichier :', e.message);
+    pool = null;
+  }
+}
+
+async function initDb() {
+  if (!pool) { console.log('Stockage : FICHIERS (pas de DATABASE_URL)'); return; }
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS accounts (
+      key TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      salt TEXT NOT NULL,
+      hash TEXT NOT NULL,
+      created BIGINT NOT NULL
+    )`);
+    // Question secrète (ajoutée après coup : ALTER sans risque pour les comptes existants)
+    await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS question TEXT`);
+    await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS asalt TEXT`);
+    await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS ahash TEXT`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS records (
+      id BIGSERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      total DOUBLE PRECISION NOT NULL,
+      splits JSONB NOT NULL,
+      date BIGINT NOT NULL
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS records_total_idx ON records (total ASC)`);
+
+    // Migration unique depuis les fichiers du Volume (ne perd rien, ne duplique pas)
+    const accCount = (await pool.query('SELECT COUNT(*)::int AS n FROM accounts')).rows[0].n;
+    if (accCount === 0 && Object.keys(accounts).length) {
+      for (const k in accounts) {
+        const a = accounts[k];
+        await pool.query(
+          'INSERT INTO accounts (key,name,salt,hash,created) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (key) DO NOTHING',
+          [k, a.name, a.salt, a.hash, a.created || Date.now()]
+        );
+      }
+      console.log('Migration : ' + Object.keys(accounts).length + ' compte(s) → Postgres');
+    }
+    const recCount = (await pool.query('SELECT COUNT(*)::int AS n FROM records')).rows[0].n;
+    if (recCount === 0 && records.length) {
+      for (const r of records) {
+        await pool.query(
+          'INSERT INTO records (name,total,splits,date) VALUES ($1,$2,$3,$4)',
+          [r.name, r.total, JSON.stringify(r.splits), r.date || Date.now()]
+        );
+      }
+      console.log('Migration : ' + records.length + ' record(s) → Postgres');
+    }
+    dbReady = true;
+    console.log('Stockage : POSTGRES ✔');
+  } catch (e) {
+    console.error('Postgres indisponible → repli fichier :', e.message);
+    dbReady = false;
+  }
+}
+
+// Accès unifiés (Postgres si prêt, sinon fichiers)
+async function dbGetRecords() {
+  if (dbReady) {
+    const r = await pool.query('SELECT name,total,splits,date FROM records ORDER BY total ASC LIMIT 5000');
+    return r.rows.map(x => ({ name: x.name, total: Number(x.total), splits: x.splits, date: Number(x.date) }));
+  }
+  return records;
+}
+async function dbAddRecord(rec) {
+  if (dbReady) {
+    await pool.query('INSERT INTO records (name,total,splits,date) VALUES ($1,$2,$3,$4)',
+      [rec.name, rec.total, JSON.stringify(rec.splits), rec.date]);
+    return;
+  }
+  records.push(rec);
+  if (records.length > MAX_RECORDS) records = records.slice(records.length - MAX_RECORDS);
+  saveRecords();
+}
+async function dbGetAccount(key) {
+  if (dbReady) {
+    const r = await pool.query('SELECT name,salt,hash,question,asalt,ahash,created FROM accounts WHERE key=$1', [key]);
+    return r.rows[0] || null;
+  }
+  return accounts[key] || null;
+}
+async function dbAddAccount(key, acc) {
+  if (dbReady) {
+    const exists = await pool.query('SELECT 1 FROM accounts WHERE key=$1', [key]);
+    if (exists.rowCount > 0) return false;
+    await pool.query(
+      'INSERT INTO accounts (key,name,salt,hash,question,asalt,ahash,created) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (key) DO NOTHING',
+      [key, acc.name, acc.salt, acc.hash, acc.question || null, acc.asalt || null, acc.ahash || null, acc.created]
+    );
+    const check = await pool.query('SELECT hash FROM accounts WHERE key=$1', [key]);
+    return check.rowCount > 0 && check.rows[0].hash === acc.hash;
+  }
+  if (accounts[key]) return false;
+  accounts[key] = acc;
+  saveAccounts();
+  return true;
+}
+async function dbUpdateCode(key, salt, hash) {
+  if (dbReady) { await pool.query('UPDATE accounts SET salt=$1, hash=$2 WHERE key=$3', [salt, hash, key]); return; }
+  if (accounts[key]) { accounts[key].salt = salt; accounts[key].hash = hash; saveAccounts(); }
+}
+// RGPD : supprimer un compte et tous ses scores
+async function dbDeleteAccount(key, name) {
+  if (dbReady) {
+    await pool.query('DELETE FROM records WHERE name=$1', [name]);
+    await pool.query('DELETE FROM accounts WHERE key=$1', [key]);
+    return;
+  }
+  delete accounts[key]; saveAccounts();
+  records = records.filter(r => r.name !== name); saveRecords();
+}
+// RGPD : récupérer toutes les données d'un joueur
+async function dbExportUser(key, name) {
+  const acc = await dbGetAccount(key);
+  let mine = [];
+  if (dbReady) {
+    const r = await pool.query('SELECT total,splits,date FROM records WHERE name=$1 ORDER BY date ASC', [name]);
+    mine = r.rows.map(x => ({ total: Number(x.total), splits: x.splits, date: Number(x.date) }));
+  } else {
+    mine = records.filter(r => r.name === name).map(r => ({ total: r.total, splits: r.splits, date: r.date }));
+  }
+  return {
+    compte: {
+      identifiant: acc ? acc.name : name,
+      question_secrete: acc && acc.question ? acc.question : null,
+      compte_cree_le: acc && acc.created ? new Date(Number(acc.created)).toISOString() : null,
+      note: "Le code et la réponse secrète ne sont pas exportables : ils sont chiffrés et illisibles, y compris par l'administrateur."
+    },
+    parties_contre_la_montre: mine
+  };
 }
 
 // ─── SÉCURITÉ : jetons de session signés + limitation anti-attaque ───────────────
@@ -82,25 +234,58 @@ function noteLoginFail(key){
 }
 
 // Tous les essais déjà enregistrés (le jeu s'en sert pour classer le joueur)
-app.get('/api/records', (req, res) => {
-  res.json(records);
+app.get('/api/records', async (req, res) => {
+  try { res.json(await dbGetRecords()); }
+  catch (e) { console.error('GET /api/records', e.message); res.json(records); }
 });
 
-// Enregistre un nouvel essai terminé (identité vérifiée par le jeton)
-app.post('/api/records', (req, res) => {
+// Enregistre un nouvel essai terminé (identité vérifiée + temps RECALCULÉ par le serveur)
+// Le client envoie ses CHOIX, pas son temps : le serveur recalcule tout et ignore
+// les valeurs annoncées. Un temps truqué est donc impossible à enregistrer.
+app.post('/api/records', async (req, res) => {
   const user = tokenFrom(req);
   if (!user) return res.status(401).json({ ok: false, error: 'Session expirée — reconnecte-toi.' });
   if (!rateLimit('rec:' + user, 30, 3600000)) return res.status(429).json({ ok: false, error: 'Trop d’envois, réessaie plus tard.' });
-  const b = req.body || {};
-  const total = Number(b.total);
-  const splits = Array.isArray(b.splits) ? b.splits.map(Number) : [];
-  if (!isFinite(total) || total <= 0 || !splits.length || splits.some(x => !isFinite(x))) {
-    return res.status(400).json({ ok: false, error: 'invalid' });
+
+  const picks = (req.body || {}).picks;
+  const S = RECORD;
+  if (!S) return res.status(500).json({ ok: false, error: 'Moteur indisponible.' });
+  if (!Array.isArray(picks) || picks.length !== S.DATA.stages.length) {
+    return res.status(400).json({ ok: false, error: 'Partie incomplète.' });
   }
-  records.push({ name: user, total, splits, date: Date.now() }); // nom = identité du jeton, pas du corps
-  if (records.length > MAX_RECORDS) records = records.slice(records.length - MAX_RECORDS);
-  saveRecords();
-  res.json({ ok: true });
+
+  const usedCrews = new Set(), usedCars = new Set();
+  const splits = [];
+  const TYRES = ['tendre', 'medium', 'dur'];
+  try {
+    for (let i = 0; i < picks.length; i++) {
+      const p = picks[i] || {};
+      const crew = S.DATA.crews[p.crewIdx];
+      const car = S.DATA.cars[p.carIdx];
+      const st = S.DATA.stages[i];
+      // Règles du jeu : équipage et voiture uniques, curseurs dans les bornes
+      if (!crew || !car || !TYRES.includes(p.tyre)) return res.status(400).json({ ok: false, error: 'Choix invalides.' });
+      if (usedCrews.has(crew.nom) || usedCars.has(p.carIdx)) return res.status(400).json({ ok: false, error: 'Équipage ou voiture réutilisé.' });
+      const rythme = Number(p.rythme), sRap = Number(p.setupRap), sBos = Number(p.setupBos);
+      if (![rythme, sRap, sBos].every(v => isFinite(v) && v >= 0 && v <= 100)) {
+        return res.status(400).json({ ok: false, error: 'Réglages hors bornes.' });
+      }
+      usedCrews.add(crew.nom); usedCars.add(p.carIdx);
+      const c = S.computeStage(st, crew, car, p.tyre, rythme, sRap, sBos);
+      splits.push(c.baseTime + S.tierOf(c.accPts).pen); // temps recalculé par le serveur
+    }
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: 'Partie invalide.' });
+  }
+
+  const total = splits.reduce((a, b) => a + b, 0);
+  try {
+    await dbAddRecord({ name: user, total, splits, date: Date.now() });
+    res.json({ ok: true, total, splits });
+  } catch (e) {
+    console.error('POST /api/records', e.message);
+    res.status(500).json({ ok: false, error: 'Enregistrement impossible.' });
+  }
 });
 
 // ─── COMPTES JOUEURS (inscription / connexion) ──────────────────────────────────
@@ -119,33 +304,89 @@ function saveAccounts() {
 function hashCode(code, salt) {
   return crypto.scryptSync(String(code), salt, 64).toString('hex');
 }
+// Réponse secrète : on ignore casse, accents et espaces superflus (sinon trop fragile)
+function normAnswer(a) {
+  return String(a).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+}
 
 // Créer un compte
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
   if (!rateLimit('reg:' + req.ip, 5, 3600000)) {
     return res.status(429).json({ ok: false, error: 'Trop de créations de compte depuis ce réseau. Réessaie plus tard.' });
   }
   const b = req.body || {};
   const username = (typeof b.username === 'string' ? b.username : '').trim().slice(0, 20);
   const code = typeof b.code === 'string' ? b.code : '';
+  const question = (typeof b.question === 'string' ? b.question : '').trim().slice(0, 120);
+  const answer = (typeof b.answer === 'string' ? b.answer : '').trim();
   if (username.length < 3 || !/^[\p{L}0-9 _-]+$/u.test(username)) {
     return res.status(400).json({ ok: false, error: 'Identifiant invalide (3 à 20 caractères : lettres, chiffres, espace, - ou _).' });
   }
   if (code.length < 6 || code.length > 128) {
     return res.status(400).json({ ok: false, error: 'Code invalide (6 caractères minimum).' });
   }
-  const key = username.toLowerCase();
-  if (accounts[key]) {
-    return res.status(409).json({ ok: false, error: 'Cet identifiant est déjà pris.' });
+  if (question.length < 5 || answer.length < 3) {
+    return res.status(400).json({ ok: false, error: 'Question secrète et réponse obligatoires (réponse : 3 caractères minimum).' });
   }
-  const salt = crypto.randomBytes(16).toString('hex');
-  accounts[key] = { name: username, salt, hash: hashCode(code, salt), created: Date.now() };
-  saveAccounts();
-  res.json({ ok: true, username, token: signToken(username) });
+  const key = username.toLowerCase();
+  try {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const asalt = crypto.randomBytes(16).toString('hex');
+    const created = await dbAddAccount(key, {
+      name: username, salt, hash: hashCode(code, salt),
+      question, asalt, ahash: hashCode(normAnswer(answer), asalt),
+      created: Date.now()
+    });
+    if (!created) return res.status(409).json({ ok: false, error: 'Cet identifiant est déjà pris.' });
+    res.json({ ok: true, username, token: signToken(username) });
+  } catch (e) {
+    console.error('POST /api/register', e.message);
+    res.status(500).json({ ok: false, error: 'Création impossible pour le moment.' });
+  }
+});
+
+// Récupération de code oublié — étape 1 : quelle est la question secrète ?
+app.post('/api/recover/question', async (req, res) => {
+  if (!rateLimit('rq:' + req.ip, 20, 900000)) return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie plus tard.' });
+  const username = (typeof (req.body || {}).username === 'string' ? req.body.username : '').trim();
+  try {
+    const acc = await dbGetAccount(username.toLowerCase());
+    if (!acc || !acc.question) return res.status(404).json({ ok: false, error: 'Aucune question secrète pour cet identifiant.' });
+    res.json({ ok: true, question: acc.question });
+  } catch (e) { res.status(500).json({ ok: false, error: 'Indisponible pour le moment.' }); }
+});
+
+// Récupération — étape 2 : bonne réponse → nouveau code
+app.post('/api/recover/reset', async (req, res) => {
+  const b = req.body || {};
+  const username = (typeof b.username === 'string' ? b.username : '').trim();
+  const answer = (typeof b.answer === 'string' ? b.answer : '').trim();
+  const newCode = typeof b.newCode === 'string' ? b.newCode : '';
+  const key = username.toLowerCase();
+  if (!rateLimit('rr:' + req.ip, 10, 900000) || !rateLimit('rr:' + key, 5, 900000)) {
+    return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie plus tard.' });
+  }
+  if (newCode.length < 6 || newCode.length > 128) {
+    return res.status(400).json({ ok: false, error: 'Nouveau code invalide (6 caractères minimum).' });
+  }
+  try {
+    const acc = await dbGetAccount(key);
+    if (!acc || !acc.ahash) return res.status(401).json({ ok: false, error: 'Réponse incorrecte.' });
+    const h = hashCode(normAnswer(answer), acc.asalt);
+    const ok = h.length === acc.ahash.length && crypto.timingSafeEqual(Buffer.from(h), Buffer.from(acc.ahash));
+    if (!ok) return res.status(401).json({ ok: false, error: 'Réponse incorrecte.' });
+    const salt = crypto.randomBytes(16).toString('hex');
+    await dbUpdateCode(key, salt, hashCode(newCode, salt));
+    delete failedLogins[key];
+    res.json({ ok: true, username: acc.name, token: signToken(acc.name) });
+  } catch (e) {
+    console.error('POST /api/recover/reset', e.message);
+    res.status(500).json({ ok: false, error: 'Indisponible pour le moment.' });
+  }
 });
 
 // Se connecter
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   if (!rateLimit('login:' + req.ip, 20, 900000)) {
     return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie dans quelques minutes.' });
   }
@@ -157,14 +398,19 @@ app.post('/api/login', (req, res) => {
   if (lock && lock.until > Date.now()) {
     return res.status(429).json({ ok: false, error: 'Compte temporairement bloqué (trop d’essais). Réessaie plus tard.' });
   }
-  const acc = accounts[key];
-  // Message générique (on ne révèle pas si l'identifiant existe)
-  if (!acc) { noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou code incorrect.' }); }
-  const h = hashCode(code, acc.salt);
-  const ok = h.length === acc.hash.length && crypto.timingSafeEqual(Buffer.from(h), Buffer.from(acc.hash));
-  if (!ok) { noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou code incorrect.' }); }
-  delete failedLogins[key];
-  res.json({ ok: true, username: acc.name, token: signToken(acc.name) });
+  try {
+    const acc = await dbGetAccount(key);
+    // Message générique (on ne révèle pas si l'identifiant existe)
+    if (!acc) { noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou code incorrect.' }); }
+    const h = hashCode(code, acc.salt);
+    const ok = h.length === acc.hash.length && crypto.timingSafeEqual(Buffer.from(h), Buffer.from(acc.hash));
+    if (!ok) { noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou code incorrect.' }); }
+    delete failedLogins[key];
+    res.json({ ok: true, username: acc.name, token: signToken(acc.name) });
+  } catch (e) {
+    console.error('POST /api/login', e.message);
+    res.status(500).json({ ok: false, error: 'Connexion impossible pour le moment.' });
+  }
 });
 
 // Vérifier une session (jeton)
@@ -172,6 +418,44 @@ app.get('/api/me', (req, res) => {
   const user = tokenFrom(req);
   if (!user) return res.status(401).json({ ok: false });
   res.json({ ok: true, username: user });
+});
+
+// ─── RGPD : accès et effacement des données personnelles ────────────────────────
+// Export : le joueur récupère toutes ses données (droit d'accès / portabilité)
+app.get('/api/me/export', async (req, res) => {
+  const user = tokenFrom(req);
+  if (!user) return res.status(401).json({ ok: false, error: 'Session expirée.' });
+  try {
+    const data = await dbExportUser(user.toLowerCase(), user);
+    res.setHeader('Content-Disposition', 'attachment; filename="azrallyegame-mes-donnees.json"');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.send(JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error('GET /api/me/export', e.message);
+    res.status(500).json({ ok: false, error: 'Export impossible pour le moment.' });
+  }
+});
+
+// Suppression : le joueur efface son compte et ses scores (droit à l'effacement).
+// Le code est redemandé : on ne supprime pas un compte sur simple possession du jeton.
+app.post('/api/me/delete', async (req, res) => {
+  const user = tokenFrom(req);
+  if (!user) return res.status(401).json({ ok: false, error: 'Session expirée.' });
+  const code = typeof (req.body || {}).code === 'string' ? req.body.code : '';
+  const key = user.toLowerCase();
+  if (!rateLimit('del:' + key, 5, 900000)) return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie plus tard.' });
+  try {
+    const acc = await dbGetAccount(key);
+    if (!acc) return res.status(404).json({ ok: false, error: 'Compte introuvable.' });
+    const h = hashCode(code, acc.salt);
+    const ok = h.length === acc.hash.length && crypto.timingSafeEqual(Buffer.from(h), Buffer.from(acc.hash));
+    if (!ok) return res.status(401).json({ ok: false, error: 'Code incorrect.' });
+    await dbDeleteAccount(key, acc.name);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('POST /api/me/delete', e.message);
+    res.status(500).json({ ok: false, error: 'Suppression impossible pour le moment.' });
+  }
 });
 
 const MAX_JOUEURS = 20;
@@ -562,4 +846,7 @@ function etatPublic(room) {
 }
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`AZrallyegame — port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`AZrallyegame — port ${PORT}`);
+  initDb();
+});
