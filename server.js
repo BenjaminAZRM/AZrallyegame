@@ -845,6 +845,15 @@ function etatPublic(room) {
   };
 }
 
+require('./crr-routes.js')({
+  app,
+  pool,
+  isDbReady: () => dbReady,
+  tokenFrom,
+  rateLimit,
+  DATA_DIR,
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`AZrallyegame — port ${PORT}`);
