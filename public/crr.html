@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chrono Rallye Race — AZRALLYEGAME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt:#0e1013; --card:#15181d; --card2:#1a1e24; --line:#2a2f37;
+    --fog:#8b929c; --paper:#eceef1; --amber:#fbbf24; --amber-soft:#ffd77a;
+    --red:#dc2626; --red-hi:#ef4444; --green:#4ade80; --err:#f87171;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--asphalt);color:var(--paper);font-family:"Space Mono",monospace;min-height:100vh;
+    background-image:radial-gradient(circle at 20% 8%,rgba(251,191,36,.06),transparent 42%),
+                     radial-gradient(circle at 92% 92%,rgba(220,38,38,.05),transparent 45%);
+    padding-bottom:60px}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+
+  header{border-bottom:1px solid var(--line);padding:16px 20px;display:flex;align-items:center;gap:14px;
+    flex-wrap:wrap;position:sticky;top:0;background:rgba(14,16,19,.95);z-index:50}
+  header .in{max-width:1040px;margin:0 auto;width:100%;display:flex;align-items:center;gap:14px}
+  .mark{font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:18px}
+  .mark span{color:var(--amber)}
+  .tag{font-family:"Oswald",sans-serif;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--fog);
+    border-left:1px solid var(--line);padding-left:14px}
+  .usr{margin-left:auto;font-size:11px;color:var(--fog);letter-spacing:.06em;text-transform:uppercase}
+  .usr b{color:var(--amber)}
+  .usr a{color:var(--fog);text-decoration:none;margin-left:12px;border-bottom:1px solid var(--line)}
+  .usr a:hover{color:var(--amber)}
+
+  h2.sec{font-family:"Oswald",sans-serif;font-weight:600;font-size:13px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--fog);margin:30px 0 12px;display:flex;align-items:center;gap:12px}
+  h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .panel{background:var(--card);border:1px solid var(--line);padding:18px}
+  .msg{padding:11px 14px;border:1px solid var(--line);margin:16px 0;font-size:13px;color:var(--fog)}
+  .msg.err{border-color:var(--red);color:var(--err)}
+  .msg.ok{border-color:var(--green);color:var(--green)}
+
+  /* HERO */
+  .hero{border:1px solid var(--line);border-left:4px solid var(--amber);background:var(--card);
+    padding:24px;margin-top:24px}
+  .hero .kick{font-family:"Oswald",sans-serif;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);margin-bottom:10px}
+  .hero h1{font-family:"Oswald",sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(20px,3.4vw,30px);
+    letter-spacing:.02em;line-height:1.1}
+  .hero .meta{display:flex;flex-wrap:wrap;gap:6px 20px;color:var(--fog);font-size:12px;margin-top:10px}
+  .hero .meta b{color:var(--paper)}
+  .stats{display:flex;flex-wrap:wrap;gap:26px;margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+  .st .k{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fog)}
+  .st .v{font-family:"Oswald",sans-serif;font-weight:700;font-size:24px;margin-top:3px}
+  .st .v.amber{color:var(--amber)}
+  .st .s{font-size:11px;color:var(--fog);margin-top:2px}
+
+  .btn{font-family:"Oswald",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:14px;
+    padding:13px 26px;border:2px solid var(--red-hi);background:var(--red);color:#fff;cursor:pointer;transition:.15s}
+  .btn:hover:not(:disabled){background:var(--red-hi)}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--fog);padding:9px 16px;font-size:12px}
+  .btn.ghost:hover{border-color:var(--amber);color:var(--amber);background:transparent}
+
+  /* budget */
+  .bud{display:flex;align-items:center;gap:18px;flex-wrap:wrap;position:sticky;top:58px;z-index:40;
+    background:var(--card);border:1px solid var(--line);padding:13px 18px;margin:14px 0}
+  .bud .k{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fog)}
+  .bud .v{font-family:"Oswald",sans-serif;font-weight:700;font-size:23px}
+  .bud .v .u{color:var(--amber)} .bud .v .m{color:var(--fog);font-size:14px}
+  .bar{flex:1;min-width:150px;height:8px;background:#0c0e12;border:1px solid var(--line)}
+  .bar>span{display:block;height:100%;width:0;background:var(--amber);transition:width .25s}
+
+  /* slots */
+  .slots{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:760px){.slots{grid-template-columns:repeat(2,1fr)}}
+  .slot{border:1px dashed var(--line);background:var(--card);padding:12px;min-height:96px;
+    display:flex;flex-direction:column;position:relative}
+  .slot.on{border-style:solid;background:var(--card2)}
+  .slot.on.car{border-color:var(--amber)}
+  .slot .r{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--fog)}
+  .slot .h{font-size:11px;color:#5b616b;margin-top:auto}
+  .slot .n{font-size:13px;font-weight:700;margin-top:7px;line-height:1.25}
+  .slot .s{font-size:11px;color:var(--fog);margin-top:2px}
+  .slot .b{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:6px}
+  .slot .c{font-family:"Oswald",sans-serif;font-weight:700;font-size:15px;color:var(--amber)}
+  .slot .x{position:absolute;top:7px;right:7px;width:20px;height:20px;border:1px solid var(--line);
+    background:transparent;color:var(--fog);cursor:pointer;font-size:12px;line-height:1}
+  .slot .x:hover{color:var(--red-hi);border-color:var(--red-hi)}
+
+  .chip{display:inline-block;font-family:"Oswald",sans-serif;font-weight:600;font-size:10px;letter-spacing:.08em;
+    padding:2px 7px;text-transform:uppercase;border:1px solid var(--line);color:var(--fog)}
+  .chip.cl{border-color:var(--amber);color:var(--amber)}
+  .chip.ab{border-color:var(--red);color:var(--err)}
+
+  /* jauge bonus/malus */
+  .cbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .ci{border:1px solid var(--line);background:var(--card);padding:7px 11px;font-size:11px;color:var(--fog);
+    display:flex;align-items:center;gap:8px}
+  .g{display:flex;gap:2px}
+  .g i{width:4px;height:11px;background:#2b3038;display:block}
+  .g i.on{background:var(--amber)}
+  .g.low i.on{background:#5b616b}
+  .lvl{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .lvl.hi{color:var(--amber)}
+
+  /* cards */
+  .grp{margin-bottom:4px}
+  .gh{display:flex;align-items:center;gap:10px;margin:16px 0 9px;flex-wrap:wrap}
+  .gh .n{font-family:"Oswald",sans-serif;font-size:11px;letter-spacing:.12em;color:var(--fog)}
+  .gh .lk{margin-left:auto;font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--err);display:none}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(226px,1fr));gap:8px}
+  .card-i{background:var(--card);border:1px solid var(--line);padding:11px 13px;cursor:pointer;
+    display:flex;justify-content:space-between;align-items:center;gap:10px;transition:.14s}
+  .card-i:hover{border-color:var(--amber-soft)}
+  .card-i .n{font-size:13px;font-weight:700;line-height:1.25}
+  .card-i .n small{display:block;color:var(--fog);font-weight:400;font-size:11px;margin-top:2px}
+  .card-i .c{font-family:"Oswald",sans-serif;font-weight:700;font-size:17px;color:var(--amber)}
+  .card-i.sel{border-color:var(--amber);background:#1d1a12}
+  .card-i.lock{opacity:.3;cursor:not-allowed}
+  .card-i.lock:hover{border-color:var(--line)}
+
+  .vbar{position:fixed;bottom:0;left:0;right:0;background:rgba(14,16,19,.97);border-top:1px solid var(--line);
+    padding:13px 20px;z-index:60}
+  .vin{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap}
+  .vst{font-size:12px;color:var(--fog)}.vst b{color:var(--paper)}
+
+  /* jokers */
+  .jks{display:flex;gap:11px;flex-wrap:wrap}
+  .jk{position:relative;width:62px;height:62px;border:1px solid var(--line);background:var(--card2);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+  .jk:hover{border-color:var(--amber)}
+  .jk svg{width:27px;height:27px;stroke:var(--fog);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .jk:hover svg,.jk.sel svg{stroke:var(--amber)}
+  .jk.sel{border-color:var(--amber);background:#1d1a12}
+  .jk.used{opacity:.28;cursor:not-allowed;filter:grayscale(1)}
+  .jk.used:hover{border-color:var(--line)}
+  .jk .bd{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);font-family:"Oswald",sans-serif;
+    font-size:8px;letter-spacing:.08em;background:var(--asphalt);border:1px solid var(--line);color:var(--fog);
+    padding:1px 5px;white-space:nowrap}
+  .tip{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);width:205px;
+    background:#0a0c0f;border:1px solid var(--line);padding:10px 12px;opacity:0;visibility:hidden;
+    transition:.15s;z-index:70;pointer-events:none}
+  .jk:hover .tip,.jk.show .tip{opacity:1;visibility:visible}
+  .tip .t{font-family:"Oswald",sans-serif;font-weight:700;font-size:12px;color:var(--amber);text-transform:uppercase;letter-spacing:.06em}
+  .tip .d{font-size:11px;color:var(--fog);line-height:1.4;margin-top:4px}
+
+  .pick{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+  .pick .l{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fog);margin-bottom:9px}
+  .row{display:flex;gap:7px;flex-wrap:wrap}
+  .sc{min-width:56px;padding:8px 10px;border:1px solid var(--line);background:var(--card2);cursor:pointer;text-align:center}
+  .sc:hover{border-color:var(--amber-soft)}
+  .sc .c{font-family:"Oswald",sans-serif;font-weight:700;font-size:12px}
+  .sc .k{font-size:9px;color:var(--fog);margin-top:1px}
+  .sc.sel{border-color:var(--amber);background:#1d1a12}.sc.sel .c{color:var(--amber)}
+  .sc.off{opacity:.25;cursor:not-allowed}.sc.off:hover{border-color:var(--line)}
+  .sc .j{display:block;font-size:8px;color:var(--amber);margin-top:2px;font-family:"Oswald",sans-serif}
+  .tg{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);
+    background:var(--card2);cursor:pointer;font-size:12px}
+  .tg:hover{border-color:var(--amber-soft)}
+  .tg.sel{border-color:var(--amber);background:#1d1a12}.tg.sel .p{color:var(--amber)}
+  .tg.off{opacity:.3;cursor:not-allowed}.tg.off:hover{border-color:var(--line)}
+  .tg .p{font-weight:700}
+  .why{font-family:"Oswald",sans-serif;font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--err);border:1px solid var(--red);padding:1px 5px}
+
+  /* spéciales */
+  .ss{border:1px solid var(--line);background:var(--card2);margin-bottom:8px}
+  .sh{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
+  .sh:hover{background:#1e232a}
+  .sh .n{font-family:"Oswald",sans-serif;font-weight:700;font-size:13px;color:var(--fog);width:38px;flex-shrink:0}
+  .sh .m{flex:1;font-size:13px;line-height:1.3}
+  .sh .m small{display:block;color:var(--fog);font-size:11px;margin-top:2px}
+  .sh .d{font-family:"Oswald",sans-serif;font-weight:700;font-size:14px;text-align:right}
+  .sh .d.g{color:var(--green)}.sh .d.r{color:var(--err)}
+  .sh .d small{display:block;font-weight:400;font-size:11px;color:var(--fog);font-family:"Space Mono",monospace}
+  .sb{display:none;padding:0 14px 12px;border-top:1px solid var(--line)}
+  .ss.open .sb{display:block}
+  .lg{display:flex;justify-content:space-between;align-items:center;padding:9px 0;
+    border-bottom:1px solid #23272e;font-size:12px;gap:8px}
+  .lg:last-child{border-bottom:none}
+  .lg .w{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+  .lg .w .p{font-weight:700}
+  .lg .pos{color:var(--fog);font-size:11px}
+  .bm{font-family:"Oswald",sans-serif;font-weight:700;white-space:nowrap}
+  .bm.g{color:var(--green)}.bm.r{color:var(--err)}.bm.n{color:var(--fog)}
+  .old{color:var(--fog);text-decoration:line-through;font-size:11px;margin-right:6px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-family:"Oswald",sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.12em;font-size:10px;
+    color:var(--fog);text-align:left;padding:0 6px 9px;border-bottom:1px solid var(--line)}
+  td{padding:10px 6px;border-bottom:1px solid #23272e}
+  tr:last-child td{border-bottom:none}
+  .p{font-family:"Oswald",sans-serif;font-weight:700;color:var(--fog);width:26px}
+  .me{background:#1d1a12}.me .p{color:var(--amber)}
+  .t{text-align:right;font-family:"Oswald",sans-serif;font-weight:700}
+  .e{text-align:right;font-size:11px;color:var(--fog)}
+  .lead .t{color:var(--amber)}
+
+  .tabs{display:flex;gap:0;margin:14px 0 0;border-bottom:1px solid var(--line)}
+  .tb{font-family:"Oswald",sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    padding:9px 14px;cursor:pointer;color:var(--fog);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tb:hover{color:var(--paper)}
+  .tb.on{color:var(--amber);border-bottom-color:var(--amber)}
+  .tv{display:none;padding-top:10px}.tv.on{display:block}
+  .ev{font-family:"Oswald",sans-serif;font-weight:700;font-size:11px;text-align:right;white-space:nowrap}
+  .ev.up{color:var(--green)}.ev.dn{color:var(--err)}.ev.eq{color:#4a5058}
+  .win{font-family:"Oswald",sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    border:1px solid var(--amber);color:var(--amber);padding:1px 5px;margin-left:6px}
+  .cols{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+  @media(max-width:880px){.cols{grid-template-columns:1fr}}
+  .hide{display:none}
+  .load{text-align:center;color:var(--fog);padding:50px 20px;font-size:13px}
+</style>
+</head>
+<body>
+
+<header><div class="in">
+  <div class="mark">AZ<span>RALLYE</span>GAME</div>
+  <div class="tag">Chrono Rallye Race</div>
+  <div class="usr"><span id="who"></span><a href="/menu.html">← Menu</a></div>
+</div></header>
+
+<div class="wrap">
+  <div id="load" class="load">Chargement du rallye…</div>
+  <div id="app" class="hide"></div>
+</div>
+
+<script>
+'use strict';
+var U=null,T=null;
+try{U=localStorage.getItem('azr_user');T=localStorage.getItem('azr_token');}catch(e){}
+if(!U||!T){location.replace('/');}
+document.getElementById('who').innerHTML='Écurie <b>'+U+'</b>';
+
+var R=null, MOI=null, CL=null;
+var S={crews:[null,null,null],car:null};           // composition en cours
+var J={joker:null,ss:null,tg:null};                // joker en cours
+var canHover=matchMedia('(hover:hover)').matches;
+
+var ICON={
+ flat:'<svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>',
+ cold:'<svg viewBox="0 0 24 24"><path d="M12 2v20M4.5 6.5l15 11M19.5 6.5l-15 11"/><circle cx="12" cy="12" r="3"/></svg>',
+ forf:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18"/><circle cx="8.5" cy="8.5" r="1.3" fill="#8b929c" stroke="none"/><circle cx="15.5" cy="15.5" r="1.3" fill="#8b929c" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="#8b929c" stroke="none"/></svg>',
+ pwr:'<svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg>',
+ regl:'<svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-6"/><circle cx="5" cy="7" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="19" cy="10" r="2"/></svg>'
+};
+var JK=[
+ {id:'flat',t:'Flat Out',d:"Double le bonus ou le malus de l'équipage visé sur cette spéciale."},
+ {id:'cold',t:'Tête froide',d:"Annule le bonus/malus de l'équipage visé sur cette spéciale."},
+ {id:'forf',t:'Temps forfaitaire',d:"Applique un classement aléatoire dans sa classe à l'équipage visé."},
+ {id:'pwr',t:'Power stage',d:"Bonus supplémentaire selon le rang dans la classe : -5s au 1er, -4s au 2e, -3s au 3e, -2s au 4e, -1s au 5e."},
+ {id:'regl',t:'Bons réglages',d:"Fait gagner une place à l'équipage visé dans le classement de sa classe."}
+];
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fmt(s){var m=Math.floor(s/60),r=(s%60).toFixed(1);if(r<10)r='0'+r;return m+':'+r;}
+function sg(v){return (v>0?'+':'')+Number(v).toFixed(1);}
+function enjeu(n){if(n<=3)return{b:1,t:'Bonus/Malus faibles',hi:false};
+  if(n<=6)return{b:2,t:'Bonus/Malus moyens',hi:false};return{b:3,t:'Bonus/Malus forts',hi:true};}
+function gauge(n){var e=enjeu(n),b='';for(var i=1;i<=3;i++)b+='<i class="'+(i<=e.b?'on':'')+'"></i>';
+  return '<span class="g '+(e.hi?'':'low')+'">'+b+'</span><span class="lvl '+(e.hi?'hi':'')+'">'+e.t+'</span>';}
+function H(u,o){o=o||{};o.headers=o.headers||{};o.headers['Authorization']='Bearer '+T;
+  if(o.body){o.headers['Content-Type']='application/json';o.body=JSON.stringify(o.body);}
+  return fetch(u,o).then(function(r){return r.json().then(function(d){d._s=r.status;return d;});});}
+
+// ── chargement ───────────────────────────────────────────────────────────────
+function charger(){
+  return H('/api/crr/rallye').then(function(d){
+    if(!d.ok) throw new Error(d.error||'Rallye indisponible');
+    R=d.rallye;
+    return Promise.all([H('/api/crr/moi?rallye='+R.id), H('/api/crr/classement?rallye='+R.id)]);
+  }).then(function(res){
+    MOI=res[0].ok?res[0]:{ecurie:null,jokers:[],course:null};
+    CL=res[1].ok?res[1]:{general:[],parSpeciale:{},joueurs:0};
+    document.getElementById('load').classList.add('hide');
+    document.getElementById('app').classList.remove('hide');
+    rendre();
+  }).catch(function(e){
+    document.getElementById('load').innerHTML='<div class="msg err">'+esc(e.message)+'</div>';
+  });
+}
+
+function eng(id){for(var i=0;i<R.engages.length;i++)if(R.engages[i].id===id)return R.engages[i];return null;}
+function courues(){return R.speciales.filter(function(s){return s.courue;});}
+
+// ── vue principale ───────────────────────────────────────────────────────────
+function rendre(){
+  var a=document.getElementById('app');
+  var nbC=courues().length;
+  var moi=CL.general.filter(function(l){return l.user===U;})[0];
+  var lead=CL.general.length?CL.general[0].total:0;
+
+  a.innerHTML=
+   '<div class="hero">'
+   + '<div class="kick">'+(R.ouvert?'Rallye du week-end':'Rallye en cours')+'</div>'
+   + '<h1>'+esc(R.nom)+'</h1>'
+   + '<div class="meta"><span><b>'+esc(R.dates)+'</b></span><span>'+esc(R.surface)+'</span>'
+     +'<span><b>'+R.engages.length+'</b> engagés · '+Object.keys(R.classes).length+' classes</span>'
+     +'<span>'+esc(R.championnat||'')+'</span></div>'
+   + '<div class="stats">'
+     + '<div class="st"><div class="k">Mon chrono</div><div class="v amber">'
+        +(MOI.course&&MOI.course.courues?fmt(MOI.course.total):'—')
+        +'</div><div class="s">'+nbC+' / '+R.speciales.length+' spéciales</div></div>'
+     + '<div class="st"><div class="k">Provisoire</div><div class="v">'+(moi?moi.rang+'ᵉ':'—')
+        +'</div><div class="s">'+(moi&&moi.rang>1?'+'+(moi.total-lead).toFixed(1)+'s du leader':(moi?'leader':'pas classé'))+'</div></div>'
+     + '<div class="st"><div class="k">Jokers posés</div><div class="v">'+MOI.jokers.length
+        +'</div><div class="s">sur '+R.maxJokers+' max</div></div>'
+     + '<div class="st"><div class="k">Écurie</div><div class="v">'+(MOI.ecurie?MOI.ecurie.cout:'—')
+        +'</div><div class="s">'+(MOI.ecurie?'crédits utilisés':'non composée')+'</div></div>'
+   + '</div></div>'
+   + '<div id="body"></div>';
+
+  var b=document.getElementById('body');
+  if(!MOI.ecurie && R.ouvert)      vueCompo(b);
+  else if(!MOI.ecurie && !R.ouvert) b.innerHTML='<div class="msg err">Les écuries sont closes : le rallye est parti. Tu n\'as pas composé d\'écurie, tu ne marques pas de points sur ce rallye.</div>'+blocClassement();
+  else                              vueCourse(b);
+}
+
+// ── composition ──────────────────────────────────────────────────────────────
+function vueCompo(b){
+  var cls=Object.keys(R.classes);
+  var h='<h2 class="sec">Compose ton écurie — 3 équipages de classes différentes + 1 voiture</h2>'
+   +'<div class="bud"><div><div class="k">Budget</div><div class="v"><span class="u" id="sp">0</span>'
+   +'<span class="m"> / '+R.budget+' crédits</span></div></div><div class="bar" id="bar"><span></span></div></div>'
+   +'<div class="cbar">'+cls.map(function(c){
+      return '<div class="ci"><span class="chip cl">'+esc(c)+'</span><b style="color:var(--paper)">'+R.classes[c]+'</b> engagés '+gauge(R.classes[c])+'</div>';
+    }).join('')+'</div>'
+   +'<div class="slots">'
+     +'<div class="slot" data-c="0"><span class="r">Équipage 1</span><span class="h">Choisis ci-dessous</span></div>'
+     +'<div class="slot" data-c="1"><span class="r">Équipage 2</span><span class="h">Autre classe</span></div>'
+     +'<div class="slot" data-c="2"><span class="r">Équipage 3</span><span class="h">Autre classe</span></div>'
+     +'<div class="slot car" data-car="1"><span class="r">Voiture</span><span class="h">1 modèle</span></div>'
+   +'</div>'
+   +'<h2 class="sec">Engagés — '+R.engages.length+' partants</h2><div id="pool"></div>'
+   +'<h2 class="sec">Modèles de voiture</h2><div class="cards" id="cars"></div>'
+   +'<div id="err"></div>'
+   +'<div class="vbar"><div class="vin"><div class="vst" id="st">Sélectionne 3 équipages + 1 voiture.</div>'
+   +'<button class="btn" id="ok" disabled>Valider mon écurie</button></div></div>';
+  b.innerHTML=h;
+
+  var pool=document.getElementById('pool');
+  cls.forEach(function(c){
+    var g=document.createElement('div');g.className='grp';
+    g.innerHTML='<div class="gh"><span class="chip cl">'+esc(c)+'</span><span class="n">'+R.classes[c]+' engagés</span>'
+      +gauge(R.classes[c])+'<span class="lk" data-lk="'+esc(c)+'">classe déjà prise</span></div>'
+      +'<div class="cards" data-cd="'+esc(c)+'"></div>';
+    pool.appendChild(g);
+    var cc=g.querySelector('[data-cd]');
+    R.engages.filter(function(e){return e.classe===c;})
+      .sort(function(a,z){return z.cout-a.cout;})
+      .forEach(function(e){
+        var el=document.createElement('div');el.className='card-i';el.setAttribute('data-crew',e.id);
+        el.innerHTML='<div class="n">'+esc(e.pilote)+'<small>#'+esc(e.id)+' · '+esc(e.modele)+'</small></div>'
+          +'<div class="c">'+e.cout+(e.estim?'<span style="color:#5b616b;font-size:11px">?</span>':'')+'</div>';
+        el.onclick=function(){togC(e);};
+        cc.appendChild(el);
+      });
+  });
+  var cars=document.getElementById('cars');
+  R.voitures.slice().sort(function(a,z){return z.cout-a.cout;}).forEach(function(v){
+    var el=document.createElement('div');el.className='card-i';el.setAttribute('data-car',v.modele);
+    el.innerHTML='<div class="n">'+esc(v.modele)+'<small>'+(v.classes||[]).map(function(c){return esc(c);}).join(' / ')
+      +' · '+v.n+' engagé'+(v.n>1?'s':'')+'</small></div><div class="c">'+v.cout+'</div>';
+    el.onclick=function(){togV(v);};
+    cars.appendChild(el);
+  });
+  document.getElementById('ok').onclick=valider;
+  majCompo();
+}
+function cout(){var s=0;S.crews.forEach(function(c){if(c)s+=c.cout;});if(S.car)s+=S.car.cout;return s;}
+function prises(){return S.crews.filter(Boolean).map(function(c){return c.classe;});}
+function togC(e){
+  var i=-1;S.crews.forEach(function(c,k){if(c&&c.id===e.id)i=k;});
+  if(i>=0){S.crews[i]=null;return majCompo();}
+  if(prises().indexOf(e.classe)>=0)return;
+  var f=S.crews.indexOf(null);if(f<0)return;
+  if(cout()+e.cout>R.budget)return;
+  S.crews[f]=e;majCompo();
+}
+function togV(v){
+  if(S.car&&S.car.modele===v.modele){S.car=null;return majCompo();}
+  if(cout()-(S.car?S.car.cout:0)+v.cout>R.budget)return;
+  S.car=v;majCompo();
+}
+function majCompo(){
+  var s=cout();
+  document.getElementById('sp').textContent=s;
+  document.getElementById('bar').firstChild.style.width=Math.min(100,s/R.budget*100)+'%';
+
+  [0,1,2].forEach(function(i){
+    var sl=document.querySelector('[data-c="'+i+'"]'),c=S.crews[i];
+    if(c){sl.className='slot on';
+      sl.innerHTML='<button class="x">×</button><div><span class="chip cl">'+esc(c.classe)+'</span></div>'
+        +'<div class="n">'+esc(c.pilote)+'</div><div class="s">#'+esc(c.id)+'</div>'
+        +'<div class="b"><span class="s">'+R.classes[c.classe]+' engagés</span><span class="c">'+c.cout+'</span></div>';
+      sl.querySelector('.x').onclick=function(ev){ev.stopPropagation();S.crews[i]=null;majCompo();};
+    }else{sl.className='slot';
+      sl.innerHTML='<span class="r">Équipage '+(i+1)+'</span><span class="h">'+(i===0?'Choisis ci-dessous':'Autre classe')+'</span>';}
+  });
+  var cs=document.querySelector('[data-car="1"]');
+  if(S.car){cs.className='slot on car';
+    cs.innerHTML='<button class="x">×</button><div><span class="chip cl">Voiture</span></div>'
+      +'<div class="n">'+esc(S.car.modele)+'</div><div class="s">'+(S.car.classes||[]).join(' / ')+'</div>'
+      +'<div class="b"><span class="s">'+S.car.n+' engagé'+(S.car.n>1?'s':'')+'</span><span class="c">'+S.car.cout+'</span></div>';
+    cs.querySelector('.x').onclick=function(ev){ev.stopPropagation();S.car=null;majCompo();};
+  }else{cs.className='slot car';cs.innerHTML='<span class="r">Voiture</span><span class="h">1 modèle</span>';}
+
+  var u=prises(),full=S.crews.filter(Boolean).length>=3;
+  R.engages.forEach(function(e){
+    var el=document.querySelector('[data-crew="'+e.id+'"]');if(!el)return;
+    var sel=S.crews.some(function(c){return c&&c.id===e.id;});
+    var lock=!sel&&(u.indexOf(e.classe)>=0||full||s+e.cout>R.budget);
+    el.classList.toggle('sel',sel);el.classList.toggle('lock',lock);
+  });
+  Object.keys(R.classes).forEach(function(c){
+    var t=document.querySelector('[data-lk="'+c+'"]');if(t)t.style.display=u.indexOf(c)>=0?'inline':'none';
+  });
+  R.voitures.forEach(function(v){
+    var el=document.querySelector('[data-car="'+v.modele+'"]');if(!el)return;
+    var sel=S.car&&S.car.modele===v.modele;
+    var lock=!sel&&(s-(S.car?S.car.cout:0)+v.cout>R.budget);
+    el.classList.toggle('sel',!!sel);el.classList.toggle('lock',lock);
+  });
+
+  var n=S.crews.filter(Boolean).length,ready=n===3&&S.car;
+  document.getElementById('ok').disabled=!ready;
+  var st=document.getElementById('st');
+  if(ready)st.innerHTML='Écurie complète — <b>'+s+' crédits</b> utilisés, <b>'+(R.budget-s)+'</b> restants.';
+  else{var nd=[];if(n<3)nd.push((3-n)+' équipage(s)');if(!S.car)nd.push('1 voiture');
+    st.innerHTML='Il te manque : <b>'+nd.join(' + ')+'</b> · '+(R.budget-s)+' crédits restants.';}
+}
+function valider(){
+  var btn=document.getElementById('ok');btn.disabled=true;
+  H('/api/crr/ecurie',{method:'POST',body:{rallye:R.id,
+    equipages:S.crews.map(function(c){return c.id;}),voiture:S.car.modele}})
+  .then(function(d){
+    if(!d.ok){document.getElementById('err').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';btn.disabled=false;return;}
+    return charger();
+  }).catch(function(){document.getElementById('err').innerHTML='<div class="msg err">Serveur injoignable.</div>';btn.disabled=false;});
+}
+
+// ── course ───────────────────────────────────────────────────────────────────
+function vueCourse(b){
+  var h='<div class="cols"><div>';
+  if(R.speciales.some(function(s){return !s.partie;})) h+=blocJokers();
+  h+='<h2 class="sec">Spéciales disputées</h2><div id="sslist"></div></div><div>'
+   + blocClassement() + '<h2 class="sec">Mon écurie</h2><div class="panel" id="team"></div></div></div>';
+  b.innerHTML=h;
+
+  // mon écurie
+  var t=document.getElementById('team');
+  t.innerHTML=MOI.ecurie.equipages.map(function(id){
+    var e=eng(id);if(!e)return '';
+    return '<div class="lg"><div class="w"><span class="chip cl">'+esc(e.classe)+'</span><span class="p">'+esc(e.pilote)
+      +'</span><span class="pos">#'+esc(e.id)+' · '+R.classes[e.classe]+' engagés</span></div></div>';
+  }).join('')+'<div class="lg"><div class="w"><span class="chip cl">Voiture</span><span class="p">'
+    +esc(MOI.ecurie.voiture)+'</span></div></div>';
+
+  // spéciales
+  var L=document.getElementById('sslist');
+  var ss=(MOI.course&&MOI.course.speciales)||[];
+  if(!ss.length){L.innerHTML='<div class="msg">Aucune spéciale courue pour l\'instant. Ton chrono apparaîtra dès les premiers résultats.</div>';return;}
+  ss.forEach(function(s,i){
+    var d=document.createElement('div');d.className='ss'+(i===ss.length-1?' open':'');
+    var cls=s.delta<0?'g':(s.delta>0?'r':'');
+    var jkOnSS=MOI.jokers.filter(function(j){return j.ss===s.code;});
+    d.innerHTML='<div class="sh"><span class="n">'+esc(s.code)+'</span><div class="m">'+esc(s.nom)
+      +(jkOnSS.length?' <span class="chip cl">'+jkOnSS.length+' joker'+(jkOnSS.length>1?'s':'')+'</span>':'')
+      +'<small>base '+fmt(s.base)+'</small></div>'
+      +'<div class="d '+cls+'">'+sg(s.delta)+'<small>'+fmt(s.temps)+'</small></div></div>'
+      +'<div class="sb">'
+      + s.detail.map(function(x){
+          var c=x.bm<0?'g':(x.bm>0?'r':'n');
+          var pos=(x.res==='Ab'||x.res==='Fo')?'<span class="chip ab">'+(x.res==='Ab'?'Abandon':'Forfait')+'</span>'
+                 :(x.res==='Tf'?'<span class="chip">Temps forfait.</span>'
+                 :'<span class="pos">'+x.res+'ᵉ / '+x.engages+'</span>');
+          var val=(x.joker&&x.brut!==x.bm)?'<span class="old">'+sg(x.brut)+'</span><span class="bm '+c+'">'+sg(x.bm)+'</span>'
+                 :'<span class="bm '+c+'">'+sg(x.bm)+'</span>';
+          return '<div class="lg"><div class="w"><span class="chip cl">'+esc(x.classe)+'</span><span class="p">'
+            +esc(x.pilote)+'</span>'+pos
+            +(x.joker?'<span class="chip cl">'+esc(nomJk(x.joker))+'</span>':'')+'</div><div>'+val+'</div></div>';
+        }).join('')
+      + '<div class="lg"><div class="w"><span class="chip cl">Voiture</span><span class="p">'+esc(s.voiture.modele)
+        +'</span><span class="pos">moyenne de ses équipages</span></div>'
+        +'<span class="bm '+(s.voiture.bm<0?'g':(s.voiture.bm>0?'r':'n'))+'">'+sg(s.voiture.bm)+'</span></div>'
+      + tablesSS(s.code)
+      +'</div>';
+    d.querySelector('.sh').onclick=function(){d.classList.toggle('open');};
+    L.appendChild(d);
+    brancherTabs(d);
+  });
+}
+function nomJk(id){for(var i=0;i<JK.length;i++)if(JK[i].id===id)return JK[i].t;return id;}
+
+function blocClassement(){
+  var g=CL.general;
+  if(!g.length)return '<h2 class="sec">Classement général</h2><div class="panel"><div class="msg">Aucune écurie engagée pour l\'instant.</div></div>';
+  var lead=g[0].total;
+  // évolution depuis la dernière spéciale
+  var cs=courues(), evol={};
+  if(cs.length){
+    var last=(CL.generalParSS||{})[cs[cs.length-1].code]||[];
+    last.forEach(function(x){evol[x.user]=x.evol;});
+  }
+  return '<h2 class="sec">Classement général provisoire</h2><div class="panel"><table>'
+   +'<thead><tr><th></th><th>Écurie</th><th style="text-align:right">Chrono</th><th style="text-align:right">Écart</th>'
+   +'<th style="text-align:right">Évol.</th><th style="text-align:right">Pts</th></tr></thead><tbody>'
+   +g.map(function(l,i){
+     var e=evol[l.user], ev='<span class="ev eq">—</span>';
+     if(e!==null&&e!==undefined){
+       if(e>0)ev='<span class="ev up">▲'+e+'</span>';
+       else if(e<0)ev='<span class="ev dn">▼'+(-e)+'</span>';
+       else ev='<span class="ev eq">=</span>';
+     }
+     return '<tr class="'+(l.user===U?'me ':'')+(i===0?'lead':'')+'"><td class="p">'+l.rang+'</td><td>'+esc(l.user)+'</td>'
+      +'<td class="t">'+fmt(l.total)+'</td><td class="e">'+(i===0?'—':sg(l.total-lead))+'</td>'
+      +'<td>'+ev+'</td>'
+      +'<td class="t" style="color:var(--amber)">'+l.points+'</td></tr>';
+   }).join('')+'</tbody></table><div style="margin-top:10px;font-size:11px;color:var(--fog)">'
+   +g.length+' écurie'+(g.length>1?'s':'')+' engagée'+(g.length>1?'s':'')+' · barème '
+   +(g.length<15?'petit peloton':'pourcentage')+' · évolution depuis la dernière spéciale</div></div>';
+}
+// Deux classements complets par spéciale : la spéciale, et le général à son issue.
+function tablesSS(code){
+  var sp=(CL.parSpeciale||{})[code]||[];
+  var gn=(CL.generalParSS||{})[code]||[];
+  if(!sp.length&&!gn.length)return '';
+  return '<div class="tabs" data-tabs>'
+    +'<div class="tb on" data-tb="s">Classement de la spéciale</div>'
+    +'<div class="tb" data-tb="g">Général à l\'issue</div></div>'
+    +'<div class="tv on" data-tv="s">'+tblSpe(sp)+'</div>'
+    +'<div class="tv" data-tv="g">'+tblGen(gn)+'</div>';
+}
+function tblSpe(l){
+  if(!l.length)return '<div class="msg">Aucune écurie classée.</div>';
+  return '<table><thead><tr><th></th><th>Écurie</th><th style="text-align:right">Temps</th>'
+   +'<th style="text-align:right">Écart</th></tr></thead><tbody>'
+   +l.map(function(x,i){
+     return '<tr class="'+(x.user===U?'me ':'')+(i===0?'lead':'')+'"><td class="p">'+x.rang+'</td>'
+      +'<td>'+esc(x.user)+(i===0?'<span class="win">Scratch</span>':'')+'</td>'
+      +'<td class="t">'+fmt(x.temps)+'</td>'
+      +'<td class="e">'+(i===0?'—':'+'+Number(x.ecart).toFixed(1)+'s')+'</td></tr>';
+   }).join('')+'</tbody></table>';
+}
+function tblGen(l){
+  if(!l.length)return '<div class="msg">Aucune écurie classée.</div>';
+  return '<table><thead><tr><th></th><th>Écurie</th><th style="text-align:right">Chrono</th>'
+   +'<th style="text-align:right">Écart</th><th style="text-align:right">Évol.</th></tr></thead><tbody>'
+   +l.map(function(x,i){
+     var ev='<span class="ev eq">—</span>';
+     if(x.evol!==null&&x.evol!==undefined){
+       if(x.evol>0)ev='<span class="ev up">▲'+x.evol+'</span>';
+       else if(x.evol<0)ev='<span class="ev dn">▼'+(-x.evol)+'</span>';
+       else ev='<span class="ev eq">=</span>';
+     }
+     return '<tr class="'+(x.user===U?'me ':'')+(i===0?'lead':'')+'"><td class="p">'+x.rang+'</td>'
+      +'<td>'+esc(x.user)+'</td><td class="t">'+fmt(x.total)+'</td>'
+      +'<td class="e">'+(i===0?'—':'+'+Number(x.ecart).toFixed(1)+'s')+'</td>'
+      +'<td>'+ev+'</td></tr>';
+   }).join('')+'</tbody></table>';
+}
+function brancherTabs(root){
+  var t=root.querySelector('[data-tabs]');if(!t)return;
+  Array.prototype.forEach.call(t.querySelectorAll('.tb'),function(b){
+    b.onclick=function(ev){
+      ev.stopPropagation();
+      Array.prototype.forEach.call(t.querySelectorAll('.tb'),function(o){o.classList.remove('on');});
+      b.classList.add('on');
+      var k=b.getAttribute('data-tb');
+      Array.prototype.forEach.call(root.querySelectorAll('[data-tv]'),function(v){
+        v.classList.toggle('on',v.getAttribute('data-tv')===k);
+      });
+    };
+  });
+}
+
+// ── jokers ───────────────────────────────────────────────────────────────────
+function blocJokers(){
+  return '<h2 class="sec">Jokers</h2><div class="panel" style="border-left:3px solid var(--amber)">'
+   +'<div style="font-size:12px;color:var(--fog);line-height:1.6;margin-bottom:15px">'
+   +'Choisis un joker, la <b style="color:var(--amber)">spéciale</b> (encore à disputer) puis l\'<b style="color:var(--amber)">équipage</b> visé. '
+   +'Plusieurs jokers peuvent viser une même spéciale, mais jamais deux sur le même équipage. '
+   +'Un équipage abandonné ou forfait ne peut pas être ciblé. <b style="color:var(--amber)">'
+   +(R.maxJokers-MOI.jokers.length)+' joker(s)</b> encore posable(s).</div>'
+   +'<div class="jks" id="jks"></div>'
+   +'<div class="pick"><div class="l">Sur quelle spéciale ?</div><div class="row" id="sss"></div></div>'
+   +'<div class="pick"><div class="l">Sur quel équipage ?</div><div class="row" id="tgs"></div></div>'
+   +'<div id="jerr"></div>'
+   +'<div style="display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap">'
+   +'<button class="btn" id="pose" disabled>Poser le joker</button>'
+   +'<span style="font-size:11px;color:var(--fog)" id="jw">Choisis un joker, une spéciale et un équipage.</span>'
+   +'</div></div>';
+}
+function jkUse(id){return MOI.jokers.filter(function(j){return j.joker===id;})[0];}
+function jkCouple(ss,eq){return MOI.jokers.some(function(j){return j.ss===ss&&j.equipage===eq;});}
+function abandonne(id){
+  // hors course = "Fo" quelque part, ou "Ab" sans classement ultérieur
+  var ss=(MOI.course&&MOI.course.speciales)||[];
+  var last=null;
+  for(var i=0;i<ss.length;i++){
+    var d=ss[i].detail.filter(function(x){return x.id===id;})[0];
+    if(d)last=d.res;
+  }
+  return last==='Ab'||last==='Fo';
+}
+function majJk(){
+  var jks=document.getElementById('jks');if(!jks)return;
+  jks.innerHTML=JK.map(function(j){
+    var u=jkUse(j.id);
+    return '<div class="jk '+(u?'used ':'')+(J.joker===j.id?'sel':'')+'" data-j="'+j.id+'">'+ICON[j.id]
+      +(u?'<span class="bd">'+esc(u.ss)+'</span>':'')
+      +'<div class="tip"><div class="t">'+esc(j.t)+'</div><div class="d">'+esc(j.d)+'</div>'
+      +(u?'<div class="d" style="color:var(--err);margin-top:5px">Déjà utilisé sur '+esc(u.ss)+'.</div>':'')
+      +'</div></div>';
+  }).join('');
+  Array.prototype.forEach.call(jks.querySelectorAll('.jk'),function(el){
+    var j=el.getAttribute('data-j');
+    el.onclick=function(ev){
+      ev.stopPropagation();
+      if(!canHover&&!el.classList.contains('show')){
+        Array.prototype.forEach.call(jks.querySelectorAll('.jk'),function(o){o.classList.remove('show');});
+        el.classList.add('show');return;
+      }
+      if(jkUse(j))return;
+      J.joker=(J.joker===j?null:j);majJk();
+    };
+  });
+
+  var sss=document.getElementById('sss');
+  sss.innerHTML=R.speciales.map(function(s){
+    var n=MOI.jokers.filter(function(j){return j.ss===s.code;}).length;
+    return '<div class="sc '+(s.partie||s.courue?'off ':'')+(J.ss===s.code?'sel':'')+'" data-s="'+esc(s.code)+'">'
+      +'<div class="c">'+esc(s.code)+'</div><div class="k">'+s.km+' km</div>'
+      +(n?'<span class="j">'+n+' joker'+(n>1?'s':'')+'</span>':'')+'</div>';
+  }).join('');
+  Array.prototype.forEach.call(sss.querySelectorAll('.sc'),function(el){
+    var code=el.getAttribute('data-s');
+    var s=R.speciales.filter(function(x){return x.code===code;})[0];
+    if(s.partie||s.courue)return;
+    el.onclick=function(){J.ss=(J.ss===code?null:code);majJk();};
+  });
+
+  var tgs=document.getElementById('tgs');
+  tgs.innerHTML=MOI.ecurie.equipages.map(function(id){
+    var e=eng(id);if(!e)return '';
+    var out=abandonne(id), deja=J.ss&&jkCouple(J.ss,id);
+    var why=out?'Hors course':(deja?'Joker déjà posé':'');
+    return '<div class="tg '+((out||deja)?'off ':'')+(J.tg===id?'sel':'')+'" data-t="'+esc(id)+'">'
+      +'<span class="chip cl">'+esc(e.classe)+'</span><span class="p">'+esc(e.pilote)+'</span>'
+      +(why?'<span class="why">'+why+'</span>':'')+'</div>';
+  }).join('');
+  Array.prototype.forEach.call(tgs.querySelectorAll('.tg'),function(el){
+    var id=el.getAttribute('data-t');
+    if(abandonne(id)||(J.ss&&jkCouple(J.ss,id)))return;
+    el.onclick=function(){J.tg=(J.tg===id?null:id);majJk();};
+  });
+
+  if(J.tg&&(abandonne(J.tg)||(J.ss&&jkCouple(J.ss,J.tg))))J.tg=null;
+  var quota=MOI.jokers.length>=R.maxJokers;
+  var ok=J.joker&&J.ss&&J.tg&&!quota;
+  document.getElementById('pose').disabled=!ok;
+  var w=document.getElementById('jw');
+  if(quota)w.textContent='Quota atteint : '+R.maxJokers+' jokers posés sur ce rallye.';
+  else if(ok){var e=eng(J.tg);
+    w.textContent='« '+nomJk(J.joker)+' » sur '+J.ss+', ciblé sur '+e.pilote+' — verrouillé au départ.';}
+  else{var nd=[];if(!J.joker)nd.push('un joker');if(!J.ss)nd.push('une spéciale');if(!J.tg)nd.push('un équipage');
+    w.textContent='Choisis '+nd.join(', ')+'.';}
+  document.getElementById('pose').onclick=poser;
+}
+function poser(){
+  var b=document.getElementById('pose');b.disabled=true;
+  H('/api/crr/joker',{method:'POST',body:{rallye:R.id,joker:J.joker,ss:J.ss,equipage:J.tg}})
+  .then(function(d){
+    if(!d.ok){document.getElementById('jerr').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';b.disabled=false;return;}
+    J={joker:null,ss:null,tg:null};
+    return charger();
+  }).catch(function(){document.getElementById('jerr').innerHTML='<div class="msg err">Serveur injoignable.</div>';b.disabled=false;});
+}
+document.addEventListener('click',function(){
+  var j=document.getElementById('jks');if(!j)return;
+  Array.prototype.forEach.call(j.querySelectorAll('.jk'),function(o){o.classList.remove('show');});
+});
+
+// hook : après chaque rendu, brancher les jokers si présents
+var _r=rendre;
+rendre=function(){_r();if(document.getElementById('jks'))majJk();};
+
+charger();
+</script>
+</body>
+</html>
