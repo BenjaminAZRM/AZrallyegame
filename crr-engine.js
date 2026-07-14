@@ -138,6 +138,7 @@ function calculerSpeciale(rallye, ecurie, jokers, ssIndex) {
 // Chrono total : uniquement les spéciales dont les résultats sont saisis.
 // jusqu'a = index max inclus (pour reconstituer le général à l'issue d'une spéciale).
 function calculerRallye(rallye, ecurie, jokers, jusqua) {
+  if (!pret(rallye)) return { user: ecurie.user, speciales: [], total: 0, courues: 0 };
   const fin = (jusqua == null) ? rallye.speciales.length - 1 : jusqua;
   const ss = [];
   let total = 0;
@@ -152,6 +153,7 @@ function calculerRallye(rallye, ecurie, jokers, jusqua) {
 
 // Une spéciale est "courue" dès qu'au moins un résultat y est saisi.
 function speciqleCourue(rallye, ssIndex) {
+  if (!rallye.speciales || !rallye.speciales[ssIndex]) return false;
   const code = rallye.speciales[ssIndex].code;
   const res = rallye.resultats || {};
   for (const id in res) if (res[id][code] != null) return true;
@@ -160,6 +162,8 @@ function speciqleCourue(rallye, ssIndex) {
 
 // ─── VALIDATION D'UNE ÉCURIE ────────────────────────────────────────────────────
 function validerEcurie(rallye, equipages, voiture) {
+  if (!rallye.engages || !rallye.engages.length)
+    return { ok: false, error: 'Les engagés de ce rallye ne sont pas encore connus.' };
   if (!Array.isArray(equipages) || equipages.length !== NB_EQUIPAGES)
     return { ok: false, error: 'Il faut exactement 3 équipages.' };
   if (new Set(equipages).size !== NB_EQUIPAGES)
@@ -228,6 +232,7 @@ function classement(rallye, ecuries, jokersParUser, jusqua) {
 // par rapport à la spéciale précédente (+ = places gagnées).
 function generalParSpeciale(rallye, ecuries, jokersParUser) {
   const out = {};
+  if (!pret(rallye)) return out;
   let precedent = null;
   for (let i = 0; i < rallye.speciales.length; i++) {
     if (!speciqleCourue(rallye, i)) continue;
@@ -257,19 +262,37 @@ function points(rang, total) {
   return PTS_DECILE[d - 1] + (rang <= 10 ? PTS_TOP10[rang - 1] : 0);
 }
 
+// Un rallye est "prêt" quand ses engagés et ses spéciales sont saisis.
+// Sinon il n'existe que comme ligne de calendrier (informations en attente).
+function pret(rallye) {
+  return !!(rallye.engages && rallye.engages.length
+         && rallye.speciales && rallye.speciales.length);
+}
+
 function cloture(rallye) {
   const s0 = rallye.speciales[0];
   const t = rallye.cloture || (s0 && s0.depart);
   return t ? Date.parse(t) : null;
 }
 function ecurieOuverte(rallye, maintenant) {
+  if (!pret(rallye)) return false;          // données pas encore saisies
   const c = cloture(rallye);
   return c == null ? true : maintenant < c;
+}
+
+// État d'un rallye pour l'affichage : attente | ouvert | encours | termine
+function etat(rallye, maintenant) {
+  if (!pret(rallye)) return 'attente';
+  const nb = rallye.speciales.length;
+  const courues = rallye.speciales.filter((s, i) => speciqleCourue(rallye, i)).length;
+  if (courues >= nb && nb > 0) return 'termine';
+  if (ecurieOuverte(rallye, maintenant)) return 'ouvert';
+  return 'encours';
 }
 
 module.exports = {
   GRID, SPECIAL, BUDGET, NB_EQUIPAGES, MAX_JOKERS, JOKERS, SEUIL_POURCENT, POWER_STAGE,
   bmBrut, bmVoiture, horsCourse, speciqleCourue,
   calculerSpeciale, calculerRallye, classement, generalParSpeciale, points,
-  validerEcurie, validerJoker, cloture, ecurieOuverte, r1,
+  validerEcurie, validerJoker, cloture, ecurieOuverte, pret, etat, r1,
 };
