@@ -19,31 +19,31 @@ const RALLYES = [
     // Nombre d'engagés par classe EN DÉBUT DE RALLYE (= abscisse du tableau bonus/malus)
     classes: { A8: 21, A6: 22, N4: 6, N3: 1, N2: 1, N1: 1 },
 
-    // Clôture des écuries = départ de l'ES1 (14h30 heure française = 12h30 UTC)
-    cloture: '2026-07-14T12:30:00Z',
+    // Clôture des écuries = départ de l'ES1 (14h20 heure française = 12h20 UTC)
+    cloture: '2026-07-14T12:20:00Z',
 
     // base = temps de référence de la spéciale, en secondes (km × 36 s ≈ 100 km/h).
     speciales: [
-      { code: 'ES1',  nom: 'La Trona 1',                     km: 13.17, base:   474.1, depart: '2026-07-14T12:30:00Z' },
-      { code: 'ES2',  nom: 'Alpens - Les Llosses 1',         km:  21.8, base:   784.8, depart: '2026-07-14T12:40:00Z' },
-      { code: 'ES3',  nom: 'Gombrèn - St Jaume Frontanyà 1', km: 22.55, base:   811.8, depart: '2026-07-14T12:50:00Z' },
-      { code: 'ES4',  nom: 'La Trona 2',                     km: 13.17, base:   474.1, depart: '2026-07-14T13:00:00Z' },
-      { code: 'ES5',  nom: 'Alpens - Les Llosses 2',         km:  21.8, base:   784.8, depart: '2026-07-14T13:10:00Z' },
-      { code: 'ES6',  nom: 'Gombrèn - St Jaume Frontanyà 2', km: 22.55, base:   811.8, depart: '2026-07-14T13:20:00Z' },
-      { code: 'ES7',  nom: 'Les Llosses - Alpens 1',         km:  21.8, base:   784.8, depart: '2026-07-14T13:30:00Z' },
-      { code: 'ES8',  nom: 'Sta Eulàlia 1',                  km:  16.8, base:   604.8, depart: '2026-07-14T13:40:00Z' },
-      { code: 'ES9',  nom: 'Prats de Lluçanès - Olost 1',    km:  9.94, base:   357.8, depart: '2026-07-14T13:50:00Z' },
-      { code: 'ES10', nom: 'Sant Julià 1',                   km:  32.9, base:  1184.4, depart: '2026-07-14T14:00:00Z' },
-      { code: 'ES11', nom: 'Les Llosses - Alpens 2',         km:  21.8, base:   784.8, depart: '2026-07-14T14:10:00Z' },
-      { code: 'ES12', nom: 'Sta Eulàlia 2',                  km:  16.8, base:   604.8, depart: '2026-07-14T14:20:00Z' },
-      { code: 'ES13', nom: 'Prats de Lluçanès - Olost 2',    km:  9.94, base:   357.8, depart: '2026-07-14T14:30:00Z' },
-      { code: 'ES14', nom: 'Sant Julià 2',                   km:  32.9, base:  1184.4, depart: '2026-07-14T14:40:00Z' },
-      { code: 'ES15', nom: 'Sant Boi de Lluçanès 1',         km: 12.85, base:   462.6, depart: '2026-07-14T14:50:00Z' },
-      { code: 'ES16', nom: 'La Roca 1',                      km:  5.05, base:   181.8, depart: '2026-07-14T15:00:00Z' },
-      { code: 'ES17', nom: 'Viladrau 1',                     km: 35.18, base:  1266.5, depart: '2026-07-14T15:10:00Z' },
-      { code: 'ES18', nom: 'Sant Boi de Lluçanès 2',         km: 12.85, base:   462.6, depart: '2026-07-14T15:20:00Z' },
-      { code: 'ES19', nom: 'La Roca 2',                      km:  5.05, base:   181.8, depart: '2026-07-14T15:30:00Z' },
-      { code: 'ES20', nom: 'Viladrau 2',                     km: 35.18, base:  1266.5, depart: '2026-07-14T15:40:00Z' },
+      { code: 'ES1',  nom: 'La Trona 1',                     km: 13.17, base:   474.1, depart: '2026-07-14T12:20:00Z' },
+      { code: 'ES2',  nom: 'Alpens - Les Llosses 1',         km:  21.8, base:   784.8, depart: '2026-07-14T12:30:00Z' },
+      { code: 'ES3',  nom: 'Gombrèn - St Jaume Frontanyà 1', km: 22.55, base:   811.8, depart: '2026-07-14T12:40:00Z' },
+      { code: 'ES4',  nom: 'La Trona 2',                     km: 13.17, base:   474.1, depart: '2026-07-14T12:50:00Z' },
+      { code: 'ES5',  nom: 'Alpens - Les Llosses 2',         km:  21.8, base:   784.8, depart: '2026-07-14T13:00:00Z' },
+      { code: 'ES6',  nom: 'Gombrèn - St Jaume Frontanyà 2', km: 22.55, base:   811.8, depart: '2026-07-14T13:10:00Z' },
+      { code: 'ES7',  nom: 'Les Llosses - Alpens 1',         km:  21.8, base:   784.8, depart: '2026-07-14T13:20:00Z' },
+      { code: 'ES8',  nom: 'Sta Eulàlia 1',                  km:  16.8, base:   604.8, depart: '2026-07-14T13:30:00Z' },
+      { code: 'ES9',  nom: 'Prats de Lluçanès - Olost 1',    km:  9.94, base:   357.8, depart: '2026-07-14T13:40:00Z' },
+      { code: 'ES10', nom: 'Sant Julià 1',                   km:  32.9, base:  1184.4, depart: '2026-07-14T13:50:00Z' },
+      { code: 'ES11', nom: 'Les Llosses - Alpens 2',         km:  21.8, base:   784.8, depart: '2026-07-14T14:00:00Z' },
+      { code: 'ES12', nom: 'Sta Eulàlia 2',                  km:  16.8, base:   604.8, depart: '2026-07-14T14:10:00Z' },
+      { code: 'ES13', nom: 'Prats de Lluçanès - Olost 2',    km:  9.94, base:   357.8, depart: '2026-07-14T14:20:00Z' },
+      { code: 'ES14', nom: 'Sant Julià 2',                   km:  32.9, base:  1184.4, depart: '2026-07-14T14:30:00Z' },
+      { code: 'ES15', nom: 'Sant Boi de Lluçanès 1',         km: 12.85, base:   462.6, depart: '2026-07-14T14:40:00Z' },
+      { code: 'ES16', nom: 'La Roca 1',                      km:  5.05, base:   181.8, depart: '2026-07-14T14:50:00Z' },
+      { code: 'ES17', nom: 'Viladrau 1',                     km: 35.18, base:  1266.5, depart: '2026-07-14T15:00:00Z' },
+      { code: 'ES18', nom: 'Sant Boi de Lluçanès 2',         km: 12.85, base:   462.6, depart: '2026-07-14T15:10:00Z' },
+      { code: 'ES19', nom: 'La Roca 2',                      km:  5.05, base:   181.8, depart: '2026-07-14T15:20:00Z' },
+      { code: 'ES20', nom: 'Viladrau 2',                     km: 35.18, base:  1266.5, depart: '2026-07-14T15:30:00Z' },
     ],
 
     // 52 engagés réels du Rallye de Catalogne 2004.
