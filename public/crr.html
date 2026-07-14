@@ -160,10 +160,12 @@
   .sc.sel{border-color:var(--amber);background:#1d1a12}.sc.sel .c{color:var(--amber)}
   .sc.off{opacity:.25;cursor:not-allowed}.sc.off:hover{border-color:var(--line)}
   .sc .j{display:block;font-size:8px;color:var(--amber);margin-top:2px;font-family:"Oswald",sans-serif}
-  .tg{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);
-    background:var(--card2);cursor:pointer;font-size:12px;flex:0 1 auto;min-width:0;max-width:100%}
-  .tg .p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  @media(max-width:600px){.tg{flex:1 1 100%}}
+  /* une case par ligne, sur toute la largeur : les noms respirent */
+  #tgs{flex-direction:column;gap:7px}
+  .tg{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--line);
+    background:var(--card2);cursor:pointer;font-size:12.5px;width:100%}
+  .tg .p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+  .tg .why{margin-left:auto;flex-shrink:0}
   .tg:hover{border-color:var(--amber-soft)}
   .tg.sel{border-color:var(--amber);background:#1d1a12}.tg.sel .p{color:var(--amber)}
   .tg.off{opacity:.3;cursor:not-allowed}.tg.off:hover{border-color:var(--line)}
@@ -178,9 +180,10 @@
   .sh .n{font-family:"Oswald",sans-serif;font-weight:700;font-size:13px;color:var(--fog);width:38px;flex-shrink:0}
   .sh .m{flex:1;font-size:13px;line-height:1.3}
   .sh .m small{display:block;color:var(--fog);font-size:11px;margin-top:2px}
-  .sh .d{font-family:"Oswald",sans-serif;font-weight:700;font-size:14px;text-align:right}
-  .sh .d.g{color:var(--green)}.sh .d.r{color:var(--err)}
-  .sh .d small{display:block;font-weight:400;font-size:11px;color:var(--fog);font-family:"Space Mono",monospace}
+  .sh .d{display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;flex-shrink:0}
+  .sh .d .tp{font-family:"Space Mono",monospace;font-size:12px;color:var(--paper);font-weight:700}
+  .sh .d .dl{font-family:"Oswald",sans-serif;font-weight:700;font-size:14px}
+  .sh .d .dl.g{color:var(--green)}.sh .d .dl.r{color:var(--err)}.sh .d .dl.n{color:var(--fog)}
   .sb{display:none;padding:0 14px 12px;border-top:1px solid var(--line)}
   .ss.open .sb{display:block}
   .lg{display:flex;justify-content:space-between;align-items:center;padding:9px 0;
@@ -189,9 +192,11 @@
   .lg .w{display:flex;align-items:center;gap:9px;min-width:0;flex:1;flex-wrap:nowrap}
   .lg .w .p{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
   /* la position dans la classe ne doit plus chevaucher le nom */
-  .lg .pos{color:var(--fog);font-size:11px;white-space:nowrap;flex-shrink:0;
-    margin-left:auto;padding-left:10px;text-align:right}
-  .lg .rt{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .lg .pos{color:var(--fog);font-size:11px;white-space:nowrap;flex-shrink:0}
+  /* colonne droite : la position est AU-DESSUS du bonus/malus */
+  .lg .rt{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;min-width:74px}
+  .lg .rt .pos{margin:0;padding:0;text-align:right}
+  .lg .jkb{margin-bottom:2px}
 
   /* infobulle générique (survol) */
   .hint{position:relative;cursor:help;border-bottom:1px dotted var(--fog)}
@@ -688,7 +693,8 @@ function vueCourse(b){
     d.innerHTML='<div class="sh"><span class="n">'+esc(s.code)+'</span><div class="m">'+esc(s.nom)
       +(jkOnSS.length?' <span class="chip cl">'+jkOnSS.length+' joker'+(jkOnSS.length>1?'s':'')+'</span>':'')
       +'<small>base '+fmt(s.base)+'</small></div>'
-      +'<div class="d '+cls+'">'+sg(s.delta)+'<small>'+fmt(s.temps)+'</small></div></div>'
+      +'<div class="d"><span class="tp">'+fmt(s.temps)+'</span>'
+      +'<span class="dl '+(cls||'n')+'">'+sg(s.delta)+'</span></div></div>'
       +'<div class="sb">'
       + s.detail.map(function(x){return ligneEquipage(x);}).join('')
       + ligneVoiture(s.voiture)
@@ -712,10 +718,10 @@ function ligneEquipage(x){
 
   var val;
   if(x.joker){
+    // pas de valeur barrée : le détail est dans l'infobulle
     var gain=Math.round((x.bm-x.brut)*10)/10;
     var gc=gain<0?'g2':(gain>0?'r2':'');
-    val='<span class="hint">'
-      +'<span class="old">'+sg(x.brut)+'</span><span class="bm '+c+'">'+sg(x.bm)+'</span>'
+    val='<span class="hint"><span class="bm '+c+'">'+sg(x.bm)+'</span>'
       +'<span class="hb"><span class="ht">Joker · '+esc(nomJk(x.joker))+'</span>'
       +esc(descJk(x.joker))
       +'<span class="hr" style="margin-top:7px"><span>Sans le joker</span><b>'+sg(x.brut)+' s</b></span>'
@@ -727,14 +733,18 @@ function ligneEquipage(x){
   }
 
   return '<div class="lg"><div class="w"><span class="chip cl">'+esc(x.classe)+'</span>'
-    +'<span class="p">'+esc(x.pilote)+'</span>'+pos+'</div>'
-    +'<div class="rt">'+(x.joker?'<span class="chip cl">'+esc(nomJk(x.joker))+'</span>':'')+val+'</div></div>';
+    +'<span class="p">'+esc(x.pilote)+'</span>'
+    +(x.joker?'<span class="chip cl jkb">'+esc(nomJk(x.joker))+'</span>':'')+'</div>'
+    +'<div class="rt">'+pos+val+'</div></div>';
 }
 
 // Ligne voiture : au survol, le bonus/malus de CHAQUE équipage du modèle.
 function ligneVoiture(v){
   var c=v.bm<0?'g':(v.bm>0?'r':'n');
   var lignes=v.lignes||[];
+  // Repli : si le serveur ne renvoie pas le détail (ancienne version),
+  // on compte au moins les équipages du modèle dans la liste des engagés.
+  var nb = lignes.length || nbEquipagesVoiture(v.modele);
   var det='';
   if(lignes.length){
     det='<span class="hb"><span class="ht">Moyenne de '+lignes.length+' équipage'+(lignes.length>1?'s':'')+'</span>'
@@ -749,9 +759,9 @@ function ligneVoiture(v){
       +'</span>';
   }
   return '<div class="lg"><div class="w"><span class="chip cl">Voiture</span>'
-    +'<span class="p">'+esc(v.modele)+'</span>'
-    +'<span class="pos">'+lignes.length+' équipage'+(lignes.length>1?'s':'')+'</span></div>'
-    +'<div class="rt"><span class="hint'+(det?'':'" style="border:none;cursor:default')+'">'
+    +'<span class="p">'+esc(v.modele)+'</span></div>'
+    +'<div class="rt"><span class="pos">'+nb+' équipage'+(nb>1?'s':'')+'</span>'
+    +'<span class="hint'+(det?'':'" style="border:none;cursor:default')+'">'
     +'<span class="bm '+c+'">'+sg(v.bm)+'</span>'+det+'</span></div></div>';
 }
 
