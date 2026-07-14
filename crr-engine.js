@@ -90,16 +90,24 @@ function horsCourse(rallye, engageId, ssIndex) {
 // Bonus/malus de la VOITURE sur une spéciale : moyenne de tous les équipages
 // réels roulant ce modèle. Les forfaits (Fo) sont exclus de la moyenne.
 function bmVoiture(rallye, modele, ssCode) {
-  const vals = [];
-  for (const e of rallye.engages) {
+  return detailVoiture(rallye, modele, ssCode).bm;
+}
+
+// Détail de la moyenne voiture : la liste des équipages comptés et leur bonus/malus.
+// Les forfaits (Fo) sont exclus de la moyenne.
+function detailVoiture(rallye, modele, ssCode) {
+  const lignes = [];
+  for (const e of (rallye.engages || [])) {
     if (e.modele !== modele) continue;
     const res = ((rallye.resultats || {})[e.id] || {})[ssCode];
     if (res == null || res === 'Fo') continue;          // forfait : ignoré
     const nb = (rallye.classes || {})[e.classe] || 1;
-    vals.push(bmBrut(res, nb));
+    lignes.push({ id: e.id, pilote: e.pilote, classe: e.classe, engages: nb,
+                  res, bm: bmBrut(res, nb) });
   }
-  if (!vals.length) return 0;
-  return r1(vals.reduce((a, b) => a + b, 0) / vals.length);
+  if (!lignes.length) return { bm: 0, lignes: [] };
+  const bm = r1(lignes.reduce((a, l) => a + l.bm, 0) / lignes.length);
+  return { bm, lignes };
 }
 
 // Chrono d'un joueur sur une spéciale.
@@ -128,10 +136,11 @@ function calculerSpeciale(rallye, ecurie, jokers, ssIndex) {
                   res, brut, bm, joker: jk ? jk.joker : null });
   });
 
-  const car = bmVoiture(rallye, ecurie.voiture, ss.code);
-  const delta = r1(somme + car);
+  const dv = detailVoiture(rallye, ecurie.voiture, ss.code);
+  const delta = r1(somme + dv.bm);
   const base = Number(ss.base) || 0;
-  return { code: ss.code, nom: ss.nom, base, detail, voiture: { modele: ecurie.voiture, bm: car },
+  return { code: ss.code, nom: ss.nom, base, detail,
+           voiture: { modele: ecurie.voiture, bm: dv.bm, lignes: dv.lignes },
            delta, temps: r1(base + delta) };
 }
 
@@ -292,7 +301,7 @@ function etat(rallye, maintenant) {
 
 module.exports = {
   GRID, SPECIAL, BUDGET, NB_EQUIPAGES, MAX_JOKERS, JOKERS, SEUIL_POURCENT, POWER_STAGE,
-  bmBrut, bmVoiture, horsCourse, speciqleCourue,
+  bmBrut, bmVoiture, detailVoiture, horsCourse, speciqleCourue,
   calculerSpeciale, calculerRallye, classement, generalParSpeciale, points,
   validerEcurie, validerJoker, cloture, ecurieOuverte, pret, etat, r1,
 };
