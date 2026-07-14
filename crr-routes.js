@@ -291,23 +291,52 @@ module.exports = function mountCRR(deps) {
       const general = E.classement(r, ecuries, jokers);
       general.forEach(l => { l.points = E.points(l.rang, general.length); });
 
+      // Les compositions ne sont révélées qu'une fois les écuries closes :
+      // sinon les derniers à composer pourraient copier les meilleurs.
+      const revele = !E.ecurieOuverte(r, Date.now());
+
       // classement de chaque spéciale courue (les temps DE la spéciale)
       const parSpeciale = {};
       (r.speciales || []).forEach((s, i) => {
         if (!E.speciqleCourue(r, i)) return;
         const lignes = ecuries.map(ec => {
           const c = E.calculerSpeciale(r, ec, jokers[ec.user] || [], i);
-          return { user: ec.user, temps: c.temps, delta: c.delta };
+          const l = { user: ec.user, temps: c.temps, delta: c.delta };
+          if (revele) {
+            l.detail = c.detail.map(d => ({
+              pilote: d.pilote, classe: d.classe, engages: d.engages,
+              res: d.res, brut: d.brut, bm: d.bm, joker: d.joker,
+            }));
+            l.voiture = c.voiture;
+          }
+          return l;
         }).sort((a, b) => a.temps - b.temps);
         const meilleur = lignes.length ? lignes[0].temps : 0;
         lignes.forEach((l, k) => { l.rang = k + 1; l.ecart = E.r1(l.temps - meilleur); });
         parSpeciale[s.code] = lignes;
       });
 
+      // composition de chaque écurie (révélée après clôture)
+      const compos = {};
+      if (revele) {
+        ecuries.forEach(ec => {
+          compos[ec.user] = {
+            equipages: ec.equipages.map(id => {
+              const e = (r.engages || []).find(x => x.id === id);
+              return e ? { id: e.id, pilote: e.pilote, classe: e.classe, cout: e.cout } : { id };
+            }),
+            voiture: ec.voiture,
+            cout: ec.cout,
+            jokers: (jokers[ec.user] || []).map(j => ({ joker: j.joker, ss: j.ss, equipage: j.equipage })),
+          };
+        });
+      }
+
       // classement GÉNÉRAL à l'issue de chaque spéciale, avec évolution des places
       const generalParSS = E.generalParSpeciale(r, ecuries, jokers);
 
-      res.json({ ok: true, general, parSpeciale, generalParSS, joueurs: general.length });
+      res.json({ ok: true, general, parSpeciale, generalParSS, compos, revele,
+                 joueurs: general.length });
     } catch (e) {
       console.error('GET /api/crr/classement', e.message);
       res.status(500).json({ ok: false, error: 'Classement indisponible.' });
