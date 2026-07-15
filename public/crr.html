@@ -340,7 +340,14 @@ var JK=[
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function fmt(s){var m=Math.floor(s/60),r=(s%60).toFixed(1);if(r<10)r='0'+r;return m+':'+r;}
+// Bonus/malus : valeur de jeu, toujours en secondes brutes (ex : -6.7, +15.0).
 function sg(v){return (v>0?'+':'')+Number(v).toFixed(1);}
+// Écart de temps : secondes sous 1 min, m:ss.d au-delà (ex : +8:00.0 et non +480.0s).
+function ec(v){
+  var n=Number(v)||0, neg=n<0, a=Math.abs(n);
+  var t=(a<60)?a.toFixed(1)+'s':fmt(a);
+  return (neg?'−':'+')+t;
+}
 function enjeu(n){if(n<=3)return{b:1,t:'Bonus/Malus faibles',hi:false};
   if(n<=6)return{b:2,t:'Bonus/Malus moyens',hi:false};return{b:3,t:'Bonus/Malus forts',hi:true};}
 function gauge(n){var e=enjeu(n),b='';for(var i=1;i<=3;i++)b+='<i class="'+(i<=e.b?'on':'')+'"></i>';
@@ -426,7 +433,7 @@ function rendre(){
         +(MOI.course&&MOI.course.courues?fmt(MOI.course.total):'—')
         +'</div><div class="s">'+nbC+' / '+R.speciales.length+' spéciales</div></div>'
      + '<div class="st"><div class="k">Provisoire</div><div class="v">'+(moi?moi.rang+'ᵉ':'—')
-        +'</div><div class="s">'+(moi&&moi.rang>1?'+'+(moi.total-lead).toFixed(1)+'s du leader':(moi?'leader':'pas classé'))+'</div></div>'
+        +'</div><div class="s">'+(moi&&moi.rang>1?ec(moi.total-lead)+' du leader':(moi?'leader':'pas classé'))+'</div></div>'
      + '<div class="st"><div class="k">Jokers posés</div><div class="v">'+MOI.jokers.length
         +'</div><div class="s">sur '+R.maxJokers+' max</div></div>'
      + '<div class="st"><div class="k">Écurie</div><div class="v">'+(MOI.ecurie?MOI.ecurie.cout:'—')
@@ -823,7 +830,7 @@ function blocClassement(){
      }
      return '<tr class="'+(l.user===U?'me ':'')+(i===0?'lead':'')+'"><td class="p">'+l.rang+'</td>'
       +'<td>'+infoJoueur(l.user,null)+'</td>'
-      +'<td class="t">'+fmt(l.total)+'</td><td class="e">'+(i===0?'—':sg(l.total-lead))+'</td>'
+      +'<td class="t">'+fmt(l.total)+'</td><td class="e">'+(i===0?'—':ec(l.total-lead))+'</td>'
       +'<td>'+ev+'</td>'
       +'<td class="t" style="color:var(--amber)">'+l.points+'</td></tr>';
    }).join('')+'</tbody></table><div style="margin-top:10px;font-size:11px;color:var(--fog)">'
@@ -850,7 +857,7 @@ function tblSpe(l,code){
      return '<tr class="'+(x.user===U?'me ':'')+(i===0?'lead':'')+'"><td class="p">'+x.rang+'</td>'
       +'<td>'+infoJoueur(x.user,code)+(i===0?'<span class="win">Scratch</span>':'')+'</td>'
       +'<td class="t">'+fmt(x.temps)+'</td>'
-      +'<td class="e">'+(i===0?'—':'+'+Number(x.ecart).toFixed(1)+'s')+'</td></tr>';
+      +'<td class="e">'+(i===0?'—':ec(x.ecart))+'</td></tr>';
    }).join('')+'</tbody></table>';
 }
 function tblGen(l){
@@ -866,7 +873,7 @@ function tblGen(l){
      }
      return '<tr class="'+(x.user===U?'me ':'')+(i===0?'lead':'')+'"><td class="p">'+x.rang+'</td>'
       +'<td>'+infoJoueur(x.user,null)+'</td><td class="t">'+fmt(x.total)+'</td>'
-      +'<td class="e">'+(i===0?'—':'+'+Number(x.ecart).toFixed(1)+'s')+'</td>'
+      +'<td class="e">'+(i===0?'—':ec(x.ecart))+'</td>'
       +'<td>'+ev+'</td></tr>';
    }).join('')+'</tbody></table>';
 }
