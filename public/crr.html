@@ -53,6 +53,15 @@
   .hero .meta{display:flex;flex-wrap:wrap;gap:6px 20px;color:var(--fog);font-size:12px;margin-top:10px}
   .hero .meta b{color:var(--paper)}
   .stats{display:flex;flex-wrap:wrap;gap:26px;margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+  .ecu{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .ecuh{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--fog);margin-bottom:10px}
+  .eq{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #23272e;font-size:13px}
+  .eq:last-child{border-bottom:none}
+  .eqn{font-family:"Oswald",sans-serif;font-weight:700;font-size:12px;color:var(--amber);
+    width:64px;flex-shrink:0}
+  .eqp{flex:1;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .eqi{font-size:11px;color:var(--fog);flex-shrink:0;white-space:nowrap}
   .st .k{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fog)}
   .st .v{font-family:"Oswald",sans-serif;font-weight:700;font-size:24px;margin-top:3px}
   .st .v.amber{color:var(--amber)}
@@ -200,8 +209,10 @@
     position:relative}
   .cmenu .mi:hover{border-color:var(--amber-soft);color:var(--paper)}
   .cmenu .mi.on{border-color:var(--amber);background:#1d1a12;color:var(--amber)}
-  .cmenu .mi.jk::after{content:"";position:absolute;top:3px;right:3px;width:4px;height:4px;
-    background:var(--amber);border-radius:50%}
+  .cmenu .mi.mav{border-color:#3a4048;color:#6f7681}      /* à venir  */
+  .cmenu .mi.men{border-color:#7dd3fc;color:#7dd3fc;background:#12202b}  /* en cours */
+  .cmenu .mi.mtm{border-color:var(--green);color:var(--green)}          /* terminée */
+  .cmenu .mi.on{outline:2px solid var(--amber);outline-offset:-2px}
   .cbody{padding:6px 14px 14px}
   .swipehint{text-align:center;font-size:10px;color:#5b616b;padding:2px 0 10px;display:none}
   @media(hover:none){.swipehint{display:block}}
@@ -232,26 +243,35 @@
 
   /* infobulle générique (survol) */
   .hint{position:relative;cursor:help;border-bottom:1px dotted var(--fog)}
-  .hint .hb{position:absolute;bottom:calc(100% + 9px);right:0;width:250px;
+  .hint .hb{position:absolute;bottom:calc(100% + 9px);left:0;width:250px;max-width:78vw;
     background:#0a0c0f;border:1px solid var(--line);padding:11px 12px;text-align:left;
     opacity:0;visibility:hidden;transition:.15s;z-index:75;pointer-events:none;
     box-shadow:0 14px 34px -12px #000;font-size:11.5px;line-height:1.5;color:var(--fog);
     white-space:normal}
   .hint:hover .hb,.hint.show .hb{opacity:1;visibility:visible}
   .hb .ht{font-family:"Oswald",sans-serif;font-weight:700;font-size:11.5px;color:var(--amber);
-    text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-  .hb .hr{display:flex;justify-content:space-between;gap:10px;padding:3px 0;
-    border-bottom:1px solid #1e232a}
-  .hb .hr:last-child{border-bottom:none}
-  .hb .hr b{color:var(--paper);font-weight:400}
-  .hb .hs{margin-top:7px;padding-top:6px;border-top:1px solid var(--line);color:var(--paper)}
+    text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;
+    padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .hb .hr{display:flex;justify-content:space-between;gap:10px;padding:4px 0;line-height:1.35}
+  .hb .hr+.hr{border-top:1px solid #1e232a}
+  .hb .hr b{color:var(--paper);font-weight:700}
+  .hb .hs{margin-top:8px;padding-top:7px;border-top:1px solid var(--line);color:var(--paper)}
   .hb .g2{color:var(--green)}.hb .r2{color:var(--err)}
-  .nm-h{cursor:help}
+  .nm-h{cursor:help;position:relative}
   .nm-h:hover{color:var(--amber)}
-  .auto{font-size:10.5px;color:#5b616b;text-align:right;margin-top:8px}
+  /* la fenêtre part vers la DROITE du nom (sur mobile, ne sort pas de l'écran) */
+  .nm-h .hb{left:0;right:auto}
+  .auto{font-size:10.5px;color:#5b616b;text-align:right;margin-top:8px;display:flex;
+    align-items:center;justify-content:flex-end;gap:6px}
   .auto b{color:var(--fog)}
-  .bm{font-family:"Oswald",sans-serif;font-weight:700;white-space:nowrap}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;
+    animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+  .bm{font-family:"Oswald",sans-serif;font-weight:700;white-space:nowrap;font-size:15px}
+  .bm.sm{font-size:12.5px}                       /* pilotes & voiture : plus petit */
   .bm.g{color:var(--green)}.bm.r{color:var(--err)}.bm.n{color:var(--fog)}
+  .clab{color:var(--amber);font-weight:700}
+  .voit .p{color:var(--fog)}
   .old{color:var(--fog);text-decoration:line-through;font-size:11px;margin-right:6px}
 
   table{width:100%;border-collapse:collapse;font-size:13px}
@@ -372,6 +392,13 @@ var JK=[
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function fmt(s){var m=Math.floor(s/60),r=(s%60).toFixed(1);if(r<10)r='0'+r;return m+':'+r;}
+// Chrono long : h:mm:ss.d (pour un cumul de rallye qui peut dépasser l'heure).
+function fmtLong(s){
+  var h=Math.floor(s/3600), m=Math.floor(s%3600/60), sec=(s%60).toFixed(1);
+  if(sec<10)sec='0'+sec;
+  if(m<10&&h>0)m='0'+m;
+  return (h>0?h+':':'')+m+':'+sec;
+}
 // Bonus/malus : valeur de jeu, toujours en secondes brutes (ex : -6.7, +15.0).
 function sg(v){return (v>0?'+':'')+Number(v).toFixed(1);}
 // Écart de temps : secondes sous 1 min, m:ss.d au-delà (ex : +8:00.0 et non +480.0s).
@@ -406,6 +433,22 @@ function charger(){
 }
 
 function eng(id){for(var i=0;i<R.engages.length;i++)if(R.engages[i].id===id)return R.engages[i];return null;}
+
+// Bloc "mon écurie" affiché en HAUT (dans le hero) et en course.
+function blocEcurieHero(){
+  if(!MOI.ecurie)return '';
+  var lignes=MOI.ecurie.equipages.map(function(id){
+    var e=eng(id);if(!e)return '';
+    return '<div class="eq"><span class="eqn">#'+esc(e.id)+'</span>'
+      +'<span class="eqp">'+esc(e.pilote)+'</span>'
+      +'<span class="eqi">'+(R.classes[e.classe]||'?')+' engagés</span></div>';
+  }).join('');
+  var v=MOI.ecurie.voiture;
+  lignes+='<div class="eq"><span class="eqn">'+nbEquipagesVoiture(v)+' éq.</span>'
+    +'<span class="eqp">'+esc(v)+'</span><span class="eqi">voiture</span></div>';
+  return '<div class="ecu"><div class="ecuh">Mon écurie · '+MOI.ecurie.cout+' crédits · '
+    +MOI.jokers.length+'/'+R.maxJokers+' jokers</div>'+lignes+'</div>';
+}
 function nbEquipagesVoiture(m){
   var n=0;for(var i=0;i<R.engages.length;i++)if(R.engages[i].modele===m)n++;return n;
 }
@@ -432,6 +475,8 @@ function blocProgramme(){
   }
   return '<h2 class="sec">Programme du rallye</h2><div class="panel"><div class="prg">'
    + R.speciales.map(function(s){
+      // À venir : horaire pas encore atteint. En cours : horaire dépassé mais
+      // classement pas encore saisi. Terminée : classement intégré.
       var et,cl;
       if(s.courue){et='Terminée';cl='tm';}
       else if(s.partie){et='En cours';cl='en';}
@@ -462,15 +507,14 @@ function rendre(){
   if(R.etat!=='attente'){
     stats='<div class="stats">'
      + '<div class="st"><div class="k">Mon chrono</div><div class="v amber">'
-        +(MOI.course&&MOI.course.courues?fmt(MOI.course.total):'—')
+        +(MOI.course&&MOI.course.courues?fmtLong(MOI.course.total):'—')
         +'</div><div class="s">'+nbC+' / '+R.speciales.length+' spéciales</div></div>'
      + '<div class="st"><div class="k">Provisoire</div><div class="v">'+(moi?moi.rang+'ᵉ':'—')
         +'</div><div class="s">'+(moi&&moi.rang>1?ec(moi.total-lead)+' du leader':(moi?'leader':'pas classé'))+'</div></div>'
      + '<div class="st"><div class="k">Jokers posés</div><div class="v">'+MOI.jokers.length
         +'</div><div class="s">sur '+R.maxJokers+' max</div></div>'
-     + '<div class="st"><div class="k">Écurie</div><div class="v">'+(MOI.ecurie?MOI.ecurie.cout:'—')
-        +'</div><div class="s">'+(MOI.ecurie?'crédits utilisés':'non composée')+'</div></div>'
      + '</div>';
+    if(MOI.ecurie) stats += blocEcurieHero();
   }
 
   a.innerHTML=
@@ -480,8 +524,10 @@ function rendre(){
    + '<div class="meta"><span><b>'+esc(R.dates)+'</b></span><span>'+esc(R.surface)+'</span>'
      +(R.etat==='attente'?''
        :'<span><b>'+R.engages.length+'</b> engagés · '+Object.keys(R.classes).length+' classes</span>')
-     +'<span>'+esc(R.championnat||'')+'</span></div>'
+     +'<span>'+esc(R.championnat||'')+'</span>'
+     +'<span><b>'+(CL&&CL.joueurs?CL.joueurs:0)+'</b> joueur'+((CL&&CL.joueurs>1)?'s':'')+' engagé'+((CL&&CL.joueurs>1)?'s':'')+'</span></div>'
    + stats
+   + (R.etat!=='attente'?'<div class="auto" id="maj"></div>':'')
    + '</div>'
    + '<div id="body"></div>';
 
@@ -711,15 +757,16 @@ function vueCourse(b){
    + blocCalendrier();
   b.innerHTML=h;
 
-  // mon écurie
+  // mon écurie (n° de course + nb engagés ; pas de nom de classe ; pas de "Voiture")
   var t=document.getElementById('team');
   t.innerHTML=MOI.ecurie.equipages.map(function(id){
     var e=eng(id);if(!e)return '';
-    return '<div class="lg"><div class="w"><span class="chip cl">'+esc(e.classe)+'</span><span class="p">'+esc(e.pilote)
-      +'</span><span class="pos">#'+esc(e.id)+' · '+R.classes[e.classe]+' engagés</span></div></div>';
-  }).join('')+'<div class="lg"><div class="w"><span class="chip cl">Voiture</span><span class="p">'
-    +esc(MOI.ecurie.voiture)+'</span><span class="pos">'+nbEquipagesVoiture(MOI.ecurie.voiture)
-    +' équipage'+(nbEquipagesVoiture(MOI.ecurie.voiture)>1?'s':'')+' sur ce modèle</span></div></div>';
+    return '<div class="eq"><span class="eqn">#'+esc(e.id)+'</span>'
+      +'<span class="eqp">'+esc(e.pilote)+'</span>'
+      +'<span class="eqi">'+(R.classes[e.classe]||'?')+' engagés</span></div>';
+  }).join('')
+  +'<div class="eq"><span class="eqn">'+nbEquipagesVoiture(MOI.ecurie.voiture)+' éq.</span>'
+    +'<span class="eqp">'+esc(MOI.ecurie.voiture)+'</span><span class="eqi">voiture</span></div>';
 
   // spéciales : carrousel (une à la fois, flèches + swipe + clavier)
   var L=document.getElementById('sslist');
@@ -730,24 +777,33 @@ function vueCourse(b){
 }
 
 var _ssIdx=null;
+// État d'une spéciale d'après R.speciales : mav (à venir) / men (en cours) / mtm (terminée)
+function etatSSclass(code){
+  for(var i=0;i<R.speciales.length;i++){
+    if(R.speciales[i].code!==code)continue;
+    var sp=R.speciales[i];
+    if(sp.courue)return 'mtm';
+    if(sp.partie)return 'men';
+    return 'mav';
+  }
+  return 'mav';
+}
 function renderCarou(L,ss){
   var i=_ssIdx, s=ss[i];
   var cls=s.delta<0?'g':(s.delta>0?'r':'');
   var jkOnSS=MOI.jokers.filter(function(j){return j.ss===s.code;});
-
-  var jkTxt=jkOnSS.length?'<span class="jk">● '+jkOnSS.length+' joker'+(jkOnSS.length>1?'s':'')+'</span>':'';
 
   L.innerHTML='<div class="carou">'
    + '<div class="cnav">'
      + '<button class="arr" id="prev" '+(i<=0?'disabled':'')+'>‹</button>'
      + '<div class="cinfo" id="cinfo">'
        + '<div class="c"><b>'+esc(s.code)+'</b> <span class="sep">·</span> '+(i+1)+'/'+ss.length
-         + ' <span class="sep">—</span> '+esc(s.nom)+jkTxt+'</div>'
+         + ' <span class="sep">—</span> '+esc(s.nom)+'</div>'
        + '<div class="hintline">▾ cliquer pour choisir une spéciale</div>'
        + '<div class="cmenu" id="cmenu">'
          + ss.map(function(x,k){
-             var j=MOI.jokers.some(function(jo){return jo.ss===x.code;});
-             return '<div class="mi'+(k===i?' on':'')+(j?' jk':'')+'" data-k="'+k+'">'+esc(x.code)+'</div>';
+             var cl=etatSSclass(x.code);
+             return '<div class="mi '+cl+(k===i?' on':'')+'" data-k="'+k+'">'+esc(x.code)+'</div>';
            }).join('')
        + '</div>'
      + '</div>'
@@ -755,8 +811,7 @@ function renderCarou(L,ss){
    + '</div>'
    + '<div class="cbody">'
      + '<div class="sh" style="cursor:default;padding:10px 0"><span class="n">'+esc(s.code)+'</span>'
-       + '<div class="m">'+esc(s.nom)
-       + '<small>base '+fmt(s.base)+'</small></div>'
+       + '<div class="m">'+esc(s.nom)+'<small>base '+fmt(s.base)+'</small></div>'
        + '<div class="d"><span class="tp">'+fmt(s.temps)+'</span>'
        + '<span class="dl '+(cls||'n')+'">'+sg(s.delta)+'</span></div></div>'
      + '<div class="sb" style="display:block;border:none;padding:0">'
@@ -810,17 +865,17 @@ function descJk(id){for(var i=0;i<JK.length;i++)if(JK[i].id===id)return JK[i].d;
 // Ligne d'un équipage dans le détail d'une spéciale.
 function ligneEquipage(x){
   var c=x.bm<0?'g':(x.bm>0?'r':'n');
+  // classe À DROITE, avant la position : "A8 · 2ᵉ / 21" (point médian)
   var pos=(x.res==='Ab'||x.res==='Fo')
-        ? '<span class="chip ab">'+(x.res==='Ab'?'Abandon':'Forfait')+'</span>'
-        : (x.res==='Tf' ? '<span class="chip">Temps forfait.</span>'
-        : '<span class="pos">'+x.res+'ᵉ / '+x.engages+'</span>');
+        ? '<span class="pos"><b class="clab">'+esc(x.classe)+'</b> · '+(x.res==='Ab'?'Abandon':'Forfait')+'</span>'
+        : (x.res==='Tf' ? '<span class="pos"><b class="clab">'+esc(x.classe)+'</b> · Temps forf.</span>'
+        : '<span class="pos"><b class="clab">'+esc(x.classe)+'</b> · '+x.res+'ᵉ / '+x.engages+'</span>');
 
   var val;
   if(x.joker){
-    // pas de valeur barrée : le détail est dans l'infobulle
     var gain=Math.round((x.bm-x.brut)*10)/10;
     var gc=gain<0?'g2':(gain>0?'r2':'');
-    val='<span class="hint"><span class="bm '+c+'">'+sg(x.bm)+'</span>'
+    val='<span class="hint"><span class="bm sm '+c+'">'+sg(x.bm)+'</span>'
       +'<span class="hb"><span class="ht">Joker · '+esc(nomJk(x.joker))+'</span>'
       +esc(descJk(x.joker))
       +'<span class="hr" style="margin-top:7px"><span>Sans le joker</span><b>'+sg(x.brut)+' s</b></span>'
@@ -828,11 +883,10 @@ function ligneEquipage(x){
       +'<span class="hs">Gain : <b class="'+gc+'">'+(gain===0?'aucun':sg(gain)+' s')+'</b></span>'
       +'</span></span>';
   } else {
-    val='<span class="bm '+c+'">'+sg(x.bm)+'</span>';
+    val='<span class="bm sm '+c+'">'+sg(x.bm)+'</span>';
   }
 
-  return '<div class="lg"><div class="w"><span class="chip cl">'+esc(x.classe)+'</span>'
-    +'<span class="p">'+esc(x.pilote)+'</span>'
+  return '<div class="lg"><div class="w"><span class="p">'+esc(x.pilote)+'</span>'
     +(x.joker?'<span class="chip cl jkb">'+esc(nomJk(x.joker))+'</span>':'')+'</div>'
     +'<div class="rt">'+pos+val+'</div></div>';
 }
@@ -857,11 +911,10 @@ function ligneVoiture(v){
       +'<br><i style="color:#5b616b;font-style:normal;font-size:10.5px">Les forfaits sont exclus de la moyenne.</i></span>'
       +'</span>';
   }
-  return '<div class="lg"><div class="w"><span class="chip cl">Voiture</span>'
-    +'<span class="p">'+esc(v.modele)+'</span></div>'
+  return '<div class="lg voit"><div class="w"><span class="p">'+esc(v.modele)+'</span></div>'
     +'<div class="rt"><span class="pos">'+nb+' équipage'+(nb>1?'s':'')+'</span>'
     +'<span class="hint'+(det?'':'" style="border:none;cursor:default')+'">'
-    +'<span class="bm '+c+'">'+sg(v.bm)+'</span>'+det+'</span></div></div>';
+    +'<span class="bm sm '+c+'">'+sg(v.bm)+'</span>'+det+'</span></div></div>';
 }
 
 // Infobulle sur un adversaire : sa compo, et sur une spéciale ses bonus/malus.
@@ -910,7 +963,7 @@ function blocClassement(){
     var last=(CL.generalParSS||{})[cs[cs.length-1].code]||[];
     last.forEach(function(x){evol[x.user]=x.evol;});
   }
-  return '<h2 class="sec">Classement général provisoire</h2><div class="panel"><table>'
+  return '<h2 class="sec">Classement général</h2><div class="panel"><table>'
    +'<thead><tr><th></th><th>Écurie</th><th style="text-align:right">Chrono</th><th style="text-align:right">Écart</th>'
    +'<th style="text-align:right">Évol.</th><th style="text-align:right">Pts</th></tr></thead><tbody>'
    +g.map(function(l,i){
@@ -927,8 +980,7 @@ function blocClassement(){
       +'<td class="t" style="color:var(--amber)">'+l.points+'</td></tr>';
    }).join('')+'</tbody></table><div style="margin-top:10px;font-size:11px;color:var(--fog)">'
    +g.length+' écurie'+(g.length>1?'s':'')+' engagée'+(g.length>1?'s':'')+' · barème '
-   +(g.length<15?'petit peloton':'pourcentage')+' · évolution depuis la dernière spéciale</div>'
-   +'<div class="auto" id="maj"></div></div>';
+   +(g.length<15?'petit peloton':'pourcentage')+' · évolution depuis la dernière spéciale</div></div>';
 }
 // Deux classements complets par spéciale : la spéciale, et le général à son issue.
 function tablesSS(code){
@@ -947,7 +999,7 @@ function tblSpe(l,code){
    +'<th style="text-align:right">Écart</th></tr></thead><tbody>'
    +l.map(function(x,i){
      return '<tr class="'+(x.user===U?'me ':'')+(i===0?'lead':'')+'"><td class="p">'+x.rang+'</td>'
-      +'<td>'+infoJoueur(x.user,code)+(i===0?'<span class="win">Scratch</span>':'')+'</td>'
+      +'<td>'+infoJoueur(x.user,code)+'</td>'
       +'<td class="t">'+fmt(x.temps)+'</td>'
       +'<td class="e">'+(i===0?'—':ec(x.ecart))+'</td></tr>';
    }).join('')+'</tbody></table>';
@@ -1129,13 +1181,17 @@ function autoMaj(){
         var av=_sig;
         R=nR;CAL=nCAL;MOI=nMOI;CL=nCL;
         var ap=signature();
-        if(av!==ap){ _sig=ap; rendre(); majEtat(); }   // du nouveau : on redessine
+        if(av!==ap){ _sig=ap; rendre(); majEtat(true); }   // du nouveau : on redessine
+        else { majEtat(false); }                            // rien de neuf : on montre le pouls
       });
   }).catch(function(){});
 }
-function majEtat(){
+function majEtat(change){
   var el=document.getElementById('maj');
-  if(el)el.innerHTML='Actualisé à <b>'+new Date().toLocaleTimeString('fr-FR')+'</b> · mise à jour automatique';
+  if(!el)return;
+  var h=new Date().toLocaleTimeString('fr-FR');
+  el.innerHTML='<span class="pulse"></span>Mise à jour automatique · '
+    +(change?'nouveautés à ':'vérifié à ')+'<b>'+h+'</b>';
 }
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) autoMaj(); });
 
