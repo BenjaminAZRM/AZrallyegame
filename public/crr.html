@@ -689,29 +689,75 @@ function vueCourse(b){
     +esc(MOI.ecurie.voiture)+'</span><span class="pos">'+nbEquipagesVoiture(MOI.ecurie.voiture)
     +' équipage'+(nbEquipagesVoiture(MOI.ecurie.voiture)>1?'s':'')+' sur ce modèle</span></div></div>';
 
-  // spéciales
+  // spéciales : carrousel (une à la fois, flèches + swipe + clavier)
   var L=document.getElementById('sslist');
   var ss=(MOI.course&&MOI.course.speciales)||[];
   if(!ss.length){L.innerHTML='<div class="msg">Aucune spéciale courue pour l\'instant. Ton chrono apparaîtra dès les premiers résultats.</div>';return;}
-  ss.forEach(function(s,i){
-    var d=document.createElement('div');d.className='ss'+(i===ss.length-1?' open':'');
-    var cls=s.delta<0?'g':(s.delta>0?'r':'');
-    var jkOnSS=MOI.jokers.filter(function(j){return j.ss===s.code;});
-    d.innerHTML='<div class="sh"><span class="n">'+esc(s.code)+'</span><div class="m">'+esc(s.nom)
-      +(jkOnSS.length?' <span class="chip cl">'+jkOnSS.length+' joker'+(jkOnSS.length>1?'s':'')+'</span>':'')
-      +'<small>base '+fmt(s.base)+'</small></div>'
-      +'<div class="d"><span class="tp">'+fmt(s.temps)+'</span>'
-      +'<span class="dl '+(cls||'n')+'">'+sg(s.delta)+'</span></div></div>'
-      +'<div class="sb">'
-      + s.detail.map(function(x){return ligneEquipage(x);}).join('')
-      + ligneVoiture(s.voiture)
-      + tablesSS(s.code)
-      +'</div>';
-    d.querySelector('.sh').onclick=function(){d.classList.toggle('open');};
-    L.appendChild(d);
-    brancherTabs(d);
-  });
+  if(_ssIdx==null || _ssIdx>=ss.length) _ssIdx=ss.length-1;   // démarre sur la dernière disputée
+  renderCarou(L,ss);
 }
+
+var _ssIdx=null;
+function renderCarou(L,ss){
+  var i=_ssIdx, s=ss[i];
+  var cls=s.delta<0?'g':(s.delta>0?'r':'');
+  var jkOnSS=MOI.jokers.filter(function(j){return j.ss===s.code;});
+
+  L.innerHTML='<div class="carou">'
+   + '<div class="cnav">'
+     + '<button class="arr" id="prev" '+(i<=0?'disabled':'')+'>‹</button>'
+     + '<div class="cinfo"><div class="c"><b>'+esc(s.code)+'</b> · '+(i+1)+' / '+ss.length+'</div>'
+       + '<div class="n">'+esc(s.nom)+'</div></div>'
+     + '<button class="arr" id="next" '+(i>=ss.length-1?'disabled':'')+'>›</button>'
+   + '</div>'
+   + '<div class="dots">'
+     + ss.map(function(x,k){
+         var j=MOI.jokers.some(function(jo){return jo.ss===x.code;});
+         return '<div class="dot'+(k===i?' on':'')+(j?' jk':'')+'" data-k="'+k+'">'+esc(x.code)+'</div>';
+       }).join('')
+   + '</div>'
+   + '<div class="cbody">'
+     + '<div class="sh" style="cursor:default;padding:12px 0"><span class="n">'+esc(s.code)+'</span>'
+       + '<div class="m">'+esc(s.nom)
+       + (jkOnSS.length?' <span class="chip cl">'+jkOnSS.length+' joker'+(jkOnSS.length>1?'s':'')+'</span>':'')
+       + '<small>base '+fmt(s.base)+'</small></div>'
+       + '<div class="d"><span class="tp">'+fmt(s.temps)+'</span>'
+       + '<span class="dl '+(cls||'n')+'">'+sg(s.delta)+'</span></div></div>'
+     + '<div class="sb" style="display:block;border:none;padding:0">'
+       + s.detail.map(function(x){return ligneEquipage(x);}).join('')
+       + ligneVoiture(s.voiture)
+       + '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'+tablesSS(s.code)+'</div>'
+     + '</div>'
+   + '</div>'
+   + '<div class="swipehint">← glisse pour changer de spéciale →</div>'
+   + '</div>';
+
+  var prev=document.getElementById('prev'), next=document.getElementById('next');
+  if(prev)prev.onclick=function(){if(_ssIdx>0){_ssIdx--;renderCarou(L,ss);}};
+  if(next)next.onclick=function(){if(_ssIdx<ss.length-1){_ssIdx++;renderCarou(L,ss);}};
+  Array.prototype.forEach.call(L.querySelectorAll('.dot'),function(d){
+    d.onclick=function(){_ssIdx=+d.getAttribute('data-k');renderCarou(L,ss);};
+  });
+  brancherTabs(L);
+
+  // navigation tactile (swipe gauche/droite)
+  var x0=null, car=L.querySelector('.carou');
+  car.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
+  car.addEventListener('touchend',function(e){
+    if(x0==null)return;
+    var dx=e.changedTouches[0].clientX-x0; x0=null;
+    if(Math.abs(dx)<45)return;
+    if(dx<0 && _ssIdx<ss.length-1){_ssIdx++;renderCarou(L,ss);}
+    else if(dx>0 && _ssIdx>0){_ssIdx--;renderCarou(L,ss);}
+  },{passive:true});
+}
+document.addEventListener('keydown',function(e){
+  var L=document.getElementById('sslist'); if(!L||!L.querySelector('.carou'))return;
+  if(/input|textarea/i.test((e.target.tagName||'')))return;
+  var ss=(MOI.course&&MOI.course.speciales)||[];
+  if(e.key==='ArrowLeft'&&_ssIdx>0){_ssIdx--;renderCarou(L,ss);}
+  if(e.key==='ArrowRight'&&_ssIdx<ss.length-1){_ssIdx++;renderCarou(L,ss);}
+});
 function nomJk(id){for(var i=0;i<JK.length;i++)if(JK[i].id===id)return JK[i].t;return id;}
 function descJk(id){for(var i=0;i<JK.length;i++)if(JK[i].id===id)return JK[i].d;return '';}
 
