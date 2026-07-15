@@ -346,6 +346,7 @@ module.exports = function mountCRR(deps) {
   // Championnat : points cumulés sur tous les rallyes déjà courus
   app.get('/api/crr/championnat', async (req, res) => {
     try {
+      const now = Date.now();
       const total = {};
       const done = [];
       for (const r of RALLYES) {
@@ -356,17 +357,27 @@ module.exports = function mountCRR(deps) {
         if (!ecuries.length) continue;
         const jokers = await getTousJokers(r.id);
         const cl = E.classement(r, ecuries, jokers);
-        cl.forEach(l => {
+        // classement de CE rallye, avec points
+        const lignes = cl.map(l => {
           const p = E.points(l.rang, cl.length);
           total[l.user] = (total[l.user] || 0) + p;
+          return { rang: l.rang, user: l.user, total: l.total, points: p };
         });
-        done.push({ id: r.id, nom: r.nom, joueurs: cl.length, termine: nbCourues === r.speciales.length });
+        done.push({
+          id: r.id, nom: r.nom, dates: r.dates, surface: r.surface,
+          joueurs: cl.length,
+          courues: nbCourues, speciales: r.speciales.length,
+          termine: nbCourues === r.speciales.length,
+          classement: lignes,
+        });
       }
       const classement = Object.keys(total)
         .map(u => ({ user: u, points: total[u] }))
         .sort((a, b) => b.points - a.points);
       classement.forEach((l, i) => { l.rang = i + 1; });
-      res.json({ ok: true, classement, rallyes: done });
+      // le championnat est "définitif" si tous les rallyes prêts sont terminés
+      const enCours = done.some(d => !d.termine);
+      res.json({ ok: true, classement, rallyes: done, provisoire: enCours });
     } catch (e) {
       console.error('GET /api/crr/championnat', e.message);
       res.status(500).json({ ok: false, error: 'Championnat indisponible.' });
