@@ -14,10 +14,12 @@ module.exports = function mountCRR(deps) {
 
   // ── Stockage ────────────────────────────────────────────────────────────────
   const FILE = path.join(DATA_DIR, 'crr.json');
-  let store = { ecuries: {}, jokers: {} };   // { "rallyeId|user": {...} }
+  let store = { ecuries: {}, jokers: {}, completions: {} };   // { "rallyeId|user": {...} } + { rallyeId: ts }
   try {
     const raw = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-    if (raw && typeof raw === 'object') store = { ecuries: raw.ecuries || {}, jokers: raw.jokers || {} };
+    if (raw && typeof raw === 'object') store = {
+      ecuries: raw.ecuries || {}, jokers: raw.jokers || {}, completions: raw.completions || {},
+    };
   } catch (e) { /* premier lancement */ }
   function saveFile() {
     try { fs.writeFileSync(FILE, JSON.stringify(store)); }
@@ -71,6 +73,22 @@ module.exports = function mountCRR(deps) {
   function pg() { return !!pool && tablesPretes && isDbReady(); }
 
   const cle = (r, u) => r + '|' + u;
+
+  // Mémorise l'instant où un rallye devient complet (toutes spéciales saisies).
+  // Renvoie ce timestamp (ou null si le rallye n'est pas encore complet).
+  function completeDepuis(r) {
+    if (!E.pret(r)) return null;
+    const nb = r.speciales.length;
+    const courues = r.speciales.filter((s, i) => E.speciqleCourue(r, i)).length;
+    if (!(courues >= nb && nb > 0)) return null;      // pas complet
+    if (!store.completions[r.id]) {                   // 1re fois qu'on le voit complet
+      store.completions[r.id] = Date.now();
+      saveFile();
+    }
+    return store.completions[r.id];
+  }
+  // état d'un rallye en tenant compte de la période de grâce de 24 h
+  function etatDe(r, now) { return E.etat(r, now || Date.now(), completeDepuis(r)); }
 
   async function getEcurie(rallyeId, user) {
     if (pg()) {
@@ -140,14 +158,14 @@ module.exports = function mountCRR(deps) {
   function rallyeCourant() {
     const now = Date.now();
     // 1) un rallye en cours (parti mais pas fini)
-    const enCours = RALLYES.filter(r => E.etat(r, now) === 'encours');
+    const enCours = RALLYES.filter(r => etatDe(r, now) === 'encours');
     if (enCours.length) return enCours[enCours.length - 1];
     // 2) un rallye ouvert à la composition
-    const ouverts = RALLYES.filter(r => E.etat(r, now) === 'ouvert');
+    const ouverts = RALLYES.filter(r => etatDe(r, now) === 'ouvert');
     if (ouverts.length) return ouverts[0];
     // 3) le prochain du calendrier (données pas encore saisies).
     //    On se fie à `debut` (date ISO) si elle existe, sinon à l'ordre du fichier.
-    const attente = RALLYES.filter(r => E.etat(r, now) === 'attente');
+    const attente = RALLYES.filter(r => etatDe(r, now) === 'attente');
     if (attente.length) {
       const avec = attente.filter(r => r.debut);
       if (avec.length) {
@@ -175,7 +193,7 @@ module.exports = function mountCRR(deps) {
     return {
       id: r.id, nom: r.nom, dates: r.dates, lieu: r.lieu, surface: r.surface,
       championnat: r.championnat, classes: r.classes || {},
-      etat: E.etat(r, now), pret: E.pret(r),
+      etat: etatDe(r, now), pret: E.pret(r),
       cloture: r.cloture, ouvert: E.ecurieOuverte(r, now),
       speciales: sp.map((s, i) => ({
         code: s.code, nom: s.nom, km: s.km, depart: s.depart,
@@ -202,7 +220,7 @@ module.exports = function mountCRR(deps) {
     const r = req.query.rallye ? trouverRallye(req.query.rallye) : rallyeCourant();
     const calendrier = RALLYES.map(x => ({
       id: x.id, nom: x.nom, dates: x.dates, lieu: x.lieu, surface: x.surface,
-      championnat: x.championnat, etat: E.etat(x, now),
+      championnat: x.championnat, etat: etatDe(x, now),
       engages: (x.engages || []).length,
       speciales: (x.speciales || []).length,
       courues: (x.speciales || []).filter((s, i) => E.speciqleCourue(x, i)).length,
