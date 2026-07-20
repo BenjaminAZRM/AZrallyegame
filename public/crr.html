@@ -35,6 +35,10 @@
   .usr a{color:var(--fog);text-decoration:none;margin-left:12px;border-bottom:1px solid var(--line)}
   .usr a:hover{color:var(--amber)}
 
+  .retour{padding:11px 16px;background:#12202b;border:1px solid #7dd3fc;color:#7dd3fc;
+    font-size:12px;cursor:pointer;margin-bottom:14px;transition:.14s}
+  .retour:hover{background:#16283a}
+  .retour b{color:var(--paper)}
   .onglets{display:flex;gap:0;border-bottom:1px solid var(--line);margin-top:6px}
   .og{font-family:"Oswald",sans-serif;font-weight:600;font-size:13px;letter-spacing:.14em;
     text-transform:uppercase;padding:14px 22px;cursor:pointer;color:var(--fog);
@@ -408,6 +412,7 @@ if(!U||!T){location.replace('/');}
 document.getElementById('who').innerHTML='Écurie <b>'+U+'</b>';
 
 var R=null, MOI=null, CL=null, CAL=[], CHP={classement:[],rallyes:[]};
+var _rallyeVu=null;   // id du rallye affiché ; null = le rallye courant
 var S={crews:[null,null,null],car:null};           // composition en cours
 var J={joker:null,ss:null,tg:null};                // joker en cours
 var canHover=matchMedia('(hover:hover)').matches;
@@ -454,7 +459,8 @@ function H(u,o){o=o||{};o.headers=o.headers||{};o.headers['Authorization']='Bear
 
 // ── chargement ───────────────────────────────────────────────────────────────
 function charger(){
-  return H('/api/crr/rallye').then(function(d){
+  var q=_rallyeVu?('?rallye='+encodeURIComponent(_rallyeVu)):'';
+  return H('/api/crr/rallye'+q).then(function(d){
     if(!d.ok) throw new Error(d.error||'Rallye indisponible');
     R=d.rallye; CAL=d.calendrier||[];
     return Promise.all([H('/api/crr/moi?rallye='+R.id), H('/api/crr/classement?rallye='+R.id), H('/api/crr/championnat')]);
@@ -550,6 +556,12 @@ function rendre(){
 }
 
 function rendreRallye(a){
+  // bandeau de retour si on consulte un rallye choisi (pas le courant)
+  var retour='';
+  if(_rallyeVu){
+    retour='<div class="retour" id="retour">‹ Revenir au rallye courant · '
+      +'<b>vous consultez '+esc(R.nom)+'</b></div>';
+  }
   var nbC=courues().length;
   var moi=CL.general.filter(function(l){return l.user===U;})[0];
   var lead=CL.general.length?CL.general[0].total:0;
@@ -572,7 +584,8 @@ function rendreRallye(a){
   }
 
   a.innerHTML=
-   '<div class="hero">'
+   retour
+   + '<div class="hero">'
    + '<div class="kick">'+kick+'</div>'
    + '<h1>'+esc(R.nom)+'</h1>'
    + '<div class="meta"><span><b>'+esc(R.dates)+'</b></span><span>'+esc(R.surface)+'</span>'
@@ -585,11 +598,78 @@ function rendreRallye(a){
    + '</div>'
    + '<div id="body"></div>';
 
+  var rb=document.getElementById('retour');
+  if(rb)rb.onclick=function(){ _rallyeVu=null; _ssIdx=null; charger(); };
+
   var b=document.getElementById('body');
-  if(R.etat==='attente')            vueAttente(b);
+  if(_rallyeVu)                     vueConsultation(b);   // on consulte un rallye choisi : juste les classements
+  else if(R.etat==='attente')       vueAttente(b);
   else if(!MOI.ecurie && R.ouvert)  vueCompo(b);
   else if(!MOI.ecurie && !R.ouvert) vueTropTard(b);
   else                              vueCourse(b);
+}
+
+// VUE CONSULTATION : classements des joueurs, spéciale par spéciale.
+// Pas de "ma course", pas de jokers, pas de liste de spéciales, pas de programme.
+function vueConsultation(b){
+  document.body.classList.remove('hasbar');
+  var courues=R.speciales.filter(function(x){return x.courue;});
+  if(!courues.length){
+    b.innerHTML='<div class="msg">Aucun résultat pour ce rallye.</div>';
+    return;
+  }
+  if(_ssIdx==null || _ssIdx>=courues.length) _ssIdx=courues.length-1;
+  b.innerHTML='<h2 class="sec">Classements spéciale par spéciale</h2><div id="cslist"></div>';
+  renderConsult(document.getElementById('cslist'),courues);
+}
+
+function renderConsult(L,ss){
+  var i=_ssIdx, s=ss[i];
+  L.innerHTML='<div class="carou">'
+   + '<div class="cnav">'
+     + '<button class="arr" id="cprev" '+(i<=0?'disabled':'')+'>‹</button>'
+     + '<div class="cinfo" id="ccinfo">'
+       + '<div class="c"><b>'+esc(s.code)+'</b><span class="sep">/'+ss.length+'</span>'
+         + ' <span class="sep">—</span> '+esc(s.nom)+'</div>'
+       + '<div class="hintline">▾ cliquer pour choisir une spéciale</div>'
+       + '<div class="cmenu" id="ccmenu">'
+         + ss.map(function(x,k){
+             return '<div class="mi '+etatSSclass(x.code)+(k===i?' on':'')+'" data-k="'+k+'">'+esc(x.code)+'</div>';
+           }).join('')
+       + '</div>'
+     + '</div>'
+     + '<button class="arr" id="cnext" '+(i>=ss.length-1?'disabled':'')+'>›</button>'
+   + '</div>'
+   + '<div class="cbody">'
+     + '<div class="tabs" data-tabs>'
+       + '<div class="tb on" data-tb="s">Classement de la spéciale</div>'
+       + '<div class="tb" data-tb="g">Général à l\'issue</div></div>'
+     + '<div class="tv on" data-tv="s">'+tblSpe((CL.parSpeciale||{})[s.code]||[],s.code)+'</div>'
+     + '<div class="tv" data-tv="g">'+tblGen((CL.generalParSS||{})[s.code]||[])+'</div>'
+   + '</div>'
+   + '<div class="swipehint">← glisse pour changer de spéciale →</div>'
+   + '</div>';
+
+  var prev=document.getElementById('cprev'), next=document.getElementById('cnext');
+  if(prev)prev.onclick=function(){if(_ssIdx>0){_ssIdx--;renderConsult(L,ss);}};
+  if(next)next.onclick=function(){if(_ssIdx<ss.length-1){_ssIdx++;renderConsult(L,ss);}};
+  var ci=document.getElementById('ccinfo'), cm=document.getElementById('ccmenu');
+  if(ci&&cm){
+    ci.onclick=function(e){if(e.target.classList.contains('mi'))return;e.stopPropagation();cm.classList.toggle('open');};
+    Array.prototype.forEach.call(cm.querySelectorAll('.mi'),function(d){
+      d.onclick=function(ev){ev.stopPropagation();_ssIdx=+d.getAttribute('data-k');renderConsult(L,ss);};
+    });
+  }
+  brancherTabs(L);
+  // swipe
+  var x0=null, car=L.querySelector('.carou');
+  car.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
+  car.addEventListener('touchend',function(e){
+    if(x0==null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;
+    if(Math.abs(dx)<45)return;
+    if(dx<0&&_ssIdx<ss.length-1){_ssIdx++;renderConsult(L,ss);}
+    else if(dx>0&&_ssIdx>0){_ssIdx--;renderConsult(L,ss);}
+  },{passive:true});
 }
 
 // ── PAGE DE LA SAISON : championnat + calendrier (rallye en cours cliquable) ──
@@ -613,9 +693,14 @@ function brancherCalendrier(root){
     var id=el.getAttribute('data-id');
     if(!id)return;
     var c=CAL.filter(function(x){return x.id===id;})[0];
-    if(c && (c.etat==='ouvert'||c.etat==='encours')){
+    if(c && (c.etat==='ouvert'||c.etat==='encours'||c.etat==='termine')){
       el.classList.add('clic');
-      el.onclick=function(){ _vue='rallye'; rendre(); };
+      el.onclick=function(){
+        _rallyeVu=id;            // afficher CE rallye (même terminé)
+        _vue='rallye';
+        _ssIdx=null;             // repartir sur la dernière spéciale
+        charger();               // recharge les données du rallye choisi
+      };
     }
   });
 }
@@ -710,7 +795,7 @@ function blocCalendrierListe(){
        +'<div class="nm">'+esc(c.nom)+'<small>'+esc(c.surface||'')
          +(c.lieu?' · '+esc(c.lieu):'')+' · '+det.join(' · ')+'</small></div>'
        +'<span class="tg2 '+cl[c.etat]+'">'+lib[c.etat]+'</span>'
-       +((c.etat==='ouvert'||c.etat==='encours')?'<span class="cgo">→</span>':'')
+       +((c.etat==='ouvert'||c.etat==='encours'||c.etat==='termine')?'<span class="cgo">→</span>':'')
        +'</div>';
      }).join('')
    + '</div></div>';
