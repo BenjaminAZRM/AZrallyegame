@@ -315,7 +315,7 @@
   .me{background:#1d1a12}.me .p{color:var(--amber)}
   .t{text-align:right;font-family:"Oswald",sans-serif;font-weight:700}
   .e{text-align:right;font-size:11px;color:var(--fog)}
-  .lead .t{color:var(--amber)}
+  .lead .t{color:var(--paper)}
 
   .tabs{display:flex;gap:0;margin:14px 0 0;border-bottom:1px solid var(--line)}
   .tb{font-family:"Oswald",sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
@@ -1261,7 +1261,7 @@ function tblGen(l){
        else ev='<span class="ev eq">=</span>';
      }
      return '<tr class="'+(x.user===U?'me ':'')+(i===0?'lead':'')+'"><td class="p">'+x.rang+'</td>'
-      +'<td>'+infoJoueur(x.user,null)+'</td><td class="t">'+fmt(x.total)+'</td>'
+      +'<td>'+infoJoueur(x.user,null)+'</td><td class="t">'+fmtLong(x.total)+'</td>'
       +'<td class="e">'+(i===0?'—':ec(x.ecart))+'</td>'
       +'<td>'+ev+'</td></tr>';
    }).join('')+'</tbody></table>';
