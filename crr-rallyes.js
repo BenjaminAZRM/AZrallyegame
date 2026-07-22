@@ -323,13 +323,15 @@ const RALLYES = [
     surface: 'Terre',
     championnat: 'WRC 2026',
     fuseau: 'Europe/Paris',
-    statut: 'a_venir',
-    classes: {},
+    statut: 'ouvert',
+
+    // Engagés par classe en début de rallye (= abscisse du tableau bonus/malus).
+    classes: { RC1: 11, RC2: 33, RC3: 16, RC4: 1 },
 
     // Clôture des écuries = départ ES1 = jeudi 30/7 18:05 heure française (19:05 en Finlande).
     cloture: '2026-07-30T18:05:00+02:00',
 
-    // base = km × 36 s. Horaires depart en heure française (+02:00). Entry list à venir.
+    // base = km × 36 s. Horaires depart en heure française (+02:00).
     speciales: [
       { code: 'ES1',  nom: 'Harju 1',       km:  2.58, base:   92.9, depart: '2026-07-30T18:05:00+02:00' },
       { code: 'ES2',  nom: 'Laukaa 1',      km: 18.2,  base:  655.2, depart: '2026-07-31T07:44:00+02:00' },
@@ -352,8 +354,93 @@ const RALLYES = [
       { code: 'ES19', nom: 'Himos-Jämsä 1', km: 30,    base: 1080.0, depart: '2026-08-02T09:35:00+02:00' },
       { code: 'ES20', nom: 'Himos-Jämsä 2', km: 30,    base: 1080.0, depart: '2026-08-02T12:15:00+02:00' },
     ],
-    engages: [],
-    voitures: [],
+
+    // 61 engagés. cout : 10/20/30/40 selon la performance attendue DANS SA CLASSE.
+    engages: [
+      { id:'1',   pilote:'Sébastien Ogier',      copilote:'Vincent Landais',   classe:'RC1', modele:'Toyota GR Yaris Rally1',             cout:20 },
+      { id:'4',   pilote:'Esapekka Lappi',       copilote:'Enni Mälkönen',     classe:'RC1', modele:'Hyundai i20 N Rally1',               cout:10 },
+      { id:'5',   pilote:'Sami Pajari',          copilote:'Marko Salminen',    classe:'RC1', modele:'Toyota GR Yaris Rally1',             cout:40 },
+      { id:'11',  pilote:'Thierry Neuville',     copilote:'Martijn Wydaeghe',  classe:'RC1', modele:'Hyundai i20 N Rally1',               cout:30 },
+      { id:'16',  pilote:'Adrien Fourmaux',      copilote:'Alexandre Coria',   classe:'RC1', modele:'Hyundai i20 N Rally1',               cout:30 },
+      { id:'18',  pilote:'Takamoto Katsuta',     copilote:'Aaron Johnston',    classe:'RC1', modele:'Toyota GR Yaris Rally1',             cout:20 },
+      { id:'22',  pilote:'Mārtiņš Sesks',        copilote:'Renārs Francis',    classe:'RC1', modele:'Ford Puma Rally1',                   cout:10 },
+      { id:'33',  pilote:'Elfyn Evans',          copilote:'Scott Martin',      classe:'RC1', modele:'Toyota GR Yaris Rally1',             cout:20 },
+      { id:'55',  pilote:'Josh McErlean',        copilote:'Eoin Treacy',       classe:'RC1', modele:'Ford Puma Rally1',                   cout:10 },
+      { id:'95',  pilote:'Jon Armstrong',        copilote:'Shane Byrne',       classe:'RC1', modele:'Ford Puma Rally1',                   cout:10 },
+      { id:'99',  pilote:'Oliver Solberg',       copilote:'Elliott Edmondson', classe:'RC1', modele:'Toyota GR Yaris Rally1',             cout:40 },
+
+      { id:'20',  pilote:'Roope Korhonen',       copilote:'Anssi Viinikka',    classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:20 },
+      { id:'21',  pilote:'Léo Rossel',           copilote:'G. Mercoiret',      classe:'RC2', modele:'Lancia Ypsilon Rally2 HF Integrale', cout:20 },
+      { id:'23',  pilote:'Nikolay Gryazin',      copilote:'K. Aleksandrov',    classe:'RC2', modele:'Lancia Ypsilon Rally2 HF Integrale', cout:40 },
+      { id:'24',  pilote:'Yohan Rossel',         copilote:'Arnaud Dunand',     classe:'RC2', modele:'Lancia Ypsilon Rally2 HF Integrale', cout:20 },
+      { id:'25',  pilote:'Robert Virves',        copilote:'Jakko Viilo',       classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:40 },
+      { id:'26',  pilote:'Teemu Suninen',        copilote:'Janni Hussi',       classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:40 },
+      { id:'27',  pilote:'Fau Zaldívar',         copilote:'M. Der Ohannesian', classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:20 },
+      { id:'28',  pilote:'Emil Lindholm',        copilote:'G. Morales',        classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:30 },
+      { id:'29',  pilote:'Gus Greensmith',       copilote:'Jonas Andersson',   classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:20 },
+      { id:'30',  pilote:'Yuki Yamamoto',        copilote:'James Fulton',      classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:20 },
+      { id:'31',  pilote:'Lauri Joona',          copilote:'A. Linnaketo',      classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:20 },
+      { id:'32',  pilote:'Arthur Pelamourgues',  copilote:'Bastien Pouget',    classe:'RC2', modele:'Hyundai i20 N Rally2',               cout:10 },
+      { id:'34',  pilote:'Taylor Gill',          copilote:'Daniel Brkic',      classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:10 },
+      { id:'35',  pilote:'Mille Johansson',      copilote:'Johan Grönvall',    classe:'RC2', modele:'Ford Fiesta Rally2',                 cout:10 },
+      { id:'36',  pilote:'Mattéo Chatillon',     copilote:'M. Cornuau',        classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:10 },
+      { id:'37',  pilote:'Pablo Sarrazin',       copilote:'Yannick Roche',     classe:'RC2', modele:'Lancia Ypsilon Rally2 HF Integrale', cout:10 },
+      { id:'38',  pilote:'Giovanni Trentin',     copilote:'P. Ometto',         classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:20 },
+      { id:'39',  pilote:'Romet Jürgenson',      copilote:'Siim Oja',          classe:'RC2', modele:'Ford Fiesta Rally2',                 cout:20 },
+      { id:'40',  pilote:'Jari-Matti Latvala',   copilote:'Juho Hänninen',     classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:30 },
+      { id:'41',  pilote:'Jaspar Vaher',         copilote:'Rait Jansen',       classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:40 },
+      { id:'42',  pilote:'Mikko Heikkilä',       copilote:'K. Temonen',        classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:30 },
+      { id:'43',  pilote:'Patrick Enok',         copilote:'Silver Simm',       classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:30 },
+      { id:'44',  pilote:'Tuukka Kauppinen',     copilote:'Topi Luhtinen',     classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:20 },
+      { id:'45',  pilote:'Joosep Ralf Nõgene',   copilote:'Aleks Lesk',        classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:10 },
+      { id:'46',  pilote:'Takumi Matsushita',    copilote:'Pekka Kelander',    classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:10 },
+      { id:'47',  pilote:'Shotaro Goto',         copilote:'Jussi Lindberg',    classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:10 },
+      { id:'48',  pilote:'Martin Prokop',        copilote:'Michal Ernst',      classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:20 },
+      { id:'49',  pilote:'Eliott Delecour',      copilote:'Fabrice Gordon',    classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:10 },
+      { id:'50',  pilote:'Conner Martell',       copilote:'A. Gelsomino',      classe:'RC2', modele:'Lancia Ypsilon Rally2 HF Integrale', cout:10 },
+      { id:'51',  pilote:'Adrien Mosca',         copilote:'Julie Amblard',     classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:10 },
+      { id:'52',  pilote:'Uğur Soylu',           copilote:'M. Yalçın',         classe:'RC2', modele:'Škoda Fabia RS Rally2',              cout:10 },
+      { id:'53',  pilote:'Johannes Keferböck',   copilote:'Ilka Minor',        classe:'RC2', modele:'Toyota GR Yaris Rally2',             cout:10 },
+      { id:'70',  pilote:'Olli Lahti',           copilote:'Laura Suvanto',     classe:'RC2', modele:'Škoda Fabia R5',                     cout:10 },
+
+      { id:'54',  pilote:'Matteo Fontana',       copilote:'A. Arnaboldi',      classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:30 },
+      { id:'56',  pilote:'Tymoteusz Abramowski', copilote:'Jakub Wróbel',      classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:20 },
+      { id:'57',  pilote:'Nataniel Bruun',       copilote:'J. Martínez',       classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:20 },
+      { id:'58',  pilote:'Jarkko Nikara',        copilote:'Tomiya Maekawa',    classe:'RC3', modele:'Renault Clio Rally3',                cout:30 },
+      { id:'59',  pilote:'Rio Ogata',            copilote:'M. Korhonen',       classe:'RC3', modele:'Renault Clio Rally3',                cout:10 },
+      { id:'60',  pilote:'Kanta Yanaguida',      copilote:'V. Mannisenmäki',   classe:'RC3', modele:'Renault Clio Rally3',                cout:10 },
+      { id:'61',  pilote:'Ville Pynnönen',       copilote:'Niklas Heino',      classe:'RC3', modele:'Renault Clio Rally3',                cout:20 },
+      { id:'62',  pilote:'Riku Tahko',           copilote:'M. Soininen',       classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:20 },
+      { id:'63',  pilote:'Ismo Leikola',         copilote:'Tuomo Hannonen',    classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:40 },
+      { id:'64',  pilote:'Calle Carlberg',       copilote:'Jørgen Eriksen',    classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:40 },
+      { id:'65',  pilote:'Ali Türkkan',          copilote:'Bilge Ayan',        classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:20 },
+      { id:'66',  pilote:'Gil Membrado',         copilote:'Adrián Pérez',      classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:10 },
+      { id:'67',  pilote:'Leevi Lassila',        copilote:'Mikko Lukka',       classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:30 },
+      { id:'68',  pilote:'Craig Rahill',         copilote:'Conor Smith',       classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:10 },
+      { id:'69',  pilote:'Kerem Kazaz',          copilote:'C. Silvestre',      classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:10 },
+      { id:'71',  pilote:'Tuomas Viren',         copilote:'Jussi Laine',       classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:10 },
+
+      { id:'72',  pilote:'Roope Hirvonen',       copilote:'A. Marttila',       classe:'RC4', modele:'Ford Fiesta Rally4',                 cout:20 },
+    ],
+
+    // Modèles proposés (1 par écurie). cout = moyenne des crédits du modèle, ramenée au palier.
+    voitures: [
+      { modele:'Toyota GR Yaris Rally1',             classes:['RC1'], cout:30 },
+      { modele:'Hyundai i20 N Rally1',               classes:['RC1'], cout:20 },
+      { modele:'Ford Puma Rally1',                   classes:['RC1'], cout:10 },
+      { modele:'Toyota GR Yaris Rally2',             classes:['RC2'], cout:20 },
+      { modele:'Lancia Ypsilon Rally2 HF Integrale', classes:['RC2'], cout:20 },
+      { modele:'Škoda Fabia RS Rally2',              classes:['RC2'], cout:20 },
+      { modele:'Hyundai i20 N Rally2',               classes:['RC2'], cout:10 },
+      { modele:'Ford Fiesta Rally2',                 classes:['RC2'], cout:10 },
+      { modele:'Škoda Fabia R5',                     classes:['RC2'], cout:10 },
+      { modele:'Ford Fiesta Rally3',                 classes:['RC3'], cout:20 },
+      { modele:'Renault Clio Rally3',                classes:['RC3'], cout:20 },
+      { modele:'Ford Fiesta Rally4',                 classes:['RC4'], cout:20 },
+    ],
+
+    // Résultats : resultats[idEquipage][codeES] = classement DANS SA CLASSE, ou 'Ab'/'Tf'.
+    // À saisir spéciale par spéciale (ES1 = jeudi 30/7).
     resultats: {},
   },
   {
