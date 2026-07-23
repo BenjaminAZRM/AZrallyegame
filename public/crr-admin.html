@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administration — Chrono Rallye Race</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt:#0e1013; --card:#15181d; --card2:#1a1e24; --line:#2a2f37;
+    --fog:#8b929c; --paper:#eceef1; --amber:#fbbf24; --amber-soft:#ffd77a;
+    --red:#dc2626; --green:#4ade80; --err:#f87171; --blue:#7dd3fc;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--asphalt);color:var(--paper);font-family:"Space Mono",monospace;
+    min-height:100vh;padding-bottom:40px}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 18px}
+
+  header{border-bottom:1px solid var(--line);padding:18px 0;margin-bottom:22px}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .brand{font-family:"Oswald",sans-serif;font-weight:700;font-size:18px;letter-spacing:.14em;
+    text-transform:uppercase}
+  .brand b{color:var(--amber)}
+  .badge{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    padding:4px 10px;border:1px solid var(--red);color:var(--red)}
+  .lnk{font-size:12px;color:var(--fog);text-decoration:none;border-bottom:1px dotted var(--fog)}
+  .lnk:hover{color:var(--amber);border-color:var(--amber)}
+
+  h2.sec{font-family:"Oswald",sans-serif;font-weight:600;font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--fog);margin:26px 0 12px;display:flex;align-items:center;gap:12px}
+  h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .panel{border:1px solid var(--line);background:var(--card);padding:16px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+  .fld{flex:1;min-width:180px}
+  label{display:block;font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--fog);margin-bottom:6px}
+  select,textarea,input{width:100%;background:var(--card2);border:1px solid var(--line);
+    color:var(--paper);font-family:"Space Mono",monospace;font-size:13px;padding:10px 12px}
+  select:focus,textarea:focus{outline:none;border-color:var(--amber)}
+  textarea{min-height:110px;resize:vertical;line-height:1.6}
+
+  .btn{font-family:"Oswald",sans-serif;font-weight:600;font-size:12px;letter-spacing:.12em;
+    text-transform:uppercase;padding:11px 20px;border:1px solid var(--amber);background:var(--amber);
+    color:#0e1013;cursor:pointer;transition:.14s}
+  .btn:hover{background:var(--amber-soft);border-color:var(--amber-soft)}
+  .btn.ghost{background:transparent;color:var(--amber)}
+  .btn.ghost:hover{background:#1d1a12}
+  .btn.dang{border-color:var(--red);background:transparent;color:var(--err)}
+  .btn.dang:hover{background:#2a1416}
+  .btn:disabled{opacity:.35;cursor:default}
+  .btns{display:flex;gap:10px;flex-wrap:wrap}
+
+  .msg{padding:12px 14px;border:1px solid var(--line);background:var(--card2);font-size:12.5px;
+    line-height:1.6;margin:12px 0}
+  .msg.ok{border-color:var(--green);color:var(--green);background:#0f1f16}
+  .msg.err{border-color:var(--red);color:var(--err);background:#2a1416}
+  .msg.warn{border-color:var(--amber);color:var(--amber-soft);background:#1d1a12}
+  .msg.info{border-color:var(--blue);color:var(--blue);background:#12202b}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{font-family:"Oswald",sans-serif;font-weight:500;font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--fog);text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+  td{padding:8px;border-bottom:1px solid #23272e}
+  tr:last-child td{border-bottom:none}
+  .cl{font-family:"Oswald",sans-serif;font-size:10px;color:var(--amber);border:1px solid var(--amber);
+    padding:2px 7px;display:inline-block}
+  .val{font-family:"Oswald",sans-serif;font-weight:700}
+  .val.ab{color:var(--err)}.val.tf{color:var(--fog)}.val.fo{color:var(--fog)}
+
+  .ss{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .sst{padding:7px 10px;border:1px solid var(--line);background:var(--card2);cursor:pointer;
+    font-family:"Oswald",sans-serif;font-size:11px;font-weight:600;transition:.12s;position:relative}
+  .sst:hover{border-color:var(--amber-soft)}
+  .sst.on{border-color:var(--amber);background:#1d1a12;color:var(--amber)}
+  .sst.done{border-color:var(--green);color:var(--green)}
+  .sst.done.on{background:#0f1f16}
+  .sst small{display:block;font-family:"Space Mono",monospace;font-size:9px;color:var(--fog);
+    font-weight:400;margin-top:2px}
+
+  .hint{font-size:11px;color:var(--fog);line-height:1.65;margin-top:8px}
+  .hint code{background:var(--card2);padding:2px 6px;border:1px solid var(--line);color:var(--amber-soft)}
+  .lock{text-align:center;padding:60px 20px}
+  .lock h1{font-family:"Oswald",sans-serif;font-size:22px;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--err);margin-bottom:12px}
+  .lock p{color:var(--fog);font-size:13px;line-height:1.7;max-width:44ch;margin:0 auto}
+  .hide{display:none}
+  .cls{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .cbx{padding:6px 10px;border:1px solid var(--line);font-size:11px;background:var(--card2)}
+  .cbx.ok{border-color:var(--green);color:var(--green)}
+  .cbx.no{border-color:var(--red);color:var(--err)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <div class="brand">AZ<b>RALLYEGAME</b> · Administration</div>
+      <div style="display:flex;gap:14px;align-items:center">
+        <span class="badge" id="who">vérification…</span>
+        <a class="lnk" href="/crr.html">← retour au jeu</a>
+      </div>
+    </div>
+  </header>
+
+  <div id="lock" class="lock hide">
+    <h1>Accès réservé</h1>
+    <p>Cette page est réservée à l'administrateur du jeu. Connecte-toi avec le compte
+       administrateur depuis la page du jeu, puis reviens ici.</p>
+    <p style="margin-top:16px"><a class="lnk" href="/index.html">Aller à la connexion</a></p>
+  </div>
+
+  <div id="app" class="hide">
+
+    <h2 class="sec">1 · Choisir le rallye et la spéciale</h2>
+    <div class="panel">
+      <div class="row">
+        <div class="fld">
+          <label>Rallye</label>
+          <select id="rallye"></select>
+        </div>
+      </div>
+      <label>Spéciale — vert = déjà saisie</label>
+      <div class="ss" id="speciales"></div>
+    </div>
+
+    <h2 class="sec">2 · Coller les résultats</h2>
+    <div class="panel">
+      <label>Positions (une par équipage)</label>
+      <textarea id="texte" placeholder="46:3, 3:1, 86:Ab, 129:Tf, 617:Fo"></textarea>
+      <div class="hint">
+        Format : <code>numéro:position</code>, séparés par des virgules ou des retours à la ligne.<br>
+        Statuts acceptés : <code>Ab</code> (abandon) · <code>Tf</code> (temps forfaitaire) ·
+        <code>Fo</code> (forfait, n'a pas pris le départ).<br>
+        Tout équipage absent de la liste sera considéré comme <b>abandon</b> par le moteur.
+      </div>
+      <div class="btns" style="margin-top:14px">
+        <button class="btn ghost" id="apercu">Vérifier</button>
+        <button class="btn" id="enreg" disabled>Enregistrer la spéciale</button>
+        <button class="btn dang" id="effacer">Effacer cette spéciale</button>
+      </div>
+      <div id="retour"></div>
+    </div>
+
+    <div id="preview"></div>
+
+    <h2 class="sec">Sauvegarde</h2>
+    <div class="panel">
+      <p style="font-size:12.5px;color:var(--fog);line-height:1.7;margin-bottom:12px">
+        Les résultats saisis ici vivent dans la base de données, pas dans le code.
+        Télécharge régulièrement une sauvegarde pour ne jamais dépendre uniquement de l'hébergeur.
+      </p>
+      <button class="btn ghost" id="export">Télécharger la saison</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var TOK=localStorage.getItem('azr_token')||'';
+var USR=localStorage.getItem('azr_user')||'';
+var DATA=null, RID=null, SS=null;
+
+function H(u,o){
+  o=o||{};o.headers=o.headers||{};
+  if(TOK)o.headers['Authorization']='Bearer '+TOK;
+  if(o.body){o.headers['Content-Type']='application/json';o.body=JSON.stringify(o.body);}
+  return fetch(u,o).then(function(r){return r.json().catch(function(){return {ok:false,error:'Réponse illisible'};});});
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function el(id){return document.getElementById(id);}
+
+// ── Vérification de l'accès ──
+H('/api/crr/admin/moi').then(function(d){
+  if(!d.ok||!d.admin){
+    el('who').textContent='non autorisé';
+    el('lock').classList.remove('hide');
+    return;
+  }
+  el('who').textContent=USR||'admin';
+  el('app').classList.remove('hide');
+  charger();
+});
+
+function charger(){
+  H('/api/crr/admin/rallyes').then(function(d){
+    if(!d.ok){el('retour').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    DATA=d.rallyes;
+    var sel=el('rallye');
+    sel.innerHTML=DATA.map(function(r){
+      return '<option value="'+esc(r.id)+'">'+esc(r.nom)+' — '+esc(r.dates||'')+' ('+r.etat+')</option>';
+    }).join('');
+    sel.onchange=function(){RID=sel.value;SS=null;majSpeciales();};
+    // rallye en cours par défaut
+    var enc=DATA.filter(function(r){return r.etat==='encours'||r.etat==='ouvert';})[0]||DATA[0];
+    if(enc){sel.value=enc.id;RID=enc.id;}
+    majSpeciales();
+  });
+}
+
+function rallyeActuel(){return DATA.filter(function(r){return r.id===RID;})[0]||null;}
+
+function majSpeciales(){
+  var r=rallyeActuel();
+  if(!r){el('speciales').innerHTML='';return;}
+  el('speciales').innerHTML=r.speciales.map(function(s){
+    return '<div class="sst'+(s.saisie?' done':'')+(s.code===SS?' on':'')+'" data-c="'+esc(s.code)+'">'
+      +esc(s.code)+'<small>'+esc(s.nom||'')+'</small></div>';
+  }).join('');
+  Array.prototype.forEach.call(el('speciales').querySelectorAll('.sst'),function(b){
+    b.onclick=function(){SS=b.getAttribute('data-c');majSpeciales();el('retour').innerHTML='';el('preview').innerHTML='';};
+  });
+}
+
+// ── Aperçu ──
+el('apercu').onclick=function(){
+  if(!RID||!SS){el('retour').innerHTML='<div class="msg warn">Choisis un rallye et une spéciale.</div>';return;}
+  el('retour').innerHTML='<div class="msg info">Vérification…</div>';
+  H('/api/crr/admin/apercu',{method:'POST',body:{rallye:RID,ss:SS,texte:el('texte').value}})
+  .then(function(d){
+    if(!d.ok){el('retour').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    var h='';
+    if(d.erreurs.length){
+      h+='<div class="msg err"><b>'+d.erreurs.length+' problème(s) :</b><br>'
+        +d.erreurs.map(esc).join('<br>')+'</div>';
+    }
+    var incomplet=d.classes.filter(function(c){return !c.complet;});
+    h+='<div class="cls">'+d.classes.map(function(c){
+      return '<div class="cbx '+(c.complet?'ok':'no')+'">'+esc(c.classe)+' : '
+        +c.saisis+' / '+c.total+(c.complet?' ✓':' ⚠')+'</div>';
+    }).join('')+'</div>';
+    if(incomplet.length){
+      h+='<div class="msg warn">Il manque des équipages. Ceux qui ne sont pas saisis seront comptés '
+        +'comme <b>abandon (+15 s)</b> par le moteur. Vérifie que c\'est bien voulu.</div>';
+    } else {
+      h+='<div class="msg ok">Toutes les classes sont complètes. '+d.total+' équipages prêts à enregistrer.</div>';
+    }
+    el('retour').innerHTML=h;
+    el('enreg').disabled = d.erreurs.length>0;
+
+    // tableau d'aperçu
+    if(d.lignes.length){
+      el('preview').innerHTML='<h2 class="sec">Aperçu — '+esc(d.speciale)+'</h2><div class="panel">'
+       +'<table><thead><tr><th>N°</th><th>Pilote</th><th>Classe</th><th>Résultat</th></tr></thead><tbody>'
+       + d.lignes.map(function(l){
+           var v=l.valeur, cls=(v==='Ab'?'ab':(v==='Tf'?'tf':(v==='Fo'?'fo':'')));
+           return '<tr><td>#'+esc(l.id)+'</td><td>'+esc(l.pilote)+'</td>'
+             +'<td><span class="cl">'+esc(l.classe)+'</span></td>'
+             +'<td class="val '+cls+'">'+esc(v)+(typeof v==='number'?'ᵉ':'')+'</td></tr>';
+         }).join('')
+       +'</tbody></table></div>';
+    }
+  });
+};
+
+// ── Enregistrement ──
+el('enreg').onclick=function(){
+  if(!RID||!SS)return;
+  el('enreg').disabled=true;
+  H('/api/crr/admin/saisir',{method:'POST',body:{rallye:RID,ss:SS,texte:el('texte').value}})
+  .then(function(d){
+    if(!d.ok){
+      el('retour').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';
+      el('enreg').disabled=false;
+      return;
+    }
+    el('retour').innerHTML='<div class="msg ok"><b>'+d.enregistres+' résultats enregistrés</b> pour '
+      +esc(SS)+'. Le classement des joueurs est mis à jour immédiatement.</div>';
+    el('texte').value='';
+    el('preview').innerHTML='';
+    charger();
+  });
+};
+
+// ── Effacement ──
+el('effacer').onclick=function(){
+  if(!RID||!SS){el('retour').innerHTML='<div class="msg warn">Choisis une spéciale.</div>';return;}
+  if(!confirm('Effacer les résultats de '+SS+' ? Les classements seront recalculés sans cette spéciale.'))return;
+  H('/api/crr/admin/effacer',{method:'POST',body:{rallye:RID,ss:SS}})
+  .then(function(d){
+    if(!d.ok){el('retour').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    el('retour').innerHTML='<div class="msg ok">'+d.efface+' résultats effacés pour '+esc(SS)+'.</div>';
+    el('preview').innerHTML='';
+    charger();
+  });
+};
+
+// ── Export ──
+el('export').onclick=function(){
+  fetch('/api/crr/admin/export',{headers:{'Authorization':'Bearer '+TOK}})
+  .then(function(r){return r.blob();})
+  .then(function(b){
+    var u=URL.createObjectURL(b), a=document.createElement('a');
+    a.href=u; a.download='crr-saison-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u);
+  });
+};
+</script>
+</body>
+</html>
