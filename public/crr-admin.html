@@ -277,6 +277,34 @@ ES2	Riudecanyes 1	16.35	14/07/2026 09:12"></textarea>
         <button class="btn ghost" id="export">Télécharger la saison</button>
       </div>
 
+      <h2 class="sec" style="color:var(--err)">Zone dangereuse</h2>
+      <div class="panel" style="border-color:var(--red)">
+        <div class="msg warn" style="margin-top:0">
+          <b>Télécharge d'abord une sauvegarde.</b> Ces effacements sont définitifs :
+          rien ne permet de revenir en arrière.
+        </div>
+        <div class="row">
+          <div class="fld">
+            <label>Que veux-tu effacer ?</label>
+            <select id="r_quoi">
+              <option value="ecuries">Les écuries et jokers des joueurs</option>
+              <option value="resultats">Les résultats saisis en admin</option>
+              <option value="rallyes">Les rallyes créés en admin (calendrier, spéciales, engagés)</option>
+              <option value="tout">TOUT remettre à zéro</option>
+            </select>
+          </div>
+          <div class="fld" style="max-width:220px">
+            <label>Tape EFFACER pour confirmer</label>
+            <input id="r_conf" placeholder="EFFACER" autocomplete="off">
+          </div>
+        </div>
+        <div class="hint" id="r_expl"></div>
+        <div class="btns" style="margin-top:14px">
+          <button class="btn dang" id="r_go">Effacer définitivement</button>
+        </div>
+        <div id="r_ret"></div>
+      </div>
+
     </div><!-- /vcal -->
 
   </div>
@@ -647,6 +675,49 @@ el('saveEng').onclick=function(){
     if(d.erreurs.length)h+='<div class="msg warn">'+d.erreurs.map(esc).join('<br>')+'</div>';
     el('retEng').innerHTML=h;
     chargerCal();
+  });
+};
+
+
+// ── Remise à zéro ────────────────────────────────────────────
+var EXPL={
+  ecuries:'Efface les compositions et les jokers de TOUS les joueurs, sur tous les rallyes. '
+         +'Les comptes ne sont pas supprimés, seulement leurs écuries. Le calendrier et les résultats restent.',
+  resultats:'Efface les résultats que tu as saisis ici. Les résultats écrits dans crr-rallyes.js ne bougent pas. '
+           +'Les classements repartiront de zéro sur les rallyes concernés.',
+  rallyes:'Efface les rallyes que tu as créés dans cette page (calendrier, spéciales, engagés) '
+         +'ainsi que leurs résultats. Les rallyes de crr-rallyes.js ne sont pas touchés.',
+  tout:'Efface TOUT ce qui vit en base : écuries, jokers, résultats saisis, rallyes créés ici. '
+      +'Seul crr-rallyes.js subsiste. À faire juste avant le lancement officiel.',
+};
+function majExpl(){
+  var q=el('r_quoi').value;
+  el('r_expl').innerHTML='<b style="color:var(--err)">'+esc(EXPL[q])+'</b>';
+}
+el('r_quoi').onchange=majExpl;
+majExpl();
+
+el('r_go').onclick=function(){
+  var q=el('r_quoi').value, conf=el('r_conf').value.trim();
+  if(conf.toUpperCase()!=='EFFACER'){
+    el('r_ret').innerHTML='<div class="msg warn">Tape <b>EFFACER</b> dans le champ pour confirmer.</div>';
+    return;
+  }
+  var libelle=el('r_quoi').options[el('r_quoi').selectedIndex].text;
+  if(!confirm('Dernière vérification.\n\n« '+libelle+' »\n\nCette action est définitive. Continuer ?'))return;
+  el('r_go').disabled=true;
+  H('/api/crr/admin/reset',{method:'POST',body:{quoi:q,confirmation:conf}})
+  .then(function(d){
+    el('r_go').disabled=false;
+    if(!d.ok){el('r_ret').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    var b=d.bilan||{}, lignes=[];
+    if(b.ecuries!=null)lignes.push(b.ecuries+' écurie(s) et '+(b.jokers||0)+' lot(s) de jokers');
+    if(b.resultats!=null)lignes.push(b.resultats+' rallye(s) de résultats');
+    if(b.rallyes!=null)lignes.push(b.rallyes+' rallye(s) créé(s) en admin');
+    el('r_ret').innerHTML='<div class="msg ok"><b>Effacé :</b> '+(lignes.join(' · ')||'rien à effacer')
+      +'<br><span style="color:var(--fog)">'+esc(d.note)+'</span></div>';
+    el('r_conf').value='';
+    chargerCal(); charger();
   });
 };
 
