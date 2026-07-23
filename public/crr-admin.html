@@ -91,6 +91,32 @@
   .cbx{padding:6px 10px;border:1px solid var(--line);font-size:11px;background:var(--card2)}
   .cbx.ok{border-color:var(--green);color:var(--green)}
   .cbx.no{border-color:var(--red);color:var(--err)}
+
+  .ongl{display:flex;border-bottom:1px solid var(--line);margin-bottom:4px}
+  .og{font-family:"Oswald",sans-serif;font-weight:600;font-size:12px;letter-spacing:.12em;
+    text-transform:uppercase;padding:13px 20px;cursor:pointer;color:var(--fog);
+    border-bottom:2px solid transparent;margin-bottom:-1px;transition:.14s}
+  .og:hover{color:var(--paper)}
+  .og.on{color:var(--amber);border-bottom-color:var(--amber)}
+
+  .cr{display:flex;align-items:center;gap:12px;padding:12px 10px;border-bottom:1px solid #23272e;
+    font-size:12.5px;cursor:pointer;transition:.12s}
+  .cr:last-child{border-bottom:none}
+  .cr:hover{background:var(--card2)}
+  .cr .nm{flex:1;font-weight:700;min-width:0}
+  .cr .nm small{display:block;color:var(--fog);font-weight:400;font-size:11px;margin-top:2px}
+  .cr .tag{font-family:"Oswald",sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 7px;border:1px solid var(--line);color:var(--fog);flex-shrink:0;white-space:nowrap}
+  .cr .tag.adm{border-color:var(--amber);color:var(--amber)}
+  .cr .tag.fic{border-color:var(--line);color:var(--fog)}
+  .cr .tag.br{border-color:var(--blue);color:var(--blue)}
+  .spl{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+  .spl div{font-family:"Oswald",sans-serif;font-size:10px;padding:4px 8px;border:1px solid var(--line);
+    color:var(--fog)}
+  .vgrid{display:grid;grid-template-columns:1fr auto auto;gap:8px 12px;align-items:center;margin-top:10px}
+  .vgrid .vm{font-size:12.5px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vgrid .vn{font-size:11px;color:var(--fog);white-space:nowrap}
+  .vgrid select{width:auto;padding:5px 8px;font-size:12px}
 </style>
 </head>
 <body>
@@ -114,6 +140,12 @@
 
   <div id="app" class="hide">
 
+    <div class="ongl">
+      <div class="og on" data-v="res">Résultats</div>
+      <div class="og" data-v="cal">Calendrier &amp; spéciales</div>
+    </div>
+
+    <div id="vres">
     <h2 class="sec">1 · Choisir le rallye et la spéciale</h2>
     <div class="panel">
       <div class="row">
@@ -146,14 +178,106 @@
 
     <div id="preview"></div>
 
-    <h2 class="sec">Sauvegarde</h2>
-    <div class="panel">
-      <p style="font-size:12.5px;color:var(--fog);line-height:1.7;margin-bottom:12px">
-        Les résultats saisis ici vivent dans la base de données, pas dans le code.
-        Télécharge régulièrement une sauvegarde pour ne jamais dépendre uniquement de l'hébergeur.
-      </p>
-      <button class="btn ghost" id="export">Télécharger la saison</button>
-    </div>
+    </div><!-- /vres -->
+
+    <div id="vcal" class="hide">
+
+      <h2 class="sec">Calendrier de la saison</h2>
+      <div class="panel">
+        <div id="listeCal"></div>
+        <div class="btns" style="margin-top:14px">
+          <button class="btn ghost" id="nouveau">+ Nouveau rallye</button>
+        </div>
+      </div>
+
+      <div id="edit" class="hide">
+        <h2 class="sec" id="editTitre">Modifier le rallye</h2>
+        <div class="panel">
+          <div class="row">
+            <div class="fld"><label>Nom du rallye</label><input id="f_nom" placeholder="Rallye de Finlande"></div>
+            <div class="fld"><label>Dates (texte affiché)</label><input id="f_dates" placeholder="1–4 août 2026"></div>
+          </div>
+          <div class="row">
+            <div class="fld"><label>Début (pour l'ordre du calendrier)</label><input id="f_debut" type="datetime-local"></div>
+            <div class="fld"><label>Surface</label>
+              <select id="f_surface">
+                <option>Asphalte</option><option>Terre</option><option>Neige</option><option>Mixte</option>
+              </select></div>
+          </div>
+          <div class="row">
+            <div class="fld"><label>Championnat</label><input id="f_champ" placeholder="WRC 2026"></div>
+            <div class="fld"><label>Identifiant technique</label><input id="f_id" placeholder="laissé vide = généré du nom"></div>
+          </div>
+          <div class="row">
+            <div class="fld">
+              <label><input type="checkbox" id="f_brouillon" style="width:auto;margin-right:8px">Brouillon (ne pas montrer aux joueurs)</label>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn" id="saveRallye">Enregistrer le rallye</button>
+            <button class="btn ghost" id="annulEdit">Annuler</button>
+            <button class="btn dang" id="delRallye">Supprimer</button>
+          </div>
+          <div id="retCal"></div>
+        </div>
+
+        <h2 class="sec">Spéciales de ce rallye</h2>
+        <div class="panel">
+          <div class="row">
+            <div class="fld" style="max-width:220px">
+              <label>Fuseau des horaires saisis</label>
+              <select id="f_offset">
+                <option value="+02:00">France été (UTC+2)</option>
+                <option value="+01:00">France hiver (UTC+1)</option>
+                <option value="+03:00">Finlande été (UTC+3)</option>
+                <option value="+00:00">UTC</option>
+              </select>
+            </div>
+          </div>
+          <label>Une spéciale par ligne</label>
+          <textarea id="f_speciales" placeholder="ES1	La Trona 1	21.26	14/07/2026 08:05
+ES2	Riudecanyes 1	16.35	14/07/2026 09:12"></textarea>
+          <div class="hint">
+            Colonnes séparées par une <b>tabulation</b> (copier-coller depuis un tableur) ou un <code>;</code>.<br>
+            Ordre : <code>CODE</code> · <code>NOM</code> · <code>KM</code> · <code>JJ/MM/AAAA HH:MM</code> (l'horaire est facultatif).<br>
+            Le <b>temps de base est calculé tout seul</b> : km × 36 s. La clôture des écuries se cale sur l'ES1.
+          </div>
+          <div class="btns" style="margin-top:14px">
+            <button class="btn ghost" id="apSpe">Vérifier</button>
+            <button class="btn" id="saveSpe">Enregistrer les spéciales</button>
+          </div>
+          <div id="retSpe"></div>
+        </div>
+
+        <h2 class="sec">Liste des engagés</h2>
+        <div class="panel">
+          <label>Un équipage par ligne</label>
+          <textarea id="f_engages" style="min-height:190px" placeholder="46	Sébastien Loeb	Daniel Elena	A8	Citroën Xsara WRC	40
+3	Marcus Grönholm	Timo Rautiainen	A8	Peugeot 307 WRC	30"></textarea>
+          <div class="hint">
+            Colonnes séparées par une <b>tabulation</b> (copier-coller depuis Excel) ou un <code>;</code>.<br>
+            Ordre : <code>N°</code> · <code>PILOTE</code> · <code>COPILOTE</code> · <code>CLASSE</code> ·
+            <code>MODÈLE</code> · <code>COÛT</code>.<br>
+            Le <b>nombre d'engagés par classe</b> et la <b>liste des voitures</b> sont déduits tout seuls.
+          </div>
+          <div class="btns" style="margin-top:14px">
+            <button class="btn ghost" id="apEng">Vérifier</button>
+            <button class="btn" id="saveEng">Enregistrer les engagés</button>
+          </div>
+          <div id="retEng"></div>
+        </div>
+      </div>
+
+      <h2 class="sec">Sauvegarde</h2>
+      <div class="panel">
+        <p style="font-size:12.5px;color:var(--fog);line-height:1.7;margin-bottom:12px">
+          Calendrier, spéciales et résultats saisis ici vivent dans la base de données, pas dans le code.
+          Télécharge régulièrement une sauvegarde pour ne jamais dépendre uniquement de l'hébergeur.
+        </p>
+        <button class="btn ghost" id="export">Télécharger la saison</button>
+      </div>
+
+    </div><!-- /vcal -->
 
   </div>
 </div>
@@ -285,6 +409,244 @@ el('effacer').onclick=function(){
     el('retour').innerHTML='<div class="msg ok">'+d.efface+' résultats effacés pour '+esc(SS)+'.</div>';
     el('preview').innerHTML='';
     charger();
+  });
+};
+
+
+// ══════════════════════════════════════════════════════════════
+//  Onglets
+// ══════════════════════════════════════════════════════════════
+Array.prototype.forEach.call(document.querySelectorAll('.og'),function(o){
+  o.onclick=function(){
+    Array.prototype.forEach.call(document.querySelectorAll('.og'),function(x){x.classList.remove('on');});
+    o.classList.add('on');
+    var v=o.getAttribute('data-v');
+    el('vres').classList.toggle('hide',v!=='res');
+    el('vcal').classList.toggle('hide',v!=='cal');
+    if(v==='cal')chargerCal();
+  };
+});
+
+// ══════════════════════════════════════════════════════════════
+//  Calendrier & spéciales
+// ══════════════════════════════════════════════════════════════
+var CAL=[], EDIT=null;
+
+function chargerCal(){
+  H('/api/crr/admin/calendrier').then(function(d){
+    if(!d.ok){el('listeCal').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    CAL=d.rallyes;
+    el('listeCal').innerHTML=CAL.map(function(r){
+      var tag = r.origine.indexOf('admin')===0
+        ? '<span class="tag adm">modifiable</span>'
+        : '<span class="tag fic">fichier</span>';
+      return '<div class="cr" data-id="'+esc(r.id)+'">'
+        +'<div class="nm">'+esc(r.nom)
+          +'<small>'+esc(r.dates||'sans date')+' · '+esc(r.surface||'?')+' · '
+          +r.speciales.length+' spéciale'+(r.speciales.length>1?'s':'')+' · '
+          +r.engages+' engagé'+(r.engages>1?'s':'')+'</small></div>'
+        +(r.brouillon?'<span class="tag br">brouillon</span>':'')
+        +'<span class="tag">'+esc(r.etat)+'</span>'
+        +tag+'</div>';
+    }).join('')||'<div class="msg">Aucun rallye.</div>';
+    Array.prototype.forEach.call(el('listeCal').querySelectorAll('.cr'),function(row){
+      row.onclick=function(){ouvrir(row.getAttribute('data-id'));};
+    });
+  });
+}
+
+function ouvrir(id){
+  var r=CAL.filter(function(x){return x.id===id;})[0];
+  if(!r)return;
+  EDIT=r;
+  el('editTitre').textContent='Modifier — '+r.nom;
+  el('f_nom').value=r.nom||'';
+  el('f_dates').value=r.dates||'';
+  el('f_debut').value=r.debut?isoLocal(r.debut):'';
+  el('f_surface').value=r.surface||'Asphalte';
+  el('f_champ').value=r.championnat||'';
+  el('f_id').value=r.id;
+  el('f_id').disabled=true;
+  el('f_brouillon').checked=!!r.brouillon;
+  // spéciales existantes -> pré-remplir le champ pour édition
+  el('f_speciales').value=(r.speciales||[]).map(function(s){
+    var h=s.depart?frDate(s.depart):'';
+    return [s.code,s.nom,s.km,h].filter(function(x){return x!=='';}).join('\t');
+  }).join('\n');
+  // pré-remplir les engagés existants
+  el('f_engages').value=(r.listeEngages||[]).map(function(e){
+    return [e.id,e.pilote,e.copilote||'',e.classe,e.modele,e.cout].join('\t');
+  }).join('\n');
+  el('retEng').innerHTML='';
+  el('delRallye').style.display = (r.origine.indexOf('admin')===0)?'':'none';
+  el('edit').classList.remove('hide');
+  el('retCal').innerHTML=''; el('retSpe').innerHTML='';
+  el('edit').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function isoLocal(iso){
+  var d=new Date(iso); if(isNaN(d))return '';
+  var p=function(n){return (n<10?'0':'')+n;};
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
+}
+function frDate(iso){
+  var d=new Date(iso); if(isNaN(d))return '';
+  var p=function(n){return (n<10?'0':'')+n;};
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+
+el('nouveau').onclick=function(){
+  EDIT=null;
+  el('editTitre').textContent='Nouveau rallye';
+  ['f_nom','f_dates','f_debut','f_champ','f_id','f_speciales'].forEach(function(k){el(k).value='';});
+  el('f_surface').value='Asphalte';
+  el('f_brouillon').checked=true;
+  el('f_id').disabled=false;
+  el('delRallye').style.display='none';
+  el('edit').classList.remove('hide');
+  el('retCal').innerHTML=''; el('retSpe').innerHTML='';
+  el('edit').scrollIntoView({behavior:'smooth',block:'start'});
+};
+
+el('annulEdit').onclick=function(){el('edit').classList.add('hide');EDIT=null;};
+
+el('saveRallye').onclick=function(){
+  var body={
+    id:el('f_id').value.trim(),
+    nom:el('f_nom').value.trim(),
+    dates:el('f_dates').value.trim(),
+    debut:el('f_debut').value?new Date(el('f_debut').value).toISOString():'',
+    surface:el('f_surface').value,
+    championnat:el('f_champ').value.trim(),
+    brouillon:el('f_brouillon').checked,
+  };
+  if(!body.nom){el('retCal').innerHTML='<div class="msg warn">Le nom est obligatoire.</div>';return;}
+  H('/api/crr/admin/rallye',{method:'POST',body:body}).then(function(d){
+    if(!d.ok){el('retCal').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    el('retCal').innerHTML='<div class="msg ok">Rallye '+(d.cree?'créé':'mis à jour')+' — identifiant <b>'+esc(d.id)+'</b>.</div>';
+    el('f_id').value=d.id; el('f_id').disabled=true;
+    chargerCal();
+  });
+};
+
+el('delRallye').onclick=function(){
+  var id=el('f_id').value.trim();
+  if(!id)return;
+  if(!confirm('Supprimer définitivement ce rallye, ses spéciales et ses résultats ?'))return;
+  H('/api/crr/admin/rallye/supprimer',{method:'POST',body:{id:id}}).then(function(d){
+    if(!d.ok){el('retCal').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    el('edit').classList.add('hide'); chargerCal();
+  });
+};
+
+el('apSpe').onclick=function(){
+  H('/api/crr/admin/speciales/apercu',
+    {method:'POST',body:{texte:el('f_speciales').value,offset:el('f_offset').value}})
+  .then(function(d){
+    if(!d.ok){el('retSpe').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    var h='';
+    if(d.erreurs.length)h+='<div class="msg err"><b>'+d.erreurs.length+' problème(s) :</b><br>'
+      +d.erreurs.map(esc).join('<br>')+'</div>';
+    if(d.total){
+      h+='<div class="msg ok">'+d.total+' spéciale'+(d.total>1?'s':'')+' lue'+(d.total>1?'s':'')+'.</div>'
+       +'<table><thead><tr><th>Code</th><th>Nom</th><th>Km</th><th>Base</th><th>Départ</th></tr></thead><tbody>'
+       + d.speciales.map(function(s){
+           return '<tr><td class="val">'+esc(s.code)+'</td><td>'+esc(s.nom)+'</td>'
+             +'<td>'+s.km+'</td><td>'+s.base+' s</td>'
+             +'<td>'+(s.depart?esc(frDate(s.depart)):'<span style="color:#5b616b">—</span>')+'</td></tr>';
+         }).join('')+'</tbody></table>';
+    }
+    el('retSpe').innerHTML=h;
+  });
+};
+
+el('saveSpe').onclick=function(){
+  var id=el('f_id').value.trim();
+  if(!id){el('retSpe').innerHTML='<div class="msg warn">Enregistre d\'abord le rallye.</div>';return;}
+  H('/api/crr/admin/speciales',
+    {method:'POST',body:{id:id,texte:el('f_speciales').value,offset:el('f_offset').value}})
+  .then(function(d){
+    if(!d.ok){el('retSpe').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    var h='<div class="msg ok"><b>'+d.total+' spéciales enregistrées.</b> '
+      +'La clôture des écuries est calée sur le départ de l\'ES1.</div>';
+    if(d.erreurs.length)h+='<div class="msg warn">'+d.erreurs.map(esc).join('<br>')+'</div>';
+    el('retSpe').innerHTML=h;
+    chargerCal();
+  });
+};
+
+
+// ── Engagés ──────────────────────────────────────────────────
+var VOITURES=[];   // modèles déduits du dernier aperçu
+
+function rendreVoitures(voitures, coutsExistants){
+  VOITURES=voitures||[];
+  if(!VOITURES.length)return '';
+  return '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">'
+   +'<label>Coût de chaque voiture — ajuste si besoin</label>'
+   +'<div class="vgrid">'
+   + VOITURES.map(function(v){
+       var c=(coutsExistants&&coutsExistants[v.modele]!=null)?coutsExistants[v.modele]:v.cout;
+       return '<div class="vm" title="'+esc(v.modele)+'">'+esc(v.modele)+'</div>'
+        +'<div class="vn">'+v.n+' équipage'+(v.n>1?'s':'')+' · '+esc((v.classes||[]).join('/'))+'</div>'
+        +'<select data-mod="'+esc(v.modele)+'">'
+        + [10,20,30,40].map(function(x){
+            return '<option value="'+x+'"'+(x===c?' selected':'')+'>'+x+' cr.</option>';
+          }).join('')
+        +'</select>';
+     }).join('')
+   +'</div></div>';
+}
+function lireCouts(){
+  var out={};
+  Array.prototype.forEach.call(document.querySelectorAll('.vgrid select'),function(sel){
+    out[sel.getAttribute('data-mod')]=parseInt(sel.value,10);
+  });
+  return out;
+}
+
+el('apEng').onclick=function(){
+  H('/api/crr/admin/engages/apercu',{method:'POST',body:{texte:el('f_engages').value}})
+  .then(function(d){
+    if(!d.ok){el('retEng').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    var h='';
+    if(d.erreurs.length)h+='<div class="msg err"><b>'+d.erreurs.length+' problème(s) :</b><br>'
+      +d.erreurs.map(esc).join('<br>')+'</div>';
+    if(d.total){
+      h+='<div class="msg ok"><b>'+d.total+' équipages lus.</b></div>';
+      // classes déduites
+      h+='<div class="cls">'+Object.keys(d.classes).map(function(c){
+        return '<div class="cbx ok">'+esc(c)+' : '+d.classes[c]+' engagés</div>';
+      }).join('')+'</div>';
+      // tableau des équipages
+      h+='<div style="max-height:340px;overflow:auto;margin-top:12px">'
+       +'<table><thead><tr><th>N°</th><th>Pilote</th><th>Copilote</th><th>Classe</th><th>Voiture</th><th>Coût</th></tr></thead><tbody>'
+       + d.engages.map(function(e){
+           return '<tr><td class="val">#'+esc(e.id)+'</td><td>'+esc(e.pilote)+'</td>'
+             +'<td style="color:var(--fog)">'+esc(e.copilote||'—')+'</td>'
+             +'<td><span class="cl">'+esc(e.classe)+'</span></td>'
+             +'<td>'+esc(e.modele)+'</td><td class="val">'+e.cout+'</td></tr>';
+         }).join('')+'</tbody></table></div>';
+      // voitures + coûts
+      var ex={}; (EDIT&&EDIT.voitures||[]).forEach(function(v){ex[v.modele]=v.cout;});
+      h+=rendreVoitures(d.voitures,ex);
+    }
+    el('retEng').innerHTML=h;
+  });
+};
+
+el('saveEng').onclick=function(){
+  var id=el('f_id').value.trim();
+  if(!id){el('retEng').innerHTML='<div class="msg warn">Enregistre d\'abord le rallye.</div>';return;}
+  H('/api/crr/admin/engages',{method:'POST',body:{id:id,texte:el('f_engages').value,couts:lireCouts()}})
+  .then(function(d){
+    if(!d.ok){el('retEng').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
+    var h='<div class="msg ok"><b>'+d.total+' engagés enregistrés.</b> '
+      +Object.keys(d.classes).length+' classes · '+d.voitures.length+' voitures. '
+      +'Le rallye est maintenant jouable.</div>';
+    if(d.erreurs.length)h+='<div class="msg warn">'+d.erreurs.map(esc).join('<br>')+'</div>';
+    el('retEng').innerHTML=h;
+    chargerCal();
   });
 };
 
