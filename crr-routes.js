@@ -935,4 +935,61 @@ module.exports = function mountCRR(deps) {
                classes: a.classes, voitures: copie.voitures, erreurs: a.erreurs });
   });
 
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  ADMIN — Remise à zéro (irréversible)
+  // ══════════════════════════════════════════════════════════════════════════
+  // Protégée par un mot de confirmation à taper : "EFFACER".
+  // 'quoi' : 'ecuries' | 'resultats' | 'rallyes' | 'tout'
+  app.post('/api/crr/admin/reset', async (req, res) => {
+    const admin = estAdmin(req);
+    if (!admin) return res.status(403).json({ ok: false, error: 'Accès réservé.' });
+    const { quoi, confirmation } = req.body || {};
+    if (String(confirmation || '').trim().toUpperCase() !== 'EFFACER') {
+      return res.status(400).json({ ok: false, error: 'Confirmation incorrecte : tape EFFACER pour valider.' });
+    }
+    const choix = ['ecuries', 'resultats', 'rallyes', 'tout'];
+    if (choix.indexOf(quoi) === -1) return res.status(400).json({ ok: false, error: 'Élément à effacer inconnu.' });
+
+    const bilan = {};
+    const tout = quoi === 'tout';
+
+    // 1) Écuries et jokers des joueurs
+    if (tout || quoi === 'ecuries') {
+      bilan.ecuries = Object.keys(store.ecuries).length;
+      bilan.jokers = Object.keys(store.jokers).length;
+      store.ecuries = {}; store.jokers = {};
+      if (pg()) {
+        try { await pool.query('DELETE FROM crr_ecuries'); await pool.query('DELETE FROM crr_jokers'); }
+        catch (e) { console.error('CRR reset écuries:', e.message); }
+      }
+    }
+
+    // 2) Résultats saisis en admin (ceux du fichier crr-rallyes.js ne bougent pas)
+    if (tout || quoi === 'resultats') {
+      bilan.resultats = Object.keys(store.resultats).length;
+      store.resultats = {}; store.completions = {};
+      if (pg()) {
+        try { await pool.query('DELETE FROM crr_resultats'); }
+        catch (e) { console.error('CRR reset résultats:', e.message); }
+      }
+    }
+
+    // 3) Rallyes créés en admin (calendrier, spéciales, engagés)
+    if (tout || quoi === 'rallyes') {
+      bilan.rallyes = Object.keys(store.rallyes).length;
+      store.rallyes = {};
+      if (pg()) {
+        try { await pool.query(`DELETE FROM crr_config WHERE cle='rallyes'`); }
+        catch (e) { console.error('CRR reset rallyes:', e.message); }
+      }
+    }
+
+    saveFile();
+    console.log(`CRR admin — ${admin} a effacé : ${quoi} ${JSON.stringify(bilan)}`);
+    res.json({ ok: true, quoi, bilan,
+      note: 'Les rallyes écrits dans crr-rallyes.js ne sont pas touchés : seul un commit peut les modifier.' });
+  });
+
 };
+
