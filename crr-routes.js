@@ -14,13 +14,24 @@ module.exports = function mountCRR(deps) {
 
   // ── Stockage ────────────────────────────────────────────────────────────────
   const FILE = path.join(DATA_DIR, 'crr.json');
-  let store = { ecuries: {}, jokers: {}, completions: {} };   // { "rallyeId|user": {...} } + { rallyeId: ts }
+  let store = { ecuries: {}, jokers: {}, completions: {}, resultats: {} };
+  // resultats : { rallyeId: { crewId: { ES1: 3, ES2: 'Ab', ... } } } — saisis via la page admin
   try {
     const raw = JSON.parse(fs.readFileSync(FILE, 'utf8'));
     if (raw && typeof raw === 'object') store = {
       ecuries: raw.ecuries || {}, jokers: raw.jokers || {}, completions: raw.completions || {},
+      resultats: raw.resultats || {},
     };
   } catch (e) { /* premier lancement */ }
+
+  // ── Compte administrateur ───────────────────────────────────────────────────
+  // Défini par la variable d'environnement CRR_ADMIN (modifiable dans Railway
+  // sans toucher au code). Valeur de repli : 'zezeben'.
+  const ADMIN = (process.env.CRR_ADMIN || 'zezeben').trim().toLowerCase();
+  function estAdmin(req) {
+    const u = tokenFrom(req);
+    return u && String(u).trim().toLowerCase() === ADMIN ? u : null;
+  }
   function saveFile() {
     try { fs.writeFileSync(FILE, JSON.stringify(store)); }
     catch (e) { console.error('CRR sauvegarde fichier échouée:', e.message); }
@@ -36,6 +47,11 @@ module.exports = function mountCRR(deps) {
     essai = essai || 1;
     if (!pool) { console.log('CRR — stockage : FICHIER (pas de Postgres)'); return; }
     try {
+      await pool.query(`CREATE TABLE IF NOT EXISTS crr_resultats (
+        rallye TEXT PRIMARY KEY,
+        data   TEXT NOT NULL,
+        maj    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`);
       await pool.query(`CREATE TABLE IF NOT EXISTS crr_ecuries (
         rallye TEXT NOT NULL,
         joueur TEXT NOT NULL,
@@ -56,6 +72,7 @@ module.exports = function mountCRR(deps) {
       )`);
       tablesPretes = true;
       console.log('CRR — stockage : POSTGRES ✔ (tables prêtes)');
+      chargerResultatsDb();          // récupère les résultats saisis en admin
     } catch (e) {
       // Postgres pas encore joignable au démarrage : on réessaie quelques fois.
       if (essai < 5) {
@@ -153,10 +170,48 @@ module.exports = function mountCRR(deps) {
     saveFile();
   }
 
+  // ── Persistance des résultats saisis en admin ───────────────────────────────
+  async function sauverResultatsDb(rid) {
+    if (!pg()) return;                       // pas de Postgres : le fichier suffit
+    try {
+      await pool.query(
+        `INSERT INTO crr_resultats (rallye, data, maj) VALUES ($1,$2,NOW())
+         ON CONFLICT (rallye) DO UPDATE SET data=$2, maj=NOW()`,
+        [rid, JSON.stringify(store.resultats[rid] || {})]);
+    } catch (e) { console.error('CRR sauvegarde résultats:', e.message); }
+  }
+  async function chargerResultatsDb() {
+    if (!pg()) return;
+    try {
+      const { rows } = await pool.query('SELECT rallye, data FROM crr_resultats');
+      for (const r of rows) {
+        try { store.resultats[r.rallye] = JSON.parse(r.data) || {}; } catch (_) {}
+      }
+      if (rows.length) console.log(`CRR — résultats chargés depuis Postgres (${rows.length} rallye(s))`);
+    } catch (e) { console.error('CRR chargement résultats:', e.message); }
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
+  // Renvoie une COPIE du rallye dont les résultats fusionnent :
+  //   1) ceux saisis via la page admin (prioritaires),
+  //   2) ceux écrits dans crr-rallyes.js (repli).
+  // Les anciens rallyes continuent donc de marcher sans migration.
+  function avecResultats(r) {
+    const saisis = store.resultats[r.id];
+    if (!saisis || !Object.keys(saisis).length) return r;
+    const fusion = {};
+    for (const id of Object.keys(r.resultats || {})) fusion[id] = Object.assign({}, r.resultats[id]);
+    for (const id of Object.keys(saisis)) fusion[id] = Object.assign({}, fusion[id] || {}, saisis[id]);
+    return Object.assign({}, r, { resultats: fusion });
+  }
+
+  // Tous les rallyes, avec les résultats saisis en admin déjà fusionnés.
+  function tousRallyes() { return RALLYES.map(avecResultats); }
+
   // Rallye "courant" = le dernier dont la clôture est passée, sinon le prochain.
   function rallyeCourant() {
     const now = Date.now();
+    const RALLYES = tousRallyes();          // ombre locale : version fusionnée
     // 1) un rallye en cours (parti mais pas fini)
     const enCours = RALLYES.filter(r => etatDe(r, now) === 'encours');
     if (enCours.length) return enCours[enCours.length - 1];
@@ -184,7 +239,10 @@ module.exports = function mountCRR(deps) {
     // 4) sinon le dernier couru
     return RALLYES[RALLYES.length - 1];
   }
-  function trouverRallye(id) { return RALLYES.find(r => r.id === id) || rallyeCourant(); }
+  function trouverRallye(id) {
+    const r = RALLYES.find(x => x.id === id);
+    return r ? avecResultats(r) : rallyeCourant();
+  }
 
   // Vue publique d'un rallye : on n'expose que ce qui est utile au client.
   function vueRallye(r, now) {
@@ -218,7 +276,7 @@ module.exports = function mountCRR(deps) {
   app.get('/api/crr/rallye', (req, res) => {
     const now = Date.now();
     const r = req.query.rallye ? trouverRallye(req.query.rallye) : rallyeCourant();
-    const calendrier = RALLYES.map(x => ({
+    const calendrier = tousRallyes().map(x => ({
       id: x.id, nom: x.nom, dates: x.dates, lieu: x.lieu, surface: x.surface,
       championnat: x.championnat, etat: etatDe(x, now),
       engages: (x.engages || []).length,
@@ -367,7 +425,7 @@ module.exports = function mountCRR(deps) {
       const now = Date.now();
       const total = {};
       const done = [];
-      for (const r of RALLYES) {
+      for (const r of tousRallyes()) {
         if (!E.pret(r)) continue;
         const nbCourues = r.speciales.filter((s, i) => E.speciqleCourue(r, i)).length;
         if (!nbCourues) continue;
@@ -403,4 +461,167 @@ module.exports = function mountCRR(deps) {
   });
 
   console.log('CRR — routes montées (/api/crr/*)');
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  ADMINISTRATION — saisie des résultats sans commit
+  //  Réservé au compte défini par CRR_ADMIN (défaut : zezeben).
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // Analyse un collage "46:3, 3:1, 86:Ab" → { '46':3, '3':1, '86':'Ab' } + erreurs
+  function analyser(texte, rallye, ssCode) {
+    const out = {}, erreurs = [], vus = new Set();
+    const ids = new Set((rallye.engages || []).map(e => String(e.id)));
+    const morceaux = String(texte || '')
+      .split(/[,;\n\r]+/).map(x => x.trim()).filter(Boolean);
+
+    for (const m of morceaux) {
+      const p = m.split(':');
+      if (p.length !== 2) { erreurs.push(`« ${m} » : format attendu numéro:position`); continue; }
+      const id = p[0].trim().replace(/^#/, '');
+      const v = p[1].trim();
+      if (!ids.has(id)) { erreurs.push(`« ${id} » : numéro inconnu dans les engagés`); continue; }
+      if (vus.has(id)) { erreurs.push(`« ${id} » : saisi deux fois`); continue; }
+      vus.add(id);
+
+      if (/^(ab|abandon)$/i.test(v)) { out[id] = 'Ab'; continue; }
+      if (/^(tf|forfaitaire)$/i.test(v)) { out[id] = 'Tf'; continue; }
+      if (/^(fo|forfait)$/i.test(v)) { out[id] = 'Fo'; continue; }
+      const n = parseInt(v, 10);
+      if (!isFinite(n) || n < 1) { erreurs.push(`« ${m} » : position invalide (${v})`); continue; }
+      const eng = (rallye.engages || []).find(e => String(e.id) === id);
+      const nbClasse = (rallye.classes || {})[eng.classe] || 0;
+      if (n > nbClasse) erreurs.push(`« ${id} » : position ${n} > ${nbClasse} engagés en ${eng.classe}`);
+      out[id] = n;
+    }
+    return { positions: out, erreurs };
+  }
+
+  // Contrôle de complétude : chaque classe est-elle entièrement saisie ?
+  function controler(rallye, positions) {
+    const parClasse = {};
+    for (const e of (rallye.engages || [])) {
+      const c = e.classe;
+      parClasse[c] = parClasse[c] || { total: 0, saisis: 0, manquants: [] };
+      parClasse[c].total++;
+      if (positions[String(e.id)] != null) parClasse[c].saisis++;
+      else parClasse[c].manquants.push(String(e.id));
+    }
+    return Object.keys(parClasse).map(c => ({
+      classe: c, total: parClasse[c].total, saisis: parClasse[c].saisis,
+      manquants: parClasse[c].manquants,
+      complet: parClasse[c].saisis === parClasse[c].total,
+    }));
+  }
+
+  // Qui suis-je ? (le client sait s'il doit afficher le lien admin)
+  app.get('/api/crr/admin/moi', (req, res) => {
+    res.json({ ok: true, admin: !!estAdmin(req) });
+  });
+
+  // Liste des rallyes + état de saisie de chaque spéciale
+  app.get('/api/crr/admin/rallyes', (req, res) => {
+    if (!estAdmin(req)) return res.status(403).json({ ok: false, error: 'Accès réservé.' });
+    const now = Date.now();
+    res.json({ ok: true, rallyes: tousRallyes().map(r => ({
+      id: r.id, nom: r.nom, dates: r.dates, etat: etatDe(r, now),
+      engages: (r.engages || []).length,
+      classes: r.classes || {},
+      equipages: (r.engages || []).map(e => ({ id: String(e.id), pilote: e.pilote, classe: e.classe })),
+      speciales: (r.speciales || []).map((sp, i) => ({
+        code: sp.code, nom: sp.nom, depart: sp.depart,
+        saisie: E.speciqleCourue(r, i),
+        source: (store.resultats[r.id] &&
+                 Object.values(store.resultats[r.id]).some(x => x[sp.code] != null)) ? 'base' : 'fichier',
+      })),
+    })) });
+  });
+
+  // Aperçu AVANT enregistrement : ce que la saisie donnerait + contrôles
+  app.post('/api/crr/admin/apercu', (req, res) => {
+    if (!estAdmin(req)) return res.status(403).json({ ok: false, error: 'Accès réservé.' });
+    const { rallye: rid, ss, texte } = req.body || {};
+    const r = RALLYES.find(x => x.id === rid);
+    if (!r) return res.status(400).json({ ok: false, error: 'Rallye inconnu.' });
+    const sp = (r.speciales || []).find(x => x.code === ss);
+    if (!sp) return res.status(400).json({ ok: false, error: 'Spéciale inconnue.' });
+
+    const { positions, erreurs } = analyser(texte, r, ss);
+    const classes = controler(r, positions);
+    const lignes = Object.keys(positions).map(id => {
+      const e = (r.engages || []).find(x => String(x.id) === id);
+      return { id, pilote: e ? e.pilote : '?', classe: e ? e.classe : '?', valeur: positions[id] };
+    }).sort((a, b) => a.classe.localeCompare(b.classe) ||
+                      (typeof a.valeur === 'number' ? a.valeur : 999) -
+                      (typeof b.valeur === 'number' ? b.valeur : 999));
+    res.json({ ok: true, rallye: r.nom, speciale: sp.code + ' — ' + sp.nom,
+               total: lignes.length, lignes, classes, erreurs });
+  });
+
+  // Enregistrement d'une spéciale
+  app.post('/api/crr/admin/saisir', async (req, res) => {
+    const admin = estAdmin(req);
+    if (!admin) return res.status(403).json({ ok: false, error: 'Accès réservé.' });
+    const { rallye: rid, ss, texte, force } = req.body || {};
+    const r = RALLYES.find(x => x.id === rid);
+    if (!r) return res.status(400).json({ ok: false, error: 'Rallye inconnu.' });
+    const sp = (r.speciales || []).find(x => x.code === ss);
+    if (!sp) return res.status(400).json({ ok: false, error: 'Spéciale inconnue.' });
+
+    const { positions, erreurs } = analyser(texte, r, ss);
+    if (erreurs.length && !force) return res.status(400).json({ ok: false, error: erreurs.join(' · '), erreurs });
+    if (!Object.keys(positions).length) return res.status(400).json({ ok: false, error: 'Aucune position lisible.' });
+
+    // Sécurité : ne pas enregistrer une spéciale qui n'est pas encore partie.
+    if (sp.depart && Date.now() < Date.parse(sp.depart) && !force) {
+      return res.status(400).json({ ok: false,
+        error: 'Cette spéciale n\'est pas encore partie. Enregistrer maintenant verrouillerait les jokers trop tôt.' });
+    }
+
+    store.resultats[rid] = store.resultats[rid] || {};
+    for (const id of Object.keys(positions)) {
+      store.resultats[rid][id] = Object.assign({}, store.resultats[rid][id] || {});
+      store.resultats[rid][id][ss] = positions[id];
+    }
+    saveFile();
+    await sauverResultatsDb(rid);
+    console.log(`CRR admin — ${admin} a saisi ${ss} de ${rid} (${Object.keys(positions).length} équipages)`);
+    res.json({ ok: true, enregistres: Object.keys(positions).length, erreurs });
+  });
+
+  // Effacer une spéciale saisie (pour corriger)
+  app.post('/api/crr/admin/effacer', async (req, res) => {
+    const admin = estAdmin(req);
+    if (!admin) return res.status(403).json({ ok: false, error: 'Accès réservé.' });
+    const { rallye: rid, ss } = req.body || {};
+    if (!store.resultats[rid]) return res.json({ ok: true, efface: 0 });
+    let n = 0;
+    for (const id of Object.keys(store.resultats[rid])) {
+      if (store.resultats[rid][id][ss] != null) { delete store.resultats[rid][id][ss]; n++; }
+      if (!Object.keys(store.resultats[rid][id]).length) delete store.resultats[rid][id];
+    }
+    // la complétion n'est plus valable
+    delete store.completions[rid];
+    saveFile();
+    await sauverResultatsDb(rid);
+    console.log(`CRR admin — ${admin} a effacé ${ss} de ${rid}`);
+    res.json({ ok: true, efface: n });
+  });
+
+  // Export de la saison (sauvegarde téléchargeable)
+  app.get('/api/crr/admin/export', (req, res) => {
+    if (!estAdmin(req)) return res.status(403).json({ ok: false, error: 'Accès réservé.' });
+    const data = {
+      exporte: new Date().toISOString(),
+      resultats: store.resultats,
+      ecuries: store.ecuries,
+      jokers: store.jokers,
+      completions: store.completions,
+    };
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition',
+      'attachment; filename="crr-saison-' + new Date().toISOString().slice(0, 10) + '.json"');
+    res.send(JSON.stringify(data, null, 2));
+  });
+
 };
+
