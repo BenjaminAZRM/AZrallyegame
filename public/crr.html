@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chrono Rallye Race — AZRALLYEGAME</title>
+<title>Chrono Rallye Race — CHRONORALLYERACE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -389,12 +389,21 @@
   @media(max-width:880px){.cols{grid-template-columns:1fr}}
   .hide{display:none}
   .load{text-align:center;color:var(--fog);padding:50px 20px;font-size:13px}
+
+  .mark,.brand,.hdr-logo{display:flex;align-items:center;gap:12px}
+  .brand-logo{height:64px;width:auto;flex-shrink:0;display:block}
+  .brand-txt{font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.08em;
+    font-size:24px;line-height:1;text-transform:uppercase;color:#fff}
+  .brand-txt .c1{color:#fff}
+  .brand-txt .c2{color:#F57C00}
+  .brand-txt .c3{color:#fff}
+  @media(max-width:600px){.brand-logo{height:48px}.brand-txt{font-size:19px}}
 </style>
 </head>
 <body>
 
 <header><div class="in">
-  <div class="mark">AZ<span>RALLYE</span>GAME</div>
+  <div class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></div>
   <div class="tag">Chrono Rallye Race</div>
   <div class="usr"><span id="who"></span><a href="/menu.html">← Menu</a></div>
 </div></header>

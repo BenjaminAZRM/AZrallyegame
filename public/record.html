@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AZRALLYEGAME — Contre-la-montre</title>
+<title>CHRONORALLYERACE — Contre-la-montre</title>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -102,6 +102,15 @@
   .bnr-km small{font-size:.55rem;opacity:.85;margin-left:3px;font-weight:600}
   .bnr-badges{position:absolute;top:38px;right:10px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;z-index:2}
   .bnr-badges .surf,.bnr-badges .wx{margin:0;font-size:.64rem;font-weight:800;padding:2px 9px;background:rgba(8,10,14,.62);border:1px solid rgba(255,255,255,.22);text-shadow:0 1px 3px #000;box-shadow:0 1px 5px rgba(0,0,0,.5)}
+
+  .mark,.brand,.hdr-logo{display:flex;align-items:center;gap:12px}
+  .brand-logo{height:64px;width:auto;flex-shrink:0;display:block}
+  .brand-txt{font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.08em;
+    font-size:24px;line-height:1;text-transform:uppercase;color:#fff}
+  .brand-txt .c1{color:#fff}
+  .brand-txt .c2{color:#F57C00}
+  .brand-txt .c3{color:#fff}
+  @media(max-width:600px){.brand-logo{height:48px}.brand-txt{font-size:19px}}
 </style>
 </head>
 <body>
@@ -233,7 +242,7 @@ function cumEntries(idx,myCum){
 /* ---------- ÉCRAN ACCUEIL ---------- */
 function screenHome(){
   app().innerHTML=`
-    <div class="brand"><span class="az">AZ</span><span class="r">RALLYE</span><span class="az">GAME</span></div>
+    <div class="brand"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></div>
     <div class="tag">Time-attack — bats le meilleur temps</div>
     <div class="card">
       <p style="font-size:.9rem;margin-bottom:12px">Un rallye de <b>${DATA.stages.length} spéciales mythiques</b>, une de chaque caractère. Avant chaque spéciale tu choisis ton <b>équipage</b>, ta <b>voiture</b>, ton <b>pneu</b>, ton <b>rythme</b> et tes <b>réglages</b>. Chaque équipage et chaque voiture ne servent qu'<b>une seule fois</b>.</p>
@@ -242,7 +251,7 @@ function screenHome(){
       <button class="btn-primary" id="start">Démarrer le rallye</button>
     </div>
     ${leaderboardCard(null)}
-    <div class="foot">AZRALLYEGAME — Simulation amateur, non officielle.</div>`;
+    <div class="foot">CHRONORALLYERACE — Simulation amateur, non officielle.</div>`;
   document.getElementById('start').onclick=()=>{ newGame(AZUSER); screenRoadbook(); };
 }
 
@@ -268,7 +277,7 @@ function screenRoadbook(){
   }).join('');
   const totalKm=DATA.stages.reduce((a,st)=>a+st.km,0).toFixed(1);
   app().innerHTML=`
-    <div class="brand"><span class="az">AZ</span><span class="r">RALLYE</span><span class="az">GAME</span></div>
+    <div class="brand"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></div>
     <div class="tag">Road book — ${DATA.stages.length} spéciales · ${totalKm} km</div>
     <div class="card">
       <p class="small" style="margin-bottom:10px">Voici l'itinéraire complet. Chaque équipage et chaque voiture ne servent qu'<b>une seule fois</b> : repère les surfaces et planifie tes forces sur les 13 spéciales avant de t'élancer.</p>
@@ -506,7 +515,7 @@ function screenFinal(){
     <div class="card" style="padding:6px 14px;max-height:55vh;overflow-y:auto">${rows}</div>
     <button class="btn-primary" id="replay">Rejouer</button>
     <button class="btn-ghost" id="splits" style="width:100%;margin-top:8px">Voir mes temps par spéciale</button>
-    <div class="foot">AZRALLYEGAME — Simulation amateur, non officielle.</div>`;
+    <div class="foot">CHRONORALLYERACE — Simulation amateur, non officielle.</div>`;
   document.getElementById('replay').onclick=()=>Store.load().then(screenHome);
   document.getElementById('splits').onclick=()=>{
     let h='<h2>Mes spéciales</h2><div class="card" style="padding:6px 14px">';

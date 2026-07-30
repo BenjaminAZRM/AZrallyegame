@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AZRALLYEGAME — Connexion</title>
+<title>CHRONORALLYERACE — Connexion</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -81,10 +81,19 @@
   footer{border-top:1px solid var(--line);padding:14px;text-align:center;color:var(--fog);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
 
   .hidden{display:none}
+
+  .mark,.brand,.hdr-logo{display:flex;align-items:center;gap:12px}
+  .brand-logo{height:64px;width:auto;flex-shrink:0;display:block}
+  .brand-txt{font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.08em;
+    font-size:24px;line-height:1;text-transform:uppercase;color:#fff}
+  .brand-txt .c1{color:#fff}
+  .brand-txt .c2{color:#F57C00}
+  .brand-txt .c3{color:#fff}
+  @media(max-width:600px){.brand-logo{height:48px}.brand-txt{font-size:19px}}
 </style>
 </head>
 <body>
-  <header><div class="mark">AZ<span>RALLYE</span>GAME</div></header>
+  <header><div class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></div></header>
 
   <main>
     <div class="card">
@@ -105,7 +114,7 @@
       <div id="confirm-wrap" class="hidden">
         <label for="code2">Confirme le code</label>
         <input id="code2" type="password" autocomplete="new-password" placeholder="Retape ton code">
-        <div class="hint">6 caractères minimum. Choisis un code dédié à AZRALLYEGAME (pas un mot de passe important).</div>
+        <div class="hint">6 caractères minimum. Choisis un code dédié à CHRONORALLYERACE (pas un mot de passe important).</div>
 
         <label for="question">Question secrète</label>
         <input id="question" type="text" maxlength="120" placeholder="Ex : le surnom de mon premier chien ?">
@@ -131,7 +140,7 @@
     </div>
   </main>
 
-  <footer>AZRALLYEGAME — Simulation amateur, non officielle</footer>
+  <footer>CHRONORALLYERACE — Simulation amateur, non officielle</footer>
 
 <script>
   // Déjà connecté ? → direction le menu des jeux
