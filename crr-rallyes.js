@@ -420,7 +420,7 @@ const RALLYES = [
       { id:'69',  pilote:'Kerem Kazaz',          copilote:'C. Silvestre',      classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:10 },
       { id:'71',  pilote:'Tuomas Viren',         copilote:'Jussi Laine',       classe:'RC3', modele:'Ford Fiesta Rally3',                 cout:10 },
 
-      { id:'72',  pilote:'Roope Hirvonen',       copilote:'A. Marttila',       classe:'RC4', modele:'Ford Fiesta Rally4',                 cout:20 },
+      { id:'72',  pilote:'Roope Hirvonen',       copilote:'A. Marttila',       classe:'RC4', modele:'Peugeot 208 R2',                 cout:20 },
     ],
 
     // Modèles proposés (1 par écurie). cout = moyenne des crédits du modèle, ramenée au palier.
@@ -436,7 +436,7 @@ const RALLYES = [
       { modele:'Škoda Fabia R5',                     classes:['RC2'], cout:10 },
       { modele:'Ford Fiesta Rally3',                 classes:['RC3'], cout:20 },
       { modele:'Renault Clio Rally3',                classes:['RC3'], cout:20 },
-      { modele:'Ford Fiesta Rally4',                 classes:['RC4'], cout:20 },
+      { modele:'Peugeot 208 R2',                 classes:['RC4'], cout:20 },
     ],
 
     // Résultats : resultats[idEquipage][codeES] = classement DANS SA CLASSE, ou 'Ab'/'Tf'.
