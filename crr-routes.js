@@ -112,7 +112,27 @@ module.exports = function mountCRR(deps) {
     return store.completions[r.id];
   }
   // état d'un rallye en tenant compte de la période de grâce de 24 h
-  function etatDe(r, now) { return E.etat(r, now || Date.now(), completeDepuis(r)); }
+  function etatDe(r, now) {
+    now = now || Date.now();
+    // Un rallye en BROUILLON n'est jamais ouvert aux joueurs : il reste "attente"
+    // (visible et modifiable seulement dans la page admin) jusqu'à ce que tu le publies.
+    if (r.brouillon) return 'attente';
+    const e = E.etat(r, now, completeDepuis(r));
+    // Clôture automatique : un rallye "en cours" est considéré terminé dès qu'un
+    // rallye PLUS RÉCENT a démarré (ouvert à la composition ou déjà parti).
+    // Ainsi l'ancien passe en "terminé" tout seul quand le suivant est lancé.
+    if (e === 'encours' && r.debut) {
+      const debutR = Date.parse(r.debut);
+      const suivantDemarre = baseRallyes().some(autre => {
+        if (autre.id === r.id || !autre.debut) return false;
+        if (Date.parse(autre.debut) <= debutR) return false;      // pas plus récent
+        const ea = E.etat(autre, now, completeDepuis(autre));     // état brut (sans récursion)
+        return ea === 'ouvert' || ea === 'encours';
+      });
+      if (suivantDemarre) return 'termine';
+    }
+    return e;
+  }
 
   async function getEcurie(rallyeId, user) {
     if (pg()) {
@@ -236,12 +256,13 @@ module.exports = function mountCRR(deps) {
   function rallyeCourant() {
     const now = Date.now();
     const RALLYES = tousRallyes();          // ombre locale : version fusionnée (fichier + admin)
-    // 1) un rallye en cours (parti mais pas fini)
-    const enCours = RALLYES.filter(r => etatDe(r, now) === 'encours');
-    if (enCours.length) return enCours[enCours.length - 1];
-    // 2) un rallye ouvert à la composition
+    // 1) un rallye OUVERT à la composition prime : c'est celui qu'on peut jouer
+    //    maintenant, il passe devant un vieux rallye resté "en cours".
     const ouverts = RALLYES.filter(r => etatDe(r, now) === 'ouvert');
     if (ouverts.length) return ouverts[0];
+    // 2) sinon, un rallye en cours (parti mais pas fini)
+    const enCours = RALLYES.filter(r => etatDe(r, now) === 'encours');
+    if (enCours.length) return enCours[enCours.length - 1];
     // 3) le prochain du calendrier (données pas encore saisies).
     //    On se fie à `debut` (date ISO) si elle existe, sinon à l'ordre du fichier.
     const attente = RALLYES.filter(r => etatDe(r, now) === 'attente');
@@ -992,4 +1013,3 @@ module.exports = function mountCRR(deps) {
   });
 
 };
-
