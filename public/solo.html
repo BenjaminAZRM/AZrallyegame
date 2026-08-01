@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CHRONORALLYERACE</title>
+<title>AZRALLYEGAME</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -976,7 +976,7 @@ const PTS=[25,18,15,12,10,8,6,4,2,1];
 function rnd(a){return a[Math.floor(Math.random()*a.length)];}
 function rndN(a,n){const c=[...a],r=[];for(let i=0;i<n&&c.length;i++){const x=Math.floor(Math.random()*c.length);r.push(c.splice(x,1)[0]);}return r;}
 function sc(e,r){return(e.asp*r.asp+e.ter*r.ter+e.nei*r.nei+e.sec*r.sec+e.plu*r.plu+e.rap*r.rap+e.sin*r.sin)/3;}
-function basePerf(d,c,v,r){return((sc(d,r)+sc(c,r)+sc(v,r))/3)*(1+(Math.random()*.1-.05));}
+function basePerf(d,c,v,r){return((sc(d,r)+sc(c,r)+sc(v,r))/3)*(1+(Math.random()*.04-.02));}
 function calcInc(car,r){const risk=(1-car.fib)*(1+r.cas),t=Math.random();if(t>risk)return{type:"OK",pen:0};if(t>risk*.67)return{type:"Crevaison",pen:30};if(t>risk*.33)return{type:"Panne",pen:60};return{type:"Abandon",pen:Infinity};}
 function fmtG(s){if(s===0)return"-";if(s>=60){const m=Math.floor(s/60),x=(s%60).toFixed(1);return`+${m}m${x.padStart(4,"0")}s`;}return`+${s.toFixed(1)}s`;}
 function scol(s){
@@ -1033,8 +1033,8 @@ function simulate(){
     return{id:d.nom,nom:d.nom,cop:d.cop,driver:d,codr:coS(d),car:rivalCar||rnd(yd.cars)};
   });
   if(!ST.sel.driver||!ST.sel.codr||!ST.sel.car){console.error("simulate: missing sel items",ST.sel);return;}
-  const riskMods={prudent:{perf:0.95,fib:1.15},normal:{perf:1,fib:1},attaque:{perf:1.08,fib:0.80}};
-  const rMod=riskMods[ST.riskLevel||'normal']||riskMods.normal;
+  const riskMods={tresPrudent:{perf:0.98,fib:1.15},prudent:{perf:0.99,fib:1.08},attaque:{perf:1.01,fib:0.92},grosseAttaque:{perf:1.02,fib:0.85}};
+  const rMod=riskMods[ST.riskLevel]||{perf:1,fib:1};
   const playerDriver={...ST.sel.driver};
   const playerCar={...ST.sel.car,fib:Math.min(0.99,ST.sel.car.fib*rMod.fib)};
   const player={id:"JOUEUR",nom:ST.sel.driver.nom,cop:ST.sel.codr.nom||"",driver:playerDriver,codr:ST.sel.codr,car:playerCar,isP:true,riskPerfMod:rMod.perf};
@@ -1430,15 +1430,16 @@ function rLaunch(){
   const bars=ST.results.map((_,i)=>`<div class="pbar" style="background:${i<ST.cur?"#dc2626":i===ST.cur?"#ef4444":"#1f2937"}"></div>`).join("");
 
   const risks=[
-    {id:"prudent", label:"Prudent",  desc:"On sécurise",         perf:"-5%",  fib:"+15%", pc:"#f87171", fc:"#4ade80", bc:"#60a5fa"},
-    {id:"normal",  label:"Normal",   desc:"On roule son rythme", perf:"—",    fib:"—",    pc:"#9ca3af", fc:"#9ca3af", bc:"#6b7280"},
-    {id:"attaque", label:"Attaque",  desc:"On pousse à fond",    perf:"+8%",  fib:"-20%", pc:"#4ade80", fc:"#f87171", bc:"#ef4444"},
+    {id:"tresPrudent",  label:"Très prudent",  desc:"Zéro risque", perf:"-2%", fib:"+15%", pc:"#f87171", fc:"#4ade80", bc:"#3b82f6"},
+    {id:"prudent",      label:"Prudent",       desc:"On sécurise", perf:"-1%", fib:"+8%",  pc:"#f87171", fc:"#4ade80", bc:"#60a5fa"},
+    {id:"attaque",      label:"Attaque",       desc:"On pousse",   perf:"+1%", fib:"-8%",  pc:"#4ade80", fc:"#f87171", bc:"#fb923c"},
+    {id:"grosseAttaque",label:"Grosse attaque",desc:"Tout donner", perf:"+2%", fib:"-15%", pc:"#4ade80", fc:"#f87171", bc:"#ef4444"},
   ];
 
   const riskCards=risks.map(rx=>{
     const sel=ST.riskLevel===rx.id;
-    return`<div data-risk="${rx.id}" style="flex:1;background:${sel?"#111827":"#0f1117"};border:2px solid ${sel?rx.bc:"#1f2937"};border-radius:10px;padding:16px 8px;cursor:pointer;text-align:center;transition:all .15s;${sel?"box-shadow:0 0 12px "+rx.bc+"44;":""}">
-      <div style="font-size:13px;font-weight:800;color:${sel?rx.bc:"#6b7280"};text-transform:uppercase;letter-spacing:.08em">${rx.label}</div>
+    return`<div data-risk="${rx.id}" style="flex:1;min-width:0;background:${sel?"#111827":"#0f1117"};border:2px solid ${sel?rx.bc:"#1f2937"};border-radius:10px;padding:14px 4px;cursor:pointer;text-align:center;transition:all .15s;${sel?"box-shadow:0 0 12px "+rx.bc+"44;":""}">
+      <div style="font-size:11px;line-height:1.2;font-weight:800;color:${sel?rx.bc:"#6b7280"};text-transform:uppercase;letter-spacing:.03em">${rx.label}</div>
     </div>`;
   }).join("");
 
@@ -1456,7 +1457,7 @@ function rLaunch(){
     </div>
     <div style="margin-bottom:24px;text-align:left">
       <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Votre stratégie</div>
-      <div style="display:flex;gap:8px" id="riskCards">${riskCards}</div>
+      <div style="display:flex;gap:6px" id="riskCards">${riskCards}</div>
     </div>
     <button id="launchBtn" ${!ST.riskLevel?"disabled":""} style="width:100%;background:${ST.riskLevel?"#dc2626":"#1f2937"};border:2px solid ${ST.riskLevel?"#ef4444":"#374151"};border-radius:12px;padding:14px;font-size:16px;font-weight:900;color:${ST.riskLevel?"#fff":"#4b5563"};cursor:${ST.riskLevel?"pointer":"not-allowed"};letter-spacing:.06em;text-transform:uppercase;${ST.riskLevel?"box-shadow:0 0 24px rgba(220,38,38,.5);":""}transition:all .2s">
       Lancer le rallye
@@ -1465,7 +1466,7 @@ function rLaunch(){
 }
 
 function attachLaunchEv(){
-  const riskColors={prudent:"#60a5fa",normal:"#6b7280",attaque:"#ef4444"};
+  const riskColors={tresPrudent:"#3b82f6",prudent:"#60a5fa",attaque:"#fb923c",grosseAttaque:"#ef4444"};
   document.querySelectorAll("#riskCards > div").forEach(card=>{
     const col=riskColors[card.dataset.risk]||"#6b7280";
     card.addEventListener("mouseenter",()=>{
