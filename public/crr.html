@@ -246,8 +246,7 @@
   .sh2 .montemps{font-family:"Space Mono",monospace;font-weight:700;font-size:18px;color:var(--paper)}
   .sh2 .dl{font-family:"Oswald",sans-serif;font-weight:700;font-size:16px}
   .sh2 .dl.g{color:var(--green)}.sh2 .dl.r{color:var(--err)}.sh2 .dl.n{color:var(--fog)}
-  .swipehint{text-align:center;font-size:10px;color:#5b616b;padding:2px 0 10px;display:none}
-  @media(hover:none){.swipehint{display:block}}
+  @media(hover:none){}
 
   .ss{border:1px solid var(--line);background:var(--card2);margin-bottom:8px}
   .sh{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer}
@@ -412,6 +411,17 @@
   .acc-b{max-height:0;overflow:hidden;transition:max-height .3s ease}
   .acc.open .acc-b{max-height:2200px}
   .acc-b .panel{margin:0}
+  .card-car{position:relative}
+  .pil-pop{position:absolute;left:0;right:0;bottom:calc(100% + 6px);background:var(--card2);
+    border:1px solid var(--amber);padding:10px 12px;z-index:30;
+    opacity:0;visibility:hidden;transition:.14s;box-shadow:0 8px 24px -8px rgba(0,0,0,.7)}
+  .card-car:hover .pil-pop,.card-car.show .pil-pop{opacity:1;visibility:visible}
+  .pil-pop .pp-t{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--fog);margin-bottom:7px}
+  .pil-pop .pil-l{display:block;font-size:12px;padding:3px 0;color:var(--paper)}
+  .pil-pop .pil-l i{color:var(--amber);font-style:normal;font-size:10px;
+    border:1px solid var(--amber);padding:1px 5px;margin-left:4px}
+  @media(hover:none){.card-car.show{outline:1px solid var(--amber)}}
 </style>
 </head>
 <body>
@@ -601,7 +611,7 @@ function rendreRallye(a){
     stats='<div class="stats">'
      + '<div class="st"><div class="k">Mon chrono</div><div class="v amber">'
         +(MOI.course&&MOI.course.courues?fmtLong(MOI.course.total):'—')
-        +'</div><div class="s">'+nbC+' / '+R.speciales.length+' spéciales</div></div>'
+        +'</div><div class="s">'+Math.min(nbC,nbVraiesSpeciales())+' / '+nbVraiesSpeciales()+' spéciales</div></div>'
      + '<div class="st"><div class="k">Provisoire</div><div class="v">'+(moi?moi.rang+'ᵉ':'—')
         +'</div><div class="s">'+(moi&&moi.rang>1?ec(moi.total-lead)+' du leader':(moi?'leader':'pas classé'))+'</div></div>'
      + '<div class="st"><div class="k">Jokers posés</div><div class="v">'+MOI.jokers.length
@@ -656,12 +666,14 @@ function renderConsult(L,ss){
    + '<div class="cnav">'
      + '<button class="arr" id="cprev" '+(i<=0?'disabled':'')+'>‹</button>'
      + '<div class="cinfo" id="ccinfo">'
-       + '<div class="c"><b>'+esc(s.code)+'</b><span class="sep">/'+ss.length+'</span>'
+       + '<div class="c"><b>'+esc(libelleSpeciale(s.code).code)+'</b>'
+         + (libelleSpeciale(s.code).total?'<span class="sep">'+libelleSpeciale(s.code).total+'</span>':'')
          + ' <span class="sep">—</span> '+esc(s.nom)+'</div>'
        + '<div class="hintline">▾ cliquer pour choisir une spéciale</div>'
        + '<div class="cmenu" id="ccmenu">'
          + ss.map(function(x,k){
-             return '<div class="mi '+etatSSclass(x.code)+(k===i?' on':'')+'" data-k="'+k+'">'+esc(x.code)+'</div>';
+             var lb=estFinale(x.code)?'CF':x.code;
+             return '<div class="mi '+etatSSclass(x.code)+(k===i?' on':'')+(estFinale(x.code)?' finale':'')+'" data-k="'+k+'">'+esc(lb)+'</div>';
            }).join('')
        + '</div>'
      + '</div>'
@@ -674,7 +686,6 @@ function renderConsult(L,ss){
      + '<div class="tv on" data-tv="s">'+tblSpe((CL.parSpeciale||{})[s.code]||[],s.code)+'</div>'
      + '<div class="tv" data-tv="g">'+tblGen((CL.generalParSS||{})[s.code]||[])+'</div>'
    + '</div>'
-   + '<div class="swipehint">← glisse pour changer de spéciale →</div>'
    + '</div>';
 
   var prev=document.getElementById('cprev'), next=document.getElementById('cnext');
@@ -688,15 +699,6 @@ function renderConsult(L,ss){
     });
   }
   brancherTabs(L);
-  // swipe
-  var x0=null, car=L.querySelector('.carou');
-  car.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
-  car.addEventListener('touchend',function(e){
-    if(x0==null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;
-    if(Math.abs(dx)<45)return;
-    if(dx<0&&_ssIdx<ss.length-1){_ssIdx++;renderConsult(L,ss);}
-    else if(dx>0&&_ssIdx>0){_ssIdx--;renderConsult(L,ss);}
-  },{passive:true});
 }
 
 // ── PAGE DE LA SAISON : championnat + calendrier (rallye en cours cliquable) ──
@@ -904,11 +906,22 @@ function vueCompo(b){
   });
   var cars=document.getElementById('cars');
   R.voitures.slice().sort(function(a,z){return z.cout-a.cout;}).forEach(function(v){
-    var el=document.createElement('div');el.className='card-i';el.setAttribute('data-car',v.modele);
+    var el=document.createElement('div');el.className='card-i card-car';el.setAttribute('data-car',v.modele);
+    // liste des pilotes réels qui roulent sur ce modèle
+    var pilotes=R.engages.filter(function(e){return e.modele===v.modele;})
+      .map(function(e){return '<span class="pil-l"><b>'+esc(e.pilote)+'</b> <i>'+esc(e.classe)+'</i></span>';}).join('');
     el.innerHTML='<div class="n"><span title="'+esc(v.modele)+'">'+esc(v.modele)+'</span><small>'
       +(v.classes||[]).map(function(c){return esc(c);}).join(' / ')
-      +' · '+v.n+' équipage'+(v.n>1?'s':'')+'</small></div><div class="c">'+v.cout+'</div>';
-    el.onclick=function(){togV(v);};
+      +' · '+v.n+' équipage'+(v.n>1?'s':'')+'</small></div><div class="c">'+v.cout+'</div>'
+      +'<div class="pil-pop"><div class="pp-t">Pilotes de cette voiture</div>'+pilotes+'</div>';
+    // clic : sur mobile, 1er appui montre les pilotes, 2e appui sélectionne ; sur ordi, sélectionne direct
+    el.onclick=function(ev){
+      if(!canHover && !el.classList.contains('show')){
+        Array.prototype.forEach.call(cars.querySelectorAll('.card-car'),function(o){o.classList.remove('show');});
+        el.classList.add('show'); return;
+      }
+      togV(v);
+    };
     cars.appendChild(el);
   });
   document.body.classList.add('hasbar');
@@ -1059,6 +1072,30 @@ function vueCourse(b){
 }
 
 var _ssIdx=null;
+
+// ── Spéciale bonus "Classement final" : code CF (ou tout code sans numéro ES+chiffre) ──
+function estFinale(code){ return !/^ES\s*\d+$/i.test(String(code||'').trim()); }
+// Nombre de VRAIES spéciales du rallye (hors finale) — le total affiché aux joueurs.
+function nbVraiesSpeciales(){
+  if(!R.speciales)return 0;
+  return R.speciales.filter(function(sp){return !estFinale(sp.code);}).length;
+}
+// Position d'une spéciale dans la série numérotée (1..N) ; null si c'est la finale.
+function numSpeciale(code){
+  if(estFinale(code))return null;
+  var n=0;
+  for(var i=0;i<R.speciales.length;i++){
+    if(estFinale(R.speciales[i].code))continue;
+    n++;
+    if(R.speciales[i].code===code)return n;
+  }
+  return null;
+}
+// Libellé d'une spéciale pour le carrousel : "ES3 / 20" ou "Classement final".
+function libelleSpeciale(code){
+  if(estFinale(code))return {code:'Classement final',total:'',finale:true};
+  return {code:code,total:'/'+nbVraiesSpeciales(),finale:false};
+}
 // État d'une spéciale d'après R.speciales : mav (à venir) / men (en cours) / mtm (terminée)
 function etatSSclass(code){
   for(var i=0;i<R.speciales.length;i++){
@@ -1079,13 +1116,15 @@ function renderCarou(L,ss){
    + '<div class="cnav">'
      + '<button class="arr" id="prev" '+(i<=0?'disabled':'')+'>‹</button>'
      + '<div class="cinfo" id="cinfo">'
-       + '<div class="c"><b>'+esc(s.code)+'</b><span class="sep">/'+ss.length+'</span>'
+       + '<div class="c"><b>'+esc(libelleSpeciale(s.code).code)+'</b>'
+         + (libelleSpeciale(s.code).total?'<span class="sep">'+libelleSpeciale(s.code).total+'</span>':'')
          + ' <span class="sep">—</span> '+esc(s.nom)+'</div>'
        + '<div class="hintline">▾ cliquer pour choisir une spéciale</div>'
        + '<div class="cmenu" id="cmenu">'
          + ss.map(function(x,k){
              var cl=etatSSclass(x.code);
-             return '<div class="mi '+cl+(k===i?' on':'')+'" data-k="'+k+'">'+esc(x.code)+'</div>';
+             var lb=estFinale(x.code)?'CF':x.code;
+             return '<div class="mi '+cl+(k===i?' on':'')+(estFinale(x.code)?' finale':'')+'" data-k="'+k+'">'+esc(lb)+'</div>';
            }).join('')
        + '</div>'
      + '</div>'
@@ -1100,7 +1139,6 @@ function renderCarou(L,ss){
        + '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'+tablesSS(s.code)+'</div>'
      + '</div>'
    + '</div>'
-   + '<div class="swipehint">← glisse pour changer de spéciale →</div>'
    + '</div>';
 
   var prev=document.getElementById('prev'), next=document.getElementById('next');
@@ -1121,16 +1159,6 @@ function renderCarou(L,ss){
   }
   brancherTabs(L);
 
-  // navigation tactile (swipe gauche/droite)
-  var x0=null, car=L.querySelector('.carou');
-  car.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
-  car.addEventListener('touchend',function(e){
-    if(x0==null)return;
-    var dx=e.changedTouches[0].clientX-x0; x0=null;
-    if(Math.abs(dx)<45)return;
-    if(dx<0 && _ssIdx<ss.length-1){_ssIdx++;renderCarou(L,ss);}
-    else if(dx>0 && _ssIdx>0){_ssIdx--;renderCarou(L,ss);}
-  },{passive:true});
 }
 document.addEventListener('keydown',function(e){
   var L=document.getElementById('sslist'); if(!L||!L.querySelector('.carou'))return;
