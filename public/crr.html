@@ -398,6 +398,20 @@
   .brand-txt .c2{color:#F57C00}
   .brand-txt .c3{color:#fff}
   @media(max-width:600px){.brand-logo{height:48px}.brand-txt{font-size:19px}}
+  .chtab th.rnom{min-width:88px;font-size:10px;line-height:1.25;white-space:normal;vertical-align:bottom;padding-bottom:10px}
+  .eqp .copi{display:block;font-size:10px;color:var(--fog);font-weight:400;margin-top:1px}
+  .card-i .n .copi{display:block;font-size:10px;color:var(--fog);margin-top:1px}
+  .slot .copi2{font-size:10px;color:var(--fog);margin-top:2px}
+  .acc{border:1px solid var(--line);background:var(--card);margin:14px 0}
+  .acc-h{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none;transition:.14s}
+  .acc-h:hover{background:var(--card2)}
+  .acc-ic{font-family:"Oswald",sans-serif;font-weight:700;color:var(--amber);font-size:18px;transition:transform .2s;width:14px;text-align:center}
+  .acc.open .acc-ic{transform:rotate(90deg)}
+  .acc-ti{flex:1;font-family:"Oswald",sans-serif;font-weight:600;font-size:13px;letter-spacing:.2em;text-transform:uppercase}
+  .acc-ct{font-size:11px;color:var(--fog)}
+  .acc-b{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .acc.open .acc-b{max-height:2200px}
+  .acc-b .panel{margin:0}
 </style>
 </head>
 <body>
@@ -423,7 +437,8 @@ document.getElementById('who').innerHTML='Écurie <b>'+U+'</b>';
 var R=null, MOI=null, CL=null, CAL=[], CHP={classement:[],rallyes:[]};
 var _rallyeVu=null;   // id du rallye affiché ; null = le rallye courant
 var S={crews:[null,null,null],car:null};           // composition en cours
-var J={joker:null,ss:null,tg:null};                // joker en cours
+var J={joker:null,ss:null,tg:null};
+var _jokerOuvert=false;   // le bloc joker est replié par défaut                // joker en cours
 var canHover=matchMedia('(hover:hover)').matches;
 
 var ICON={
@@ -493,7 +508,8 @@ function blocEcurieHero(){
   var lignes=MOI.ecurie.equipages.map(function(id){
     var e=eng(id);if(!e)return '';
     return '<div class="eq"><span class="eqn">#'+esc(e.id)+'</span>'
-      +'<span class="eqp">'+esc(e.pilote)+'</span>'
+      +'<span class="eqp">'+esc(e.pilote)
+      +(e.copilote?'<small class="copi">'+esc(e.copilote)+'</small>':'')+'</span>'
       +'<span class="eqi">'+esc(e.classe)+' · '+(R.classes[e.classe]||'?')+' engagés</span></div>';
   }).join('');
   var v=MOI.ecurie.voiture, nv=nbEquipagesVoiture(v);
@@ -554,13 +570,15 @@ function rendre(){
   // barre d'onglets commune
   var onglets='<div class="onglets">'
     +'<div class="og'+(_vue==='rallye'?' on':'')+'" data-v="rallye">Rallye</div>'
-    +'<div class="og'+(_vue==='saison'?' on':'')+'" data-v="saison">Saison</div>'
+    +'<div class="og'+(_vue==='champ'?' on':'')+'" data-v="champ">Championnat</div>'
+    +'<div class="og'+(_vue==='cal'?' on':'')+'" data-v="cal">Calendrier</div>'
     +'</div>';
   a.innerHTML=onglets+'<div id="vue"></div>';
   Array.prototype.forEach.call(a.querySelectorAll('.og'),function(el){
     el.onclick=function(){ _vue=el.getAttribute('data-v'); rendre(); };
   });
-  if(_vue==='saison') rendreSaison(document.getElementById('vue'));
+  if(_vue==='champ') rendreChampionnat(document.getElementById('vue'));
+  else if(_vue==='cal') rendreCalendrier(document.getElementById('vue'));
   else rendreRallye(document.getElementById('vue'));
 }
 
@@ -682,15 +700,21 @@ function renderConsult(L,ss){
 }
 
 // ── PAGE DE LA SAISON : championnat + calendrier (rallye en cours cliquable) ──
-function rendreSaison(a){
+function rendreChampionnat(a){
   document.body.classList.remove('hasbar');
   a.innerHTML='<div class="hero" style="border-left-color:var(--amber)">'
    +'<div class="kick">Saison</div><h1>Championnat</h1>'
-   +'<div class="meta"><span>'+(CHP.rallyes?CHP.rallyes.length:0)+' rallye(s) couru(s)</span>'
-   +'<span>'+(CAL.length)+' au calendrier</span>'
-   +(R.etat!=='attente'?'':'')+'</div>'
+   +'<div class="meta"><span>'+(CHP.rallyes?CHP.rallyes.length:0)+' rallye(s) couru(s)</span></div>'
    +'<div class="auto" id="maj"></div></div>'
-   + blocChampionnatTable()
+   + blocChampionnatTable();
+  majEtat(false);
+}
+function rendreCalendrier(a){
+  document.body.classList.remove('hasbar');
+  a.innerHTML='<div class="hero" style="border-left-color:var(--amber)">'
+   +'<div class="kick">Saison</div><h1>Calendrier</h1>'
+   +'<div class="meta"><span>'+(CAL.length)+' rallye(s) au calendrier</span></div>'
+   +'<div class="auto" id="maj"></div></div>'
    + blocCalendrierListe();
   majEtat(false);
   brancherCalendrier(a);
@@ -747,8 +771,7 @@ function blocChampionnatTable(){
 
   var head='<th class="c0"></th><th class="c1">Joueur</th><th class="c2">Total</th>'
     + rs.map(function(r,i){
-        var lbl='R'+(i+1);
-        return '<th class="rc" title="'+esc(r.nom)+'">'+lbl+(r.termine?'':' <span style="color:#7dd3fc">•</span>')+'</th>';
+        return '<th class="rc rnom" title="'+esc(r.nom)+'">'+esc(r.nom)+(r.termine?'':' <span style="color:#7dd3fc">•</span>')+'</th>';
       }).join('');
 
   var body=cl.map(function(l){
@@ -872,6 +895,7 @@ function vueCompo(b){
       .forEach(function(e){
         var el=document.createElement('div');el.className='card-i';el.setAttribute('data-crew',e.id);
         el.innerHTML='<div class="n"><span title="'+esc(e.pilote)+'">'+esc(e.pilote)+'</span>'
+          +(e.copilote?'<small class="copi">'+esc(e.copilote)+'</small>':'')
           +'<small>#'+esc(e.id)+' · '+esc(e.modele)+'</small></div>'
           +'<div class="c">'+e.cout+(e.estim?'<span style="color:#5b616b;font-size:11px">?</span>':'')+'</div>';
         el.onclick=function(){togC(e);};
@@ -916,7 +940,9 @@ function majCompo(){
     var sl=document.querySelector('[data-c="'+i+'"]'),c=S.crews[i];
     if(c){sl.className='slot on';
       sl.innerHTML='<button class="x">×</button><div><span class="chip cl">'+esc(c.classe)+'</span></div>'
-        +'<div class="n">'+esc(c.pilote)+'</div><div class="s">#'+esc(c.id)+'</div>'
+        +'<div class="n">'+esc(c.pilote)+'</div>'
+        +(c.copilote?'<div class="copi2">'+esc(c.copilote)+'</div>':'')
+        +'<div class="s">#'+esc(c.id)+'</div>'
         +'<div class="b"><span class="s">'+R.classes[c.classe]+' engagés</span><span class="c">'+c.cout+'</span></div>';
       sl.querySelector('.x').onclick=function(ev){ev.stopPropagation();S.crews[i]=null;majCompo();};
     }else{sl.className='slot';
@@ -1292,7 +1318,12 @@ function brancherTabs(root){
 
 // ── jokers ───────────────────────────────────────────────────────────────────
 function blocJokers(){
-  return '<h2 class="sec">Jokers</h2><div class="panel" style="border-left:3px solid var(--amber)">'
+  var reste=(R.maxJokers-MOI.jokers.length);
+  return '<div class="acc'+(_jokerOuvert?' open':'')+'" id="accJk">'
+   +'<div class="acc-h" onclick="_jokerOuvert=!_jokerOuvert;document.getElementById(\'accJk\').classList.toggle(\'open\')">'
+   +'<span class="acc-ic">\u203a</span><span class="acc-ti">Jokers</span>'
+   +'<span class="acc-ct">'+MOI.jokers.length+'/'+R.maxJokers+' posés · '+reste+' restant'+(reste>1?'s':'')+'</span></div>'
+   +'<div class="acc-b"><div class="panel" style="border-left:3px solid var(--amber);border-top:none">'
    +'<div style="font-size:12px;color:var(--fog);line-height:1.6;margin-bottom:15px">'
    +'Choisis un joker, la <b style="color:var(--amber)">spéciale</b> (encore à disputer) puis l\'<b style="color:var(--amber)">équipage</b> visé. '
    +'Plusieurs jokers peuvent viser une même spéciale, mais jamais deux sur le même équipage. '
@@ -1305,7 +1336,7 @@ function blocJokers(){
    +'<div style="display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap">'
    +'<button class="btn" id="pose" disabled>Poser le joker</button>'
    +'<span style="font-size:11px;color:var(--fog)" id="jw">Choisis un joker, une spéciale et un équipage.</span>'
-   +'</div></div>';
+   +'</div></div></div></div>';
 }
 function jkUse(id){return MOI.jokers.filter(function(j){return j.joker===id;})[0];}
 function jkCouple(ss,eq){return MOI.jokers.some(function(j){return j.ss===ss&&j.equipage===eq;});}
