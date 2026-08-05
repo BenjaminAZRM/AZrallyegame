@@ -65,8 +65,11 @@ module.exports = function mountCRR(deps) {
         voiture TEXT NOT NULL,
         cout INT NOT NULL,
         cree BIGINT NOT NULL,
+        joker_rallye TEXT,
         PRIMARY KEY (rallye, joueur)
       )`);
+      // migration douce : ajoute la colonne si la table existait déjà sans elle
+      await pool.query(`ALTER TABLE crr_ecuries ADD COLUMN IF NOT EXISTS joker_rallye TEXT`);
       await pool.query(`CREATE TABLE IF NOT EXISTS crr_jokers (
         rallye TEXT NOT NULL,
         joueur TEXT NOT NULL,
@@ -136,17 +139,19 @@ module.exports = function mountCRR(deps) {
 
   async function getEcurie(rallyeId, user) {
     if (pg()) {
-      const q = await pool.query('SELECT equipages,voiture,cout FROM crr_ecuries WHERE rallye=$1 AND joueur=$2', [rallyeId, user]);
+      const q = await pool.query('SELECT equipages,voiture,cout,joker_rallye FROM crr_ecuries WHERE rallye=$1 AND joueur=$2', [rallyeId, user]);
       if (!q.rowCount) return null;
       const r = q.rows[0];
-      return { user, equipages: r.equipages, voiture: r.voiture, cout: r.cout };
+      return { user, equipages: r.equipages, voiture: r.voiture, cout: r.cout,
+               jokerRallye: r.joker_rallye ? JSON.parse(r.joker_rallye) : null };
     }
     return store.ecuries[cle(rallyeId, user)] || null;
   }
   async function getEcuries(rallyeId) {
     if (pg()) {
-      const q = await pool.query('SELECT joueur,equipages,voiture,cout FROM crr_ecuries WHERE rallye=$1', [rallyeId]);
-      return q.rows.map(r => ({ user: r.joueur, equipages: r.equipages, voiture: r.voiture, cout: r.cout }));
+      const q = await pool.query('SELECT joueur,equipages,voiture,cout,joker_rallye FROM crr_ecuries WHERE rallye=$1', [rallyeId]);
+      return q.rows.map(r => ({ user: r.joueur, equipages: r.equipages, voiture: r.voiture, cout: r.cout,
+               jokerRallye: r.joker_rallye ? JSON.parse(r.joker_rallye) : null }));
     }
     return Object.keys(store.ecuries)
       .filter(k => k.startsWith(rallyeId + '|'))
@@ -155,9 +160,10 @@ module.exports = function mountCRR(deps) {
   async function setEcurie(rallyeId, ec) {
     if (pg()) {
       await pool.query(
-        `INSERT INTO crr_ecuries (rallye,joueur,equipages,voiture,cout,cree) VALUES ($1,$2,$3,$4,$5,$6)
-         ON CONFLICT (rallye,joueur) DO UPDATE SET equipages=$3, voiture=$4, cout=$5, cree=$6`,
-        [rallyeId, ec.user, JSON.stringify(ec.equipages), ec.voiture, ec.cout, Date.now()]
+        `INSERT INTO crr_ecuries (rallye,joueur,equipages,voiture,cout,cree,joker_rallye) VALUES ($1,$2,$3,$4,$5,$6,$7)
+         ON CONFLICT (rallye,joueur) DO UPDATE SET equipages=$3, voiture=$4, cout=$5, cree=$6, joker_rallye=$7`,
+        [rallyeId, ec.user, JSON.stringify(ec.equipages), ec.voiture, ec.cout, Date.now(),
+         ec.jokerRallye ? JSON.stringify(ec.jokerRallye) : null]
       );
       return;
     }
@@ -368,10 +374,64 @@ module.exports = function mountCRR(deps) {
     if (!v.ok) return res.status(400).json({ ok: false, error: v.error });
 
     try {
-      await setEcurie(r.id, { user, equipages, voiture, cout: v.cout });
-      res.json({ ok: true, cout: v.cout });
+      // on préserve le joker rallye déjà posé, sauf s'il ne cible plus l'écurie
+      const ancienne = await getEcurie(r.id, user);
+      let jokerRallye = ancienne ? ancienne.jokerRallye : null;
+      if (jokerRallye) {
+        const cibleOk = jokerRallye.cible === 'voiture'
+          ? true
+          : equipages.includes(jokerRallye.cible);
+        // Talent caché : la cible doit toujours coûter 10
+        let coutOk = true;
+        if (jokerRallye.joker === 'talent') {
+          const cc = jokerRallye.cible === 'voiture'
+            ? ((r.voitures || []).find(x => x.modele === voiture) || {}).cout
+            : ((r.engages || []).find(x => x.id === jokerRallye.cible) || {}).cout;
+          coutOk = cc === 10;
+        }
+        if (!cibleOk || !coutOk) jokerRallye = null;   // la cible a disparu : on retire le joker
+      }
+      await setEcurie(r.id, { user, equipages, voiture, cout: v.cout, jokerRallye });
+      res.json({ ok: true, cout: v.cout, jokerRallye });
     } catch (e) {
       console.error('POST /api/crr/ecurie', e.message);
+      res.status(500).json({ ok: false, error: 'Enregistrement impossible.' });
+    }
+  });
+
+  // Poser ou retirer le JOKER RALLYE (0 ou 1 par écurie, avant l'ES1)
+  //   body { rallye, joker, cible }  cible = id d'un des 3 équipages ou 'voiture'
+  //   joker vide ou 'aucun' => retire le joker rallye
+  app.post('/api/crr/joker-rallye', async (req, res) => {
+    const user = tokenFrom(req);
+    if (!user) return res.status(401).json({ ok: false, error: 'Session expirée — reconnecte-toi.' });
+    if (!rateLimit('crr:jr:' + user, 40, 3600000))
+      return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie plus tard.' });
+
+    const b = req.body || {};
+    const r = trouverRallye(b.rallye);
+    try {
+      const ec = await getEcurie(r.id, user);
+      if (!ec) return res.status(400).json({ ok: false, error: 'Compose d\'abord ton écurie.' });
+      if (!E.ecurieOuverte(r, Date.now()))
+        return res.status(403).json({ ok: false, error: 'Le rallye a commencé : le joker rallye est verrouillé.' });
+
+      const joker = String(b.joker || '').trim();
+      // retrait
+      if (!joker || joker === 'aucun') {
+        ec.jokerRallye = null;
+        await setEcurie(r.id, ec);
+        return res.json({ ok: true, jokerRallye: null });
+      }
+      const cible = String(b.cible || '');
+      const v = E.validerJokerRallye(r, ec, joker, cible, Date.now());
+      if (!v.ok) return res.status(400).json({ ok: false, error: v.error });
+
+      ec.jokerRallye = { joker, cible };
+      await setEcurie(r.id, ec);
+      res.json({ ok: true, jokerRallye: ec.jokerRallye });
+    } catch (e) {
+      console.error('POST /api/crr/joker-rallye', e.message);
       res.status(500).json({ ok: false, error: 'Enregistrement impossible.' });
     }
   });

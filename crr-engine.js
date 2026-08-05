@@ -20,6 +20,16 @@ const PTS_TOP10  = [10,9,8,7,6,5,4,3,2,1];
 const JOKERS = ['flat','cold','forf','pwr','regl'];
 const POWER_STAGE = [-5, -4, -3, -2, -1];   // joker Power stage : bonus ajouté aux 5 premiers de la classe
 
+// ── JOKERS RALLYE (0 ou 1 par écurie, posé avant l'ES1, actif sur TOUTES les spéciales) ──
+// Chaque joker cible UN des 3 pilotes OU la voiture. Il agit sur la valeur finale (option 1).
+const JOKERS_RALLYE = ['risque','securite','fiabilite','mecano','talent','domicile'];
+const AB_MALUS = 15;          // malus d'abandon plein
+const MECANO_CAP = 10;        // Mécanicien : plafond du malus d'abandon
+const AMPLI = 2;              // Pilote à risque / sécuritaire : ±2 s
+const FIABILITE_S = 1;        // Fiabilité : -1 s sur un malus
+const TALENT_S = 3;           // Talent caché : -3 s sur un bonus (pilote/voiture coût 10)
+const DOMICILE_S = 1;         // À domicile : -1 s sur un bonus
+
 const r1 = x => Math.round(x * 10) / 10;
 const clampEng = n => Math.max(1, Math.min(MAX_ENGAGES, n | 0));
 
@@ -64,6 +74,36 @@ function appliquerJoker(joker, res, engages, bm, seedParts) {
     case 'regl':                                   // gagne une place dans sa classe
       if (typeof res === 'number' && res > 1) return bmBrut(res - 1, engages);
       return bm;
+    default:
+      return bm;
+  }
+}
+
+// Applique un JOKER RALLYE à une valeur bonus/malus finale (option 1).
+//   bm        = valeur bonus/malus finale (pilote choisi, ou moyenne voiture)
+//   estAbandon= vrai si cette valeur correspond à un abandon plein
+//               (pilote : il a abandonné ; voiture : TOUS les équipages ont abandonné)
+// Convention : bonus < 0 (retire du temps), malus > 0 (en ajoute).
+function appliquerJokerRallye(joker, bm, estAbandon) {
+  switch (joker) {
+    case 'risque':                 // amplifie de 2 s. À 0 = bonus → -2 (sens du joueur)
+      if (bm > 0) return r1(bm + AMPLI);      // malus renforcé
+      return r1(bm - AMPLI);                  // bonus (ou 0 traité en bonus) renforcé
+    case 'securite':               // réduit de 2 s. À 0 = malus → réduit côté malus (-2, sens du joueur)
+      if (bm < 0) return r1(bm + AMPLI);      // bonus rapproché de 0 (peut traverser)
+      return r1(bm - AMPLI);                  // malus (ou 0 traité en malus) réduit (peut traverser)
+    case 'fiabilite':              // -1 s. À 0 = malus → -1 (devient bonus). N'affecte pas les bonus (<0)
+      if (bm < 0) return bm;                  // bonus strict : inchangé
+      return r1(bm - FIABILITE_S);            // malus ou 0 : -1 s (peut passer sous 0)
+    case 'mecano':                 // plafonne le malus d'abandon à 10 (ne concerne pas le 0)
+      if (estAbandon && bm > MECANO_CAP) return MECANO_CAP;
+      return bm;
+    case 'talent':                 // -3 s. À 0 = bonus → -3. N'affecte pas les malus (>0)  [cible coût 10]
+      if (bm > 0) return bm;                  // malus strict : inchangé
+      return r1(bm - TALENT_S);               // bonus ou 0 : -3 s
+    case 'domicile':               // -1 s. À 0 = bonus → -1. N'affecte pas les malus (>0)
+      if (bm > 0) return bm;                  // malus strict : inchangé
+      return r1(bm - DOMICILE_S);             // bonus ou 0 : -1 s
     default:
       return bm;
   }
@@ -118,6 +158,9 @@ function calculerSpeciale(rallye, ecurie, jokers, ssIndex) {
   const detail = [];
   let somme = 0;
 
+  // Joker rallye de l'écurie (0 ou 1), actif sur toutes les spéciales.
+  const jr = ecurie.jokerRallye || null;   // { joker, cible }  cible = id équipage ou 'voiture'
+
   ecurie.equipages.forEach((eid, k) => {
     const eng = rallye.engages.find(x => x.id === eid);
     if (!eng) { detail.push({ id: eid, bm: 0, erreur: 'introuvable' }); return; }
@@ -127,20 +170,36 @@ function calculerSpeciale(rallye, ecurie, jokers, ssIndex) {
 
     const brut = bmBrut(res, nb);
     const jk = jokers.find(j => j.ss === ss.code && j.equipage === eid);
-    const bm = jk
+    let bm = jk
       ? appliquerJoker(jk.joker, res, nb, brut, [rallye.id, ecurie.user, ss.code, eid])
       : brut;
 
+    // Joker rallye ciblant CE pilote
+    let jrJoker = null;
+    if (jr && jr.cible === eid) {
+      jrJoker = jr.joker;
+      bm = appliquerJokerRallye(jr.joker, bm, res === 'Ab');
+    }
+
     somme = r1(somme + bm);
     detail.push({ id: eid, pilote: eng.pilote, classe: eng.classe, engages: nb,
-                  res, brut, bm, joker: jk ? jk.joker : null });
+                  res, brut, bm, joker: jk ? jk.joker : null, jokerRallye: jrJoker });
   });
 
+  // Voiture : moyenne, puis joker rallye si la voiture est ciblée.
   const dv = detailVoiture(rallye, ecurie.voiture, ss.code);
-  const delta = r1(somme + dv.bm);
+  let bmVoit = dv.bm, jrVoit = null;
+  if (jr && jr.cible === 'voiture') {
+    jrVoit = jr.joker;
+    // abandon "plein" côté voiture = tous les équipages comptés ont abandonné (Ab)
+    const tousAb = dv.lignes.length > 0 && dv.lignes.every(l => l.res === 'Ab');
+    bmVoit = appliquerJokerRallye(jr.joker, dv.bm, tousAb);
+  }
+
+  const delta = r1(somme + bmVoit);
   const base = Number(ss.base) || 0;
   return { code: ss.code, nom: ss.nom, base, detail,
-           voiture: { modele: ecurie.voiture, bm: dv.bm, lignes: dv.lignes },
+           voiture: { modele: ecurie.voiture, bm: bmVoit, bmBrut: dv.bm, lignes: dv.lignes, jokerRallye: jrVoit },
            delta, temps: r1(base + delta) };
 }
 
@@ -221,6 +280,35 @@ function validerJoker(rallye, ecurie, jokersPoses, joker, ssCode, equipageId, ma
     return { ok: false, error: 'Un joker vise déjà cet équipage sur ' + ssCode + '.' };
   if (horsCourse(rallye, equipageId, Math.max(0, idx - 1)))
     return { ok: false, error: 'Équipage abandonné ou forfait : joker impossible.' };
+
+  return { ok: true };
+}
+
+// ─── VALIDATION D'UN JOKER RALLYE ───────────────────────────────────────────────
+// joker  : un de JOKERS_RALLYE
+// cible  : un id d'équipage de l'écurie, ou 'voiture'
+// Se pose avant l'ES1 (tant que l'écurie est ouverte). Un seul par écurie.
+function validerJokerRallye(rallye, ecurie, joker, cible, maintenant) {
+  if (!JOKERS_RALLYE.includes(joker)) return { ok: false, error: 'Joker rallye inconnu.' };
+  if (!ecurieOuverte(rallye, maintenant))
+    return { ok: false, error: 'Le rallye a commencé : le joker rallye ne peut plus être posé.' };
+
+  // cible : soit la voiture, soit un des 3 équipages
+  let coutCible = null, classeCible = null;
+  if (cible === 'voiture') {
+    const v = (rallye.voitures || []).find(x => x.modele === ecurie.voiture);
+    coutCible = v ? v.cout : null;
+  } else {
+    if (!ecurie.equipages.includes(cible))
+      return { ok: false, error: 'La cible doit être un de tes 3 pilotes ou ta voiture.' };
+    const e = (rallye.engages || []).find(x => x.id === cible);
+    coutCible = e ? e.cout : null;
+    classeCible = e ? e.classe : null;
+  }
+
+  // Talent caché : uniquement sur une cible de coût 10.
+  if (joker === 'talent' && coutCible !== 10)
+    return { ok: false, error: 'Talent caché ne peut se poser que sur un pilote ou une voiture de 10 crédits.' };
 
   return { ok: true };
 }
@@ -308,8 +396,8 @@ function etat(rallye, maintenant, completeDepuis) {
 }
 
 module.exports = {
-  GRID, SPECIAL, BUDGET, NB_EQUIPAGES, MAX_JOKERS, JOKERS, SEUIL_POURCENT, POWER_STAGE,
+  GRID, SPECIAL, BUDGET, NB_EQUIPAGES, MAX_JOKERS, JOKERS, JOKERS_RALLYE, SEUIL_POURCENT, POWER_STAGE,
   bmBrut, bmVoiture, detailVoiture, horsCourse, speciqleCourue,
-  calculerSpeciale, calculerRallye, classement, generalParSpeciale, points,
-  validerEcurie, validerJoker, cloture, ecurieOuverte, pret, etat, r1,
+  appliquerJokerRallye, calculerSpeciale, calculerRallye, classement, generalParSpeciale, points,
+  validerEcurie, validerJoker, validerJokerRallye, cloture, ecurieOuverte, pret, etat, r1,
 };
