@@ -422,6 +422,17 @@
   .pil-pop .pil-l i{color:var(--amber);font-style:normal;font-size:10px;
     border:1px solid var(--amber);padding:1px 5px;margin-left:4px}
   @media(hover:none){.card-car.show{outline:1px solid var(--amber)}}
+  .acc.jr .acc-ti{color:var(--amber)}
+  .jr-row{display:flex;align-items:center;gap:12px;margin:10px 0}
+  .jr-row label{font-family:"Oswald",sans-serif;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--fog);width:60px;flex-shrink:0}
+  .jr-row select{flex:1;background:var(--card2);border:1px solid var(--line);color:var(--paper);
+    font-family:"Space Mono",monospace;font-size:13px;padding:9px 11px}
+  .jr-row select:focus{outline:none;border-color:var(--amber)}
+  .jr-desc{margin:2px 0 6px}
+  .jr-d{font-size:12px;color:var(--amber-soft);line-height:1.5;padding:8px 11px;
+    background:#1d1a12;border-left:2px solid var(--amber)}
+  .jr-btns{display:flex;gap:10px;margin-top:12px}
 </style>
 </head>
 <body>
@@ -1053,12 +1064,16 @@ function valider(){
 function vueCourse(b){
   document.body.classList.remove('hasbar');
   var h='<div class="cols"><div>';
+  // joker rallye : posable tant que le rallye n'est pas parti (écurie ouverte)
+  if(R.ouvert) h+=blocJokerRallye();
   if(R.speciales.some(function(s){return !s.partie;})) h+=blocJokers();
   h+='<h2 class="sec">Spéciales disputées</h2><div id="sslist"></div></div><div>'
    + blocProgramme()
    + '</div></div>'
    + blocCalendrier();
   b.innerHTML=h;
+
+  brancherJokerRallye();   // sélecteur du joker rallye (si présent)
 
   // (le rappel d'écurie et le classement général sont retirés de la colonne :
   //  la compo est déjà dans le bandeau du haut)
@@ -1345,6 +1360,85 @@ function brancherTabs(root){
 }
 
 // ── jokers ───────────────────────────────────────────────────────────────────
+
+// ── JOKER RALLYE (0 ou 1, posé avant l'ES1, actif sur tout le rallye) ──────────
+var JOKERS_RALLYE_INFO={
+  risque:{nom:'Pilote à risque',cat:'Quitte ou double',
+    d:'Amplifie les bonus ET malus de 2 s sur chaque spéciale, même en cas d\'abandon.'},
+  securite:{nom:'Pilote sécuritaire',cat:'Quitte ou double',
+    d:'Réduit les bonus et malus de 2 s sur chaque spéciale (peut inverser un petit écart).'},
+  fiabilite:{nom:'Fiabilité',cat:'Défensif',
+    d:'Retire 1 s à chaque malus sur chaque spéciale. N\'affecte pas les bonus.'},
+  mecano:{nom:'Mécanicien',cat:'Défensif',
+    d:'Le malus d\'abandon est ramené de 15 à 10 s.'},
+  talent:{nom:'Talent caché',cat:'Offensif',
+    d:'Améliore les bonus de 3 s sur chaque spéciale. Réservé à une cible de 10 crédits.'},
+  domicile:{nom:'À domicile',cat:'Offensif',
+    d:'Améliore les bonus de 1 s sur chaque spéciale. N\'affecte pas les malus.'},
+};
+var _jrOuvert=false;
+
+function cibleCout(cible){
+  if(cible==='voiture'){var v=(R.voitures||[]).filter(function(x){return x.modele===MOI.ecurie.voiture;})[0];return v?v.cout:null;}
+  var e=eng(cible);return e?e.cout:null;
+}
+function blocJokerRallye(){
+  var jr=MOI.ecurie.jokerRallye;
+  var titre = jr ? JOKERS_RALLYE_INFO[jr.joker].nom : 'Aucun joker rallye posé';
+  var sousT = jr ? ('sur '+(jr.cible==='voiture'?'la voiture':(eng(jr.cible)?eng(jr.cible).pilote:jr.cible))) : '0 ou 1 · avant le départ';
+
+  // options de cibles : 3 pilotes + voiture
+  var cibles=MOI.ecurie.equipages.map(function(id){var e=eng(id);return {v:id,l:(e?e.pilote:id)+' ('+(e?e.classe:'?')+' · '+(e?e.cout:'?')+' cr)'};});
+  cibles.push({v:'voiture',l:'Voiture — '+esc(MOI.ecurie.voiture)+' ('+(cibleCout('voiture')||'?')+' cr)'});
+
+  var jokerOpts=Object.keys(JOKERS_RALLYE_INFO).map(function(k){
+    return '<option value="'+k+'"'+(jr&&jr.joker===k?' selected':'')+'>'+esc(JOKERS_RALLYE_INFO[k].nom)+' — '+esc(JOKERS_RALLYE_INFO[k].cat)+'</option>';
+  }).join('');
+  var cibleOpts=cibles.map(function(c){
+    return '<option value="'+esc(c.v)+'"'+(jr&&jr.cible===c.v?' selected':'')+'>'+esc(c.l)+'</option>';
+  }).join('');
+
+  return '<div class="acc jr'+(_jrOuvert?' open':'')+'" id="accJr">'
+   +'<div class="acc-h" onclick="_jrOuvert=!_jrOuvert;document.getElementById(\'accJr\').classList.toggle(\'open\')">'
+   +'<span class="acc-ic">\u203a</span><span class="acc-ti">Joker rallye</span>'
+   +'<span class="acc-ct">'+esc(titre)+' · '+esc(sousT)+'</span></div>'
+   +'<div class="acc-b"><div class="panel" style="border-left:3px solid var(--amber);border-top:none;padding:14px 16px">'
+   +'<p style="font-size:12px;color:var(--fog);line-height:1.6;margin-bottom:12px">'
+   +'Un seul joker rallye, posé avant le départ, actif sur <b>toutes</b> les spéciales. '
+   +'Il cible un de tes 3 pilotes ou ta voiture.</p>'
+   +'<div class="jr-row"><label>Joker</label><select id="jrJoker">'+jokerOpts+'</select></div>'
+   +'<div class="jr-desc" id="jrDesc"></div>'
+   +'<div class="jr-row"><label>Cible</label><select id="jrCible">'+cibleOpts+'</select></div>'
+   +'<div class="jr-btns">'
+   +'<button class="btn" id="jrPoser">'+(jr?'Modifier':'Poser le joker')+'</button>'
+   +(jr?'<button class="btn ghost" id="jrRetirer">Retirer</button>':'')
+   +'</div><div id="jrRet"></div>'
+   +'</div></div></div>';
+}
+
+function brancherJokerRallye(){
+  var jk=document.getElementById('jrJoker'); if(!jk)return;
+  var desc=document.getElementById('jrDesc');
+  function majDesc(){var k=jk.value;desc.innerHTML='<div class="jr-d">'+esc(JOKERS_RALLYE_INFO[k].d)+'</div>';}
+  jk.onchange=majDesc; majDesc();
+
+  var poser=document.getElementById('jrPoser');
+  if(poser)poser.onclick=function(){
+    var joker=jk.value, cible=document.getElementById('jrCible').value;
+    poser.disabled=true;
+    H('/api/crr/joker-rallye',{method:'POST',body:{rallye:R.id,joker:joker,cible:cible}})
+    .then(function(d){
+      if(!d.ok){document.getElementById('jrRet').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';poser.disabled=false;return;}
+      _jrOuvert=true; return charger();
+    });
+  };
+  var ret=document.getElementById('jrRetirer');
+  if(ret)ret.onclick=function(){
+    H('/api/crr/joker-rallye',{method:'POST',body:{rallye:R.id,joker:'aucun'}})
+    .then(function(d){ if(d.ok){_jrOuvert=true;charger();} });
+  };
+}
+
 function blocJokers(){
   var reste=(R.maxJokers-MOI.jokers.length);
   return '<div class="acc'+(_jokerOuvert?' open':'')+'" id="accJk">'
