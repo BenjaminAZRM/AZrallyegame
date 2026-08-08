@@ -6,97 +6,71 @@
 <title>CHRONORALLYERACE — Connexion</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
 <style>
-  :root{
-    --asphalt:#0e1013;
-    --card:#15181d;
-    --line:#2a2f37;
-    --fog:#8b929c;
-    --paper:#eceef1;
-    --gold:#fbbf24;
-    --gold-soft:#ffd77a;
-    --red:#dc2626;
-    --red-hi:#ef4444;
-    --err:#f87171;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{
-    background:var(--asphalt);
-    color:var(--paper);
-    font-family:"Space Mono",monospace;
-    min-height:100%;
-    display:flex;
-    flex-direction:column;
-    background-image:
-      radial-gradient(circle at 15% 10%, rgba(251,191,36,.06), transparent 42%),
-      radial-gradient(circle at 90% 90%, rgba(220,38,38,.05), transparent 45%);
-  }
-  header{padding:22px 24px;text-align:center;border-bottom:1px solid var(--line)}
-  .mark{
-    font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.16em;
-    text-transform:uppercase;font-size:22px;
-  }
-  .mark span{color:var(--gold)}
+  /* ── Spécifique à la page de connexion ──
+     Couleurs, fond, police de titre et bouton viennent de theme.css */
+  body{display:flex;flex-direction:column;min-height:100vh}
 
-  main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px}
-  .card{
-    width:100%;max-width:400px;background:var(--card);
-    border:1px solid var(--line);border-radius:14px;padding:26px 24px 28px;
+  /* Logo en grand, centré, au-dessus du panneau de connexion */
+  main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:40px 20px}
+  .brand-hero{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+  .brand-logo-big{height:190px;width:auto;display:block}
+  .brand-txt-big{
+    font-family:var(--font-titre);font-weight:700;letter-spacing:.1em;
+    font-size:30px;line-height:1;text-transform:uppercase;
   }
-  .eyebrow{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);text-align:center;margin-bottom:6px}
-  h1{font-family:"Oswald",sans-serif;font-weight:600;text-transform:uppercase;text-align:center;font-size:26px;letter-spacing:.02em;margin-bottom:22px}
+  .brand-txt-big .c1{color:#fff}
+  .brand-txt-big .c2{color:#F57C00}
+  .brand-txt-big .c3{color:#fff}
+  @media(max-width:600px){.brand-logo-big{height:130px}.brand-txt-big{font-size:23px}}
+
+  /* Panneau connexion — n'utilise PAS .card (qui zoome au survol) */
+  .panel{
+    width:100%;max-width:400px;background:var(--asphalt-2);
+    border:1px solid var(--line);border-radius:var(--radius);padding:26px 24px 28px;
+  }
+  .panel .eyebrow{text-align:center;margin-bottom:6px}
+  .panel h1{font-size:26px;text-align:center;margin-bottom:22px}
 
   .tabs{display:flex;gap:6px;margin-bottom:22px;background:#0c0e12;border:1px solid var(--line);border-radius:10px;padding:4px}
   .tab{
     flex:1;text-align:center;padding:9px 6px;border-radius:7px;cursor:pointer;
-    font-family:"Oswald",sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:13px;
+    font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.08em;font-size:13px;
     color:var(--fog);transition:all .15s;user-select:none;
   }
-  .tab.on{background:var(--red);color:#fff}
+  .tab.on{background:var(--accent);color:#141414}
 
   label{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fog);margin:14px 0 7px}
   input{
     width:100%;background:#0c0e12;border:2px solid var(--line);border-radius:10px;
-    padding:13px 14px;font-size:15px;color:var(--paper);outline:none;font-family:"Space Mono",monospace;
+    padding:13px 14px;font-size:15px;color:var(--paper);outline:none;font-family:var(--font-corps);
     transition:border-color .15s;
   }
-  input:focus{border-color:var(--gold)}
+  input:focus{border-color:var(--accent)}
   .hint{font-size:11px;color:#5b616b;margin-top:6px}
 
-  .err{min-height:18px;margin:14px 0 2px;font-size:12px;color:var(--err);text-align:center}
+  .err{min-height:18px;margin:14px 0 2px;font-size:12px;color:#f87171;text-align:center}
 
-  button.submit{
-    width:100%;margin-top:10px;background:var(--red);border:2px solid var(--red-hi);border-radius:11px;
-    padding:15px;font-family:"Oswald",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
-    font-size:16px;color:#fff;cursor:pointer;transition:background .15s;
-  }
-  button.submit:hover{background:var(--red-hi)}
-  button.submit:disabled{opacity:.55;cursor:default}
+  /* Le bouton reprend .btn .btn-primary de theme.css, en pleine largeur */
+  .submit{width:100%;margin-top:10px;justify-content:center;padding:15px;font-size:16px}
+  .submit:disabled{opacity:.55;cursor:default;transform:none}
 
   .swap{text-align:center;margin-top:16px;font-size:12px;color:var(--fog)}
-  .swap b{color:var(--gold);cursor:pointer}
+  .swap b{color:var(--accent);cursor:pointer}
 
   footer{border-top:1px solid var(--line);padding:14px;text-align:center;color:var(--fog);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
 
   .hidden{display:none}
-
-  .mark,.brand,.hdr-logo{display:flex;align-items:center;gap:12px}
-  .brand-logo{height:64px;width:auto;flex-shrink:0;display:block}
-  .brand-txt{font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.08em;
-    font-size:24px;line-height:1;text-transform:uppercase;color:#fff}
-  .brand-txt .c1{color:#fff}
-  .brand-txt .c2{color:#F57C00}
-  .brand-txt .c3{color:#fff}
-  @media(max-width:600px){.brand-logo{height:48px}.brand-txt{font-size:19px}}
 </style>
 </head>
 <body>
-  <header><div class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></div></header>
-
   <main>
-    <div class="card">
+    <div class="brand-hero">
+      <div class="brand-txt-big"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></div>
+      <img src="/logo.svg" alt="CHRONORALLYERACE" class="brand-logo-big">
+    </div>
+    <div class="panel">
       <div class="eyebrow" id="eyebrow">Bienvenue</div>
       <h1 id="h1">Connexion</h1>
 
@@ -124,7 +98,7 @@
       </div>
 
       <div id="recover-wrap" class="hidden">
-        <div id="recover-q" class="hint" style="margin-top:14px;color:var(--gold)"></div>
+        <div id="recover-q" class="hint" style="margin-top:14px;color:var(--accent)"></div>
         <label for="ranswer">Réponse à la question secrète</label>
         <input id="ranswer" type="text" maxlength="80" placeholder="Ta réponse">
         <label for="ncode">Nouveau code</label>
@@ -133,7 +107,7 @@
 
       <div class="err" id="err"></div>
 
-      <button class="submit" id="submit">Se connecter</button>
+      <button class="btn btn-primary submit" id="submit">Se connecter</button>
 
       <div class="swap" id="swap"></div>
       <div class="swap" style="margin-top:8px"><b id="forgot">Code oublié ?</b></div>
