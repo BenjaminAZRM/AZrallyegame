@@ -3,187 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WRC Fantasy — Choisir un mode</title>
+<title>CHRONORALLYERACE — Choisir un mode</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
 <style>
-  :root{
-    --asphalt:#0e1013;
-    --asphalt-2:#15181d;
-    --line:#2a2f37;
-    --fog:#8b929c;
-    --paper:#eceef1;
-    --amber:#fbbf24;     /* or CHRONORALLYERACE */
-    --amber-soft:#ffd77a;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{
-    background:var(--asphalt);
-    color:var(--paper);
-    font-family:"Space Mono",monospace;
-    min-height:100%;
-    display:flex;
-    flex-direction:column;
-    /* texture asphalte discrète */
-    background-image:
-      radial-gradient(circle at 20% 10%, rgba(255,138,0,.06), transparent 40%),
-      radial-gradient(circle at 90% 90%, rgba(255,138,0,.04), transparent 45%);
-  }
+  /* ── Spécifique à la page menu — le reste vient de theme.css ── */
+  body{display:flex;flex-direction:column;min-height:100vh}
 
-  /* ── Bandeau de départ ── */
+  /* En-tête : logo à gauche, utilisateur à droite */
   header{
     border-bottom:1px solid var(--line);
     padding:18px 24px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:16px;
-    flex-wrap:wrap;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
   }
-  .mark{
-    font-family:"Oswald",sans-serif;
-    font-weight:700;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    font-size:18px;
-  }
-  .mark span{color:var(--amber)}
-  .tc{
-    font-size:12px;
-    color:var(--fog);
-    letter-spacing:.18em;
-    text-transform:uppercase;
-  }
-
-  main{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    padding:48px 24px;
-    max-width:980px;
-    width:100%;
-    margin:0 auto;
-  }
-
-  .eyebrow{
-    font-size:12px;
-    letter-spacing:.32em;
-    text-transform:uppercase;
-    color:var(--amber);
-    margin-bottom:14px;
-  }
-  h1{
-    font-family:"Oswald",sans-serif;
-    font-weight:600;
-    text-transform:uppercase;
-    letter-spacing:.02em;
-    line-height:.98;
-    font-size:clamp(38px,8vw,76px);
-    margin-bottom:10px;
-  }
-  .sub{
-    color:var(--fog);
-    font-size:14px;
-    max-width:46ch;
-    line-height:1.6;
-    margin-bottom:42px;
-  }
-
-  /* ── Les deux modes : cartes "carton de pointage" ── */
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-    gap:18px;
-  }
-  @media (max-width:640px){ .grid{grid-template-columns:1fr} }
-
-  .card{
-    position:relative;
-    display:block;
-    text-decoration:none;
-    color:inherit;
-    background:var(--asphalt-2);
-    border:1px solid var(--line);
-    padding:28px 26px 26px;
-    overflow:hidden;
-    transition:transform .18s ease, border-color .18s ease;
-  }
-  .card::before{ /* liseré de bord de stage */
-    content:"";
-    position:absolute;
-    left:0; top:0; bottom:0;
-    width:4px;
-    background:var(--amber);
-    transform:scaleY(0);
-    transform-origin:top;
-    transition:transform .25s ease;
-  }
-  .card:hover, .card:focus-visible{
-    transform:translateY(-4px);
-    border-color:var(--amber-soft);
-    outline:none;
-  }
-  .card:hover::before, .card:focus-visible::before{ transform:scaleY(1) }
-
-  .num{
-    font-family:"Oswald",sans-serif;
-    font-size:13px;
-    letter-spacing:.2em;
-    color:var(--fog);
-  }
-  .card h2{
-    font-family:"Oswald",sans-serif;
-    font-weight:700;
-    text-transform:uppercase;
-    font-size:clamp(26px,5vw,38px);
-    letter-spacing:.02em;
-    margin:18px 0 10px;
-  }
-  .card p{
-    color:var(--fog);
-    font-size:13px;
-    line-height:1.6;
-    min-height:3.2em;
-  }
-  .go{
-    margin-top:22px;
-    display:inline-flex;
-    align-items:center;
-    gap:10px;
-    font-family:"Oswald",sans-serif;
-    text-transform:uppercase;
-    letter-spacing:.12em;
-    font-size:14px;
-    color:var(--amber);
-  }
-  .go .chev{ transition:transform .2s ease }
-  .card:hover .go .chev, .card:focus-visible .go .chev{ transform:translateX(6px) }
-
-  footer{
-    border-top:1px solid var(--line);
-    padding:16px 24px;
-    text-align:center;
-    color:var(--fog);
-    font-size:11px;
-    letter-spacing:.16em;
-    text-transform:uppercase;
-  }
-
-  @media (prefers-reduced-motion:reduce){
-    *{transition:none !important}
-  }
-
-  .mark,.brand,.hdr-logo{display:flex;align-items:center;gap:12px}
+  .mark{display:flex;align-items:center;gap:12px}
   .brand-logo{height:64px;width:auto;flex-shrink:0;display:block}
-  .brand-txt{font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.08em;
-    font-size:24px;line-height:1;text-transform:uppercase;color:#fff}
+  .brand-txt{
+    font-family:var(--font-titre);font-weight:700;letter-spacing:.08em;
+    font-size:24px;line-height:1;text-transform:uppercase;color:#fff;
+  }
   .brand-txt .c1{color:#fff}
   .brand-txt .c2{color:#F57C00}
   .brand-txt .c3{color:#fff}
   @media(max-width:600px){.brand-logo{height:48px}.brand-txt{font-size:19px}}
+
+  /* Zone centrale */
+  main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:48px 24px;max-width:980px;width:100%;margin:0 auto}
+  .eyebrow{margin-bottom:14px}
+  h1{font-size:clamp(38px,8vw,76px);line-height:.98;margin-bottom:10px}
+  .sub{color:var(--fog);font-size:14px;max-width:46ch;line-height:1.6;margin-bottom:42px}
+
+  /* ── Carte vedette : le jeu principal ── */
+  .featured{margin-bottom:18px}
+  .card-hero{padding:34px 32px 30px;border-color:rgba(249,115,22,.4)}
+  .card-hero:hover,.card-hero:focus-visible{transform:translateY(-3px);border-color:var(--accent)}
+  .card-hero h2{font-size:clamp(32px,6vw,50px);margin:0 0 12px}
+  .card-hero p{font-size:15px;max-width:62ch;min-height:0}
+  .card-hero .go{font-size:15px;margin-top:24px}
+
+  /* ── Les trois autres modes ── */
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:720px){.grid-3{grid-template-columns:1fr}}
+  .grid-3 .card h2{font-size:clamp(21px,3vw,26px);margin:14px 0 9px}
+  .grid-3 .card p{min-height:3.2em}
+
+  footer{
+    border-top:1px solid var(--line);padding:16px 24px;text-align:center;
+    color:var(--fog);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  }
 </style>
 </head>
 <body>
@@ -192,7 +60,7 @@
     <div class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></div>
     <div style="font-size:12px;color:var(--fog);letter-spacing:.06em;text-transform:uppercase">
       <span id="who"></span>
-      <b id="logout" style="color:var(--amber);cursor:pointer;margin-left:12px">Déconnexion</b>
+      <b id="logout" style="color:var(--accent);cursor:pointer;margin-left:12px">Déconnexion</b>
     </div>
   </header>
 
@@ -201,10 +69,20 @@
     <h1>Prends le<br>volant</h1>
     <p class="sub">Grâce à tes connaissances, constitue ton équipage, choisis ta stratégie et enchaîne les spéciales. Seul ou face à tes amis, arriveras-tu à être champion ?</p>
 
-    <div class="grid">
+    <!-- ══ JEU PRINCIPAL : CHRONO RALLYE RACE ══ -->
+    <!-- 👉 Pour changer le lien, modifie l'adresse dans href="..." ci-dessous -->
+    <div class="featured">
+      <a class="card card-hero" href="/crr.html">
+        <h2>Chrono Rallye Race</h2>
+        <p>Chaque week-end, un vrai rallye. Compose ton écurie sous 100 crédits et finis avec le chrono total le plus bas.</p>
+        <span class="go">Composer mon écurie <span class="chev">→</span></span>
+      </a>
+    </div>
 
-      <!-- ── CARTE SOLO ── -->
-      <!-- 👉 Pour changer le lien du jeu solo, modifie l'adresse dans href="..." ci-dessous -->
+    <!-- ══ LES TROIS AUTRES MODES ══ -->
+    <div class="grid-3">
+
+      <!-- 👉 CARTE SOLO — lien dans href="..." -->
       <a class="card" href="/solo.html">
         <div class="num">SS1 · SOLO</div>
         <h2>Carrière solo</h2>
@@ -212,8 +90,7 @@
         <span class="go">Lancer la saison <span class="chev">→</span></span>
       </a>
 
-      <!-- ── CARTE MULTIJOUEUR ── -->
-      <!-- 👉 Pour changer le lien du multijoueur, modifie l'adresse dans href="..." ci-dessous -->
+      <!-- 👉 CARTE MULTIJOUEUR — lien dans href="..." -->
       <a class="card" href="/multi.html">
         <div class="num">SS2 · MULTI</div>
         <h2>Défi entre amis</h2>
@@ -221,22 +98,12 @@
         <span class="go">Créer une salle <span class="chev">→</span></span>
       </a>
 
-      <!-- ── CARTE CONTRE-LA-MONTRE ── -->
-      <!-- 👉 Pour changer le lien, modifie l'adresse dans href="..." ci-dessous -->
+      <!-- 👉 CARTE CONTRE-LA-MONTRE — lien dans href="..." -->
       <a class="card" href="/record.html">
         <div class="num">SS3 · CHRONO</div>
         <h2>Contre-la-montre</h2>
         <p>Une spéciale mythique, un seul objectif : le meilleur temps. Dose ton rythme et évite la sortie de route.</p>
         <span class="go">Prendre le départ <span class="chev">→</span></span>
-      </a>
-
-      <!-- ── CARTE CHRONO RALLYE RACE ── -->
-      <!-- 👉 Le jeu devra s'appeler crr.html dans le dossier public -->
-      <a class="card" href="/crr.html">
-        <div class="num">SS4 · MANAGER</div>
-        <h2>Chrono Rallye Race</h2>
-        <p>Chaque week-end, un vrai rallye. Compose ton écurie sous 100 crédits et finis avec le chrono total le plus bas.</p>
-        <span class="go">Composer mon écurie <span class="chev">→</span></span>
       </a>
 
     </div>
@@ -245,9 +112,9 @@
   <footer>
     CHRONORALLYERACE — Simulation amateur, non officielle<br>
     <span style="text-transform:none;letter-spacing:normal;font-size:11px">
-      <b id="export" style="color:var(--amber);cursor:pointer">Télécharger mes données</b> ·
-      <b id="delete" style="color:var(--amber);cursor:pointer">Supprimer mon compte</b> ·
-      <a href="/confidentialite.html" style="color:var(--amber)">Confidentialité</a>
+      <b id="export" style="color:var(--accent);cursor:pointer">Télécharger mes données</b> ·
+      <b id="delete" style="color:var(--accent);cursor:pointer">Supprimer mon compte</b> ·
+      <a href="/confidentialite.html" style="color:var(--accent)">Confidentialité</a>
     </span>
   </footer>
 
