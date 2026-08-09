@@ -9,8 +9,21 @@
 <link rel="stylesheet" href="theme.css">
 <style>
   /* ── Spécifique à la page de connexion ──
-     Couleurs, fond, police de titre et bouton viennent de theme.css */
+     Couleurs, police de titre et bouton viennent de theme.css.
+     Le fond est une photo de rallye (route de montagne au crépuscule). */
   body{display:flex;flex-direction:column;min-height:100vh}
+
+  /* Fond photo plein écran + voile sombre pour garder le texte lisible.
+     Calque fixe placé DERRIÈRE tout le contenu (z-index:-1). */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:
+      linear-gradient(180deg,
+        rgba(10,12,15,.28) 0%,
+        rgba(10,12,15,.4) 45%,
+        rgba(10,12,15,.66) 100%),
+      url('/bg-connexion.jpg') center/cover no-repeat;
+  }
 
   /* Logo en grand, centré, au-dessus du panneau de connexion */
   main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:40px 20px}
@@ -19,7 +32,9 @@
   .brand-txt-big{
     font-family:var(--font-titre);font-weight:700;letter-spacing:.1em;
     font-size:30px;line-height:1;text-transform:uppercase;
+    text-shadow:0 2px 18px rgba(0,0,0,.75);
   }
+  .brand-logo-big{filter:drop-shadow(0 4px 22px rgba(0,0,0,.55))}
   .brand-txt-big .c1{color:#fff}
   .brand-txt-big .c2{color:#F57C00}
   .brand-txt-big .c3{color:#fff}
@@ -27,8 +42,12 @@
 
   /* Panneau connexion — n'utilise PAS .card (qui zoome au survol) */
   .panel{
-    width:100%;max-width:400px;background:var(--asphalt-2);
-    border:1px solid var(--line);border-radius:var(--radius);padding:26px 24px 28px;
+    width:100%;max-width:400px;
+    background:rgba(18,21,26,.9);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    border:1px solid rgba(249,115,22,.28);
+    border-radius:var(--radius);padding:26px 24px 28px;
+    box-shadow:0 24px 60px -18px rgba(0,0,0,.75);
   }
   .panel .eyebrow{text-align:center;margin-bottom:6px}
   .panel h1{font-size:26px;text-align:center;margin-bottom:22px}
