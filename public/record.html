@@ -5,19 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CHRONORALLYERACE — Contre-la-montre</title>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Exo 2',sans-serif;background:#0f1115;color:#e8e8ea;line-height:1.45;-webkit-tap-highlight-color:transparent}
+  body{font-family:'Exo 2',sans-serif;line-height:1.45;-webkit-tap-highlight-color:transparent}
   #app{max-width:760px;margin:0 auto;padding:16px;min-height:100vh}
-  .brand{font-family:'Oswald',sans-serif;font-weight:700;font-size:1.4rem;letter-spacing:.14em;text-transform:uppercase}
-  .brand .az{color:#fff}.brand .r{color:#fbbf24}
+  .brand{font-family:var(--font-titre);font-weight:700;font-size:1.4rem;letter-spacing:.14em;text-transform:uppercase}
+  .brand .az{color:#fff}.brand .r{color:var(--accent)}
   .tag{color:#8a8a92;font-size:.82rem;margin-bottom:18px}
-  h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;color:#fbbf24;margin:18px 0 8px}
-  .card{background:#1a1d24;border:1px solid #2a2e38;border-radius:12px;padding:14px;margin-bottom:12px}
+  h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin:18px 0 8px}
+  .card{background:var(--asphalt-2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;position:static;overflow:visible;transition:none}
+  .card::after{content:none}
+  .card:hover,.card:focus-visible{transform:none;border-color:var(--line)}
   button{font-family:inherit;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:transform .05s}
   button:active{transform:scale(.98)}
-  .btn-primary{background:#dc2626;color:#fff;padding:14px 20px;font-size:1rem;width:100%}
+  .btn-primary{background:var(--accent);color:#141414;padding:14px 20px;font-size:1rem;width:100%}
   .launch-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 20px}
   .launch-btn[disabled]{opacity:.5;cursor:not-allowed}
   .leds{display:flex;gap:6px}
@@ -29,7 +31,7 @@
   .btn-primary:disabled{background:#3a2020;color:#8a6a6a;cursor:not-allowed}
   .btn-ghost{background:#2a2e38;color:#e8e8ea;padding:10px 16px;font-size:.85rem;border:1px solid #3a3f4b}
   input[type=text]{font-family:inherit;width:100%;background:#0f1115;border:1px solid #2a2e38;border-radius:8px;color:#fff;padding:10px;font-size:.95rem}
-  input[type=range]{width:100%;height:5px;accent-color:#fbbf24}
+  input[type=range]{width:100%;height:5px;accent-color:var(--accent)}
   .row{display:flex;align-items:center;gap:10px;margin:8px 0}
   .row label{flex:0 0 96px;font-size:.8rem;color:#c3c3cb}
   .setblock{margin:12px 0}
@@ -43,7 +45,7 @@
   .pickcol h2 .small{display:block;margin-top:2px}
   .pick{padding:9px 11px;border-bottom:1px solid #21252e;font-size:.84rem;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
   .pick:hover{background:#20242e}
-  .pick.sel{background:#dc262633;border-left:3px solid #dc2626}
+  .pick.sel{background:rgba(249,115,22,.18);border-left:3px solid var(--accent)}
   .pick.used{opacity:.32;cursor:not-allowed;text-decoration:line-through}
   .pick .stat{color:#8a8a92;font-size:.74rem;white-space:nowrap}
   .tyres{display:flex;gap:8px}
@@ -67,7 +69,7 @@
   .rbbanner svg{display:block;width:100%;height:76px}
   .rbbanner .bnr-veil{height:58px}
   .rbcap{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:9px;padding:7px 10px}
-  .rbn{font-weight:800;color:#fbbf24;font-size:1rem;text-shadow:0 1px 4px #000;flex:none;width:18px;text-align:center}
+  .rbn{font-weight:800;color:var(--accent);font-size:1rem;text-shadow:0 1px 4px #000;flex:none;width:18px;text-align:center}
   .rbmid{flex:1;min-width:0}
   .rbnom{font-weight:800;font-size:.92rem;color:#fff;text-shadow:0 1px 6px #000;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rbkm2{font-weight:500;font-size:.72rem;opacity:.85;margin-left:6px}
@@ -86,7 +88,7 @@
   .lb.me{color:#a78bfa;font-weight:800}
   .prog{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
   .prog span{flex:1;min-width:14px;height:6px;border-radius:3px;background:#2a2e38}
-  .prog span.done{background:#fbbf24}.prog span.cur{background:#dc2626}
+  .prog span.done{background:var(--accent)}.prog span.cur{background:#fff}
   .small{font-size:.74rem;color:#6f6f78}
   .kv{display:flex;justify-content:space-between;font-size:.8rem;padding:3px 0;color:#c3c3cb}
   .kv b{color:#fff}
@@ -96,7 +98,7 @@
   .bnr-veil{position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(180deg,transparent,rgba(10,12,16,.15) 30%,rgba(10,12,16,.86) 86%)}
   .bnr-cap{position:absolute;left:0;right:0;bottom:0;padding:10px 14px}
   .bnr-rly{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:#fff;opacity:.92;text-shadow:0 1px 5px #000}
-  .bnr-rly .c{color:#fbbf24;letter-spacing:-2px;margin-right:5px}
+  .bnr-rly .c{color:var(--accent);letter-spacing:-2px;margin-right:5px}
   .bnr-nom{font-weight:800;font-size:1.4rem;line-height:1.05;margin-top:2px;text-shadow:0 2px 12px #000}
   .bnr-km{position:absolute;top:9px;right:10px;font-weight:800;font-size:.95rem;background:rgba(10,12,16,.34);border:1px solid rgba(255,255,255,.28);padding:2px 9px;border-radius:8px;color:#fff;text-shadow:0 1px 4px #000}
   .bnr-km small{font-size:.55rem;opacity:.85;margin-left:3px;font-weight:600}
@@ -105,7 +107,7 @@
 
   .mark,.brand,.hdr-logo{display:flex;align-items:center;gap:12px}
   .brand-logo{height:64px;width:auto;flex-shrink:0;display:block}
-  .brand-txt{font-family:"Oswald",sans-serif;font-weight:700;letter-spacing:.08em;
+  .brand-txt{font-family:var(--font-titre);font-weight:700;letter-spacing:.08em;
     font-size:24px;line-height:1;text-transform:uppercase;color:#fff}
   .brand-txt .c1{color:#fff}
   .brand-txt .c2{color:#F57C00}
@@ -247,7 +249,7 @@ function screenHome(){
     <div class="card">
       <p style="font-size:.9rem;margin-bottom:12px">Un rallye de <b>${DATA.stages.length} spéciales mythiques</b>, une de chaque caractère. Avant chaque spéciale tu choisis ton <b>équipage</b>, ta <b>voiture</b>, ton <b>pneu</b>, ton <b>rythme</b> et tes <b>réglages</b>. Chaque équipage et chaque voiture ne servent qu'<b>une seule fois</b>.</p>
       <p class="small" style="margin-bottom:12px">Tout est déterministe : mêmes choix → même temps. Le classement te compare aux autres joueurs déjà passés.</p>
-      <p class="small" style="margin-bottom:14px">Pilote : <b style="color:#fbbf24">${AZUSER}</b></p>
+      <p class="small" style="margin-bottom:14px">Pilote : <b style="color:var(--accent)">${AZUSER}</b></p>
       <button class="btn-primary" id="start">Démarrer le rallye</button>
     </div>
     ${leaderboardCard(null)}
