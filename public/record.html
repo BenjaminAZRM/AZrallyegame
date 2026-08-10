@@ -107,6 +107,7 @@
 </style>
 </head>
 <body>
+<header class="site-header"><a href="/menu.html" class="brand"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a></header>
 <div id="app"></div>
 
 <script>
@@ -235,7 +236,7 @@ function cumEntries(idx,myCum){
 /* ---------- ÉCRAN ACCUEIL ---------- */
 function screenHome(){
   app().innerHTML=`
-    <a href="/menu.html" class="brand"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
+    
     <div class="tag">Time-attack — bats le meilleur temps</div>
     <div class="card">
       <p style="font-size:.9rem;margin-bottom:12px">Un rallye de <b>${DATA.stages.length} spéciales mythiques</b>, une de chaque caractère. Avant chaque spéciale tu choisis ton <b>équipage</b>, ta <b>voiture</b>, ton <b>pneu</b>, ton <b>rythme</b> et tes <b>réglages</b>. Chaque équipage et chaque voiture ne servent qu'<b>une seule fois</b>.</p>
@@ -270,7 +271,7 @@ function screenRoadbook(){
   }).join('');
   const totalKm=DATA.stages.reduce((a,st)=>a+st.km,0).toFixed(1);
   app().innerHTML=`
-    <a href="/menu.html" class="brand"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
+    
     <div class="tag">Road book — ${DATA.stages.length} spéciales · ${totalKm} km</div>
     <div class="card">
       <p class="small" style="margin-bottom:10px">Voici l'itinéraire complet. Chaque équipage et chaque voiture ne servent qu'<b>une seule fois</b> : repère les surfaces et planifie tes forces sur les 13 spéciales avant de t'élancer.</p>
