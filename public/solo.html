@@ -4,9 +4,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="theme.css">
 <style>
-.azbrand-link{display:inline-flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer;transition:opacity .15s}
-.azbrand-link:hover{opacity:.82}
-.hdr-logo-img{height:38px;width:auto;display:block}
+
+
+
 .azbrand{font-family:var(--font-titre);font-weight:700;font-size:17px;letter-spacing:.12em;text-transform:uppercase;color:#fff}
 .azbrand i{color:var(--accent);font-style:normal}
 /* corps de l'app gardé lisible (police UI plutôt que monospace) */
@@ -299,7 +299,7 @@ function render(){
 function rRules(){
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <a href="/menu.html" class="azbrand-link"><img src="/logo.svg" alt="" class="hdr-logo-img"><span class="azbrand">CHRONO<i>RALLYE</i>RACE</span></a>
+      <a href="/menu.html" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
     </div>
   </div>
   <div style="padding:24px 20px 40px;display:flex;flex-direction:column;align-items:center;text-align:center">
@@ -357,7 +357,7 @@ function rDraft(){
 
   return`<div class="hdr" style="position:sticky;top:0;z-index:10">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <a href="/menu.html" class="azbrand-link"><img src="/logo.svg" alt="" class="hdr-logo-img"><span class="azbrand">CHRONO<i>RALLYE</i>RACE</span></a>
+      <a href="/menu.html" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
     </div>
     <div style="display:flex;gap:5px">${bars}</div>
     ${tags.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${tags.join("")}</div>`:""}
@@ -450,7 +450,7 @@ function rRecap(){
 
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <a href="/menu.html" class="azbrand-link"><img src="/logo.svg" alt="" class="hdr-logo-img"><span class="azbrand">CHRONO<i>RALLYE</i>RACE</span></a>
+      <a href="/menu.html" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
     </div>
     <div style="display:flex;gap:5px">${[0,1,2].map(()=>`<div class="pbar" style="background:#dc2626"></div>`).join("")}</div>
   </div>
@@ -520,7 +520,7 @@ function rLaunch(){
 
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <a href="/menu.html" class="azbrand-link"><img src="/logo.svg" alt="" class="hdr-logo-img"><span class="azbrand">CHRONO<i>RALLYE</i>RACE</span></a>
+      <a href="/menu.html" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
     </div>
     <div style="display:flex;gap:5px">${bars}</div>
   </div>

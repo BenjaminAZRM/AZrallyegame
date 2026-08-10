@@ -11,7 +11,7 @@
   :root{--card:var(--asphalt-2);--gold:var(--accent)}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--asphalt);color:var(--paper);font-family:"Space Mono",monospace;min-height:100vh;display:flex;flex-direction:column}
-  header{padding:20px 24px;border-bottom:1px solid var(--line);text-align:center}
+  header{padding:16px 24px;border-bottom:1px solid var(--line)}
   .mark{font-family:var(--font-titre);font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:20px}
   .mark span{color:var(--gold)}
   main{flex:1;max-width:760px;margin:0 auto;padding:32px 22px 48px;width:100%}
@@ -25,15 +25,6 @@
   .back{display:inline-block;margin-top:28px;font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.1em;font-size:13px;color:var(--gold);text-decoration:none}
   footer{border-top:1px solid var(--line);padding:14px;text-align:center;color:var(--fog);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
   mark{background:rgba(249,115,22,.18);color:#fdba74;padding:0 3px}
-
-  .mark,.brand,.hdr-logo{display:flex;align-items:center;gap:12px}
-  .brand-logo{height:64px;width:auto;flex-shrink:0;display:block}
-  .brand-txt{font-family:var(--font-titre);font-weight:700;letter-spacing:.08em;
-    font-size:24px;line-height:1;text-transform:uppercase;color:#fff}
-  .brand-txt .c1{color:#fff}
-  .brand-txt .c2{color:#F57C00}
-  .brand-txt .c3{color:#fff}
-  @media(max-width:600px){.brand-logo{height:48px}.brand-txt{font-size:19px}}
 </style>
 </head>
 <body>

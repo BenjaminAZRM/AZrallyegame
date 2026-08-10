@@ -169,8 +169,15 @@ h1,h2,h3,.titre{
 
 
 /* ── Logo cliquable : retour au menu ── */
-a.mark,a.brand,a.hdr-logo{text-decoration:none;color:inherit;cursor:pointer;transition:opacity .15s}
+.mark,.brand,.hdr-logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+a.mark,a.brand,a.hdr-logo{cursor:pointer;transition:opacity .15s}
 a.mark:hover,a.brand:hover,a.hdr-logo:hover{opacity:.82}
+.brand-logo{height:48px;width:auto;flex-shrink:0;display:block}
+.brand-txt{font-family:var(--font-titre);font-weight:700;letter-spacing:.08em;font-size:20px;line-height:1;text-transform:uppercase;color:#fff}
+.brand-txt .c1{color:#fff}
+.brand-txt .c2{color:#F57C00}
+.brand-txt .c3{color:#fff}
+@media(max-width:600px){.brand-logo{height:40px}.brand-txt{font-size:17px}}
 
 /* ── Accessibilité : couper les animations si l'utilisateur le demande ── */
 @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
