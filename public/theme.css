@@ -167,5 +167,10 @@ h1,h2,h3,.titre{
 .bulle .b-row{font-size:11px;color:var(--fog);line-height:1.7}
 .bulle .b-row b{color:var(--paper);font-weight:400}
 
+
+/* ── Logo cliquable : retour au menu ── */
+a.mark,a.brand,a.hdr-logo{text-decoration:none;color:inherit;cursor:pointer;transition:opacity .15s}
+a.mark:hover,a.brand:hover,a.hdr-logo:hover{opacity:.82}
+
 /* ── Accessibilité : couper les animations si l'utilisateur le demande ── */
 @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
