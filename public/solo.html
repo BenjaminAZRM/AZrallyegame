@@ -10,8 +10,20 @@
 .azbrand{font-family:var(--font-titre);font-weight:700;font-size:17px;letter-spacing:.12em;text-transform:uppercase;color:#fff}
 .azbrand i{color:var(--accent);font-style:normal}
 /* corps de l'app gardé lisible (police UI plutôt que monospace) */
-body{font-family:'Inter',system-ui,sans-serif}
-.hdr{background:var(--asphalt-2);border-bottom:1px solid var(--line);padding:16px 20px;position:sticky;top:0;z-index:10}
+body{font-family:'Inter',system-ui,sans-serif;min-height:100vh}
+/* Fond photo (podium de fin de rallye) + voile pour la lisibilité.
+   Calque fixe DERRIÈRE l'app (#app). L'en-tête et les cartes passent au-dessus. */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;
+  background:
+    linear-gradient(180deg,
+      rgba(10,12,15,.5) 0%,
+      rgba(10,12,15,.58) 45%,
+      rgba(10,12,15,.78) 100%),
+    url('/bg-solo.jpg') center/cover no-repeat;
+}
+.azbrand{text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.hdr{background:rgba(18,21,26,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:16px 20px;position:sticky;top:0;z-index:10}
 .pbar{flex:1;height:4px;border-radius:2px}
 .year-block{background:var(--accent);border-radius:10px;padding:8px 18px;text-align:center;flex-shrink:0}
 .year-lbl{font-size:10px;color:#7c2d12;text-transform:uppercase;letter-spacing:.1em}
@@ -28,12 +40,12 @@ body{font-family:'Inter',system-ui,sans-serif}
 .year-reveal{font-family:var(--font-titre);font-size:72px;font-weight:900;color:#fff;line-height:1;margin:20px 0}
 .year-reveal.spin{animation:spinIn .6s ease-out forwards}
 @keyframes spinIn{0%{opacity:0;transform:scale(.3) rotate(-10deg);color:var(--accent)}60%{transform:scale(1.15) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(0deg);color:#fff}}
-.result-row{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:3px;border-radius:6px;border:1px solid var(--line);animation:fadeIn .4s ease-out}
+.result-row{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:3px;border-radius:6px;border:1px solid var(--line);background:rgba(18,21,26,.72);animation:fadeIn .4s ease-out}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .you-badge{font-size:9px;background:#7c3aed22;color:#a78bfa;padding:1px 4px;border-radius:3px;margin-left:3px}
 .nav{padding:12px 20px;display:flex;gap:8px}
 .nav-btn{flex:1;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer}
-.fc-row{display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:3px;border-radius:6px;border:1px solid var(--line)}
+.fc-row{display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:3px;border-radius:6px;border:1px solid var(--line);background:rgba(18,21,26,.72)}
 .rallye-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:12px 20px}
 .rally-card{background:var(--asphalt-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
 .stats{display:flex;gap:4px;flex-shrink:0}
