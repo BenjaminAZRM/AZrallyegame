@@ -11,6 +11,23 @@
   /* ── Spécifique à la page menu — le reste vient de theme.css ── */
   body{display:flex;flex-direction:column;min-height:100vh}
 
+  /* Fond photo (route de rallye au coucher de soleil) + voile sombre.
+     Calque fixe DERRIÈRE tout le contenu. Plus marqué en haut (en-tête)
+     et en bas (pied de page), plus léger au centre pour laisser voir la photo. */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:
+      linear-gradient(180deg,
+        rgba(10,12,15,.72) 0%,
+        rgba(10,12,15,.4) 26%,
+        rgba(10,12,15,.4) 64%,
+        rgba(10,12,15,.78) 100%),
+      url('/bg-menu.jpg') center/cover no-repeat;
+  }
+  /* Lisibilité du logo/titre au-dessus de la photo */
+  .brand-txt{text-shadow:0 2px 12px rgba(0,0,0,.7)}
+  .brand-logo{filter:drop-shadow(0 3px 14px rgba(0,0,0,.5))}
+
   /* En-tête : logo à gauche, utilisateur à droite */
   header{
     border-bottom:1px solid var(--line);
@@ -21,9 +38,9 @@
 
   /* Zone centrale */
   main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:48px 24px;max-width:980px;width:100%;margin:0 auto}
-  .eyebrow{margin-bottom:14px}
-  h1{font-size:clamp(38px,8vw,76px);line-height:.98;margin-bottom:10px}
-  .sub{color:var(--fog);font-size:14px;max-width:46ch;line-height:1.6;margin-bottom:42px}
+  .eyebrow{margin-bottom:14px;text-shadow:0 1px 10px rgba(0,0,0,.6)}
+  h1{font-size:clamp(38px,8vw,76px);line-height:.98;margin-bottom:10px;text-shadow:0 3px 22px rgba(0,0,0,.65)}
+  .sub{color:var(--fog);font-size:14px;max-width:46ch;line-height:1.6;margin-bottom:42px;text-shadow:0 1px 10px rgba(0,0,0,.6)}
 
   /* ── Carte vedette : le jeu principal ── */
   .featured{margin-bottom:18px}
@@ -42,6 +59,14 @@
   footer{
     border-top:1px solid var(--line);padding:16px 24px;text-align:center;
     color:var(--fog);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  }
+
+  /* Cartes en verre dépoli sur la photo (cohérence avec la page de connexion).
+     On garde le survol orange + zoom de theme.css. */
+  .card{
+    background:rgba(18,21,26,.82);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    box-shadow:0 20px 50px -20px rgba(0,0,0,.7);
   }
 </style>
 </head>
