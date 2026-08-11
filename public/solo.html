@@ -398,8 +398,8 @@ function attachDraftEv(){
   document.querySelectorAll(".draft-card").forEach(card=>{
     const idx=parseInt(card.dataset.idx);
     const offer=ST.draftOffers[idx];
-    card.addEventListener("mouseenter",()=>{card.style.transform="scale(1.02)";});
-    card.addEventListener("mouseleave",()=>{card.style.transform="none";});
+    card.addEventListener("mouseenter",()=>{card.style.filter="brightness(1.25)";});
+    card.addEventListener("mouseleave",()=>{card.style.filter="none";});
     card.addEventListener("click",()=>{if(offer)selectDraft(offer);});
   });
   const rerollBtn=document.getElementById("rerollBtn");
@@ -560,14 +560,12 @@ function attachLaunchEv(){
       if(ST.riskLevel!==card.dataset.risk){
         card.style.borderColor=col;
         card.style.boxShadow=`0 0 16px ${col}66`;
-        card.style.transform="scale(1.03)";
       }
     });
     card.addEventListener("mouseleave",()=>{
       if(ST.riskLevel!==card.dataset.risk){
         card.style.borderColor="#1f2937";
         card.style.boxShadow="none";
-        card.style.transform="none";
       }
     });
     card.addEventListener("click",()=>{ST.riskLevel=card.dataset.risk;render();});
