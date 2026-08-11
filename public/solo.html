@@ -9,8 +9,8 @@
 
 .azbrand{font-family:var(--font-titre);font-weight:700;font-size:17px;letter-spacing:.12em;text-transform:uppercase;color:#fff}
 .azbrand i{color:var(--accent);font-style:normal}
-/* corps de l'app gardé lisible (police UI plutôt que monospace) */
-body{font-family:'Inter',system-ui,sans-serif;min-height:100vh}
+/* corps de l'app aligné sur le reste du site (Space Mono) */
+body{font-family:var(--font-corps);min-height:100vh}
 /* Fond photo (podium de fin de rallye) + voile pour la lisibilité.
    Calque fixe DERRIÈRE l'app (#app). L'en-tête et les cartes passent au-dessus. */
 body::before{
@@ -52,6 +52,30 @@ body::before{
 .stat{text-align:center;min-width:30px}
 .stat-k{font-size:9px;color:#6b7280}
 .stat-v{font-size:12px;font-weight:700}
+
+/* ============================================================
+   HARMONISATION — aligne la page solo sur le style du site
+   (comme CRR : Space Mono en corps, Chakra Petch pour les titres
+    et les actions, cases sobres à bordure fine et arrondi unifié).
+   Les couleurs de jeu ne sont PAS modifiées (surfaces de rallye,
+   incidents, couleur du joueur).
+   ============================================================ */
+/* Titres / gros chiffres → Chakra Petch */
+.year-num{font-family:var(--font-titre)}
+/* Actions → police titre, comme les boutons du thème */
+.nav-btn{font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+/* Libellés secondaires → gris du thème au lieu de gris divers */
+.step-label,.tirage-sub,.stat-k{color:var(--fog)}
+/* Cases : bordure + fond du thème, arrondi unifié (léger) */
+.result-row,.fc-row,.rally-card{
+  border:1px solid var(--line);
+  border-radius:6px;
+  background:rgba(21,24,29,.72);
+}
+.year-block{border-radius:6px}
+.nav-btn,.tirage-btn,.choose-btn{border-radius:8px}
+/* État désactivé → tokens du thème */
+.tirage-btn:disabled{background:#1b1f26;border-color:var(--line);color:var(--fog)}
 </style></head><body>
 <div id="app"></div>
 <script src="solo-data.js"></script>
