@@ -27,6 +27,12 @@ try {
   records = JSON.parse(fs.readFileSync(RECORDS_FILE, 'utf8'));
   if (!Array.isArray(records)) records = [];
 } catch (e) { records = []; }
+// Un seul temps conservé par joueur : la meilleure partie (total le plus bas).
+{
+  const best = {};
+  for (const r of records) { if (!best[r.name] || r.total < best[r.name].total) best[r.name] = r; }
+  records = Object.values(best);
+}
 function saveRecords() {
   try { fs.writeFileSync(RECORDS_FILE, JSON.stringify(records)); }
   catch (e) { console.error('Sauvegarde records échouée:', e.message); }
@@ -74,6 +80,14 @@ async function initDb() {
     )`);
     await pool.query(`CREATE INDEX IF NOT EXISTS records_total_idx ON records (total ASC)`);
 
+    // Un seul temps conservé par joueur : on garde la meilleure partie (total le plus bas).
+    // 1) Effacer les doublons existants (toutes les parties d'un joueur sauf sa meilleure).
+    await pool.query(`DELETE FROM records a USING records b
+      WHERE a.name = b.name
+        AND (b.total < a.total OR (b.total = a.total AND b.id < a.id))`);
+    // 2) Contrainte d'unicité sur le nom → permet l'upsert « meilleur temps » (dbAddRecord).
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS records_name_key ON records (name)`);
+
     // Migration unique depuis les fichiers du Volume (ne perd rien, ne duplique pas)
     const accCount = (await pool.query('SELECT COUNT(*)::int AS n FROM accounts')).rows[0].n;
     if (accCount === 0 && Object.keys(accounts).length) {
@@ -90,7 +104,10 @@ async function initDb() {
     if (recCount === 0 && records.length) {
       for (const r of records) {
         await pool.query(
-          'INSERT INTO records (name,total,splits,date) VALUES ($1,$2,$3,$4)',
+          `INSERT INTO records (name,total,splits,date) VALUES ($1,$2,$3,$4)
+           ON CONFLICT (name) DO UPDATE
+             SET total = EXCLUDED.total, splits = EXCLUDED.splits, date = EXCLUDED.date
+           WHERE records.total > EXCLUDED.total`,
           [r.name, r.total, JSON.stringify(r.splits), r.date || Date.now()]
         );
       }
@@ -113,13 +130,23 @@ async function dbGetRecords() {
   return records;
 }
 async function dbAddRecord(rec) {
+  // On ne conserve que le meilleur temps final de chaque joueur.
   if (dbReady) {
-    await pool.query('INSERT INTO records (name,total,splits,date) VALUES ($1,$2,$3,$4)',
+    await pool.query(
+      `INSERT INTO records (name,total,splits,date) VALUES ($1,$2,$3,$4)
+       ON CONFLICT (name) DO UPDATE
+         SET total = EXCLUDED.total, splits = EXCLUDED.splits, date = EXCLUDED.date
+       WHERE records.total > EXCLUDED.total`,
       [rec.name, rec.total, JSON.stringify(rec.splits), rec.date]);
     return;
   }
-  records.push(rec);
-  if (records.length > MAX_RECORDS) records = records.slice(records.length - MAX_RECORDS);
+  const ex = records.find(r => r.name === rec.name);
+  if (ex) {
+    if (rec.total < ex.total) { ex.total = rec.total; ex.splits = rec.splits; ex.date = rec.date; }
+  } else {
+    records.push(rec);
+    if (records.length > MAX_RECORDS) records = records.slice(records.length - MAX_RECORDS);
+  }
   saveRecords();
 }
 async function dbGetAccount(key) {
