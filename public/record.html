@@ -158,7 +158,13 @@ const Store=(()=>{
   function set(k,v){try{localStorage.setItem(k,v);}catch(e){mem[k]=v;}}
   let _runs=[]; // cache des essais du serveur (rempli au chargement)
   return {
-    runs(){return _runs;},
+    // Un seul temps conservé par joueur : la meilleure partie (total le plus bas).
+    // Les temps par spéciale affichés sont donc ceux de cette partie-là.
+    runs(){
+      const best={};
+      for(const r of _runs){ if(!best[r.name]||r.total<best[r.name].total) best[r.name]=r; }
+      return Object.values(best);
+    },
     // Récupère tous les essais déjà enregistrés (tous les joueurs)
     async load(){
       try{
@@ -225,11 +231,11 @@ function windowedBoard(entries){
   return html;
 }
 function stageEntries(idx,myTime){
-  const arr=Store.runs().filter(r=>r.splits.length>idx).map(r=>({name:r.name,value:r.splits[idx],me:false}));
+  const arr=Store.runs().filter(r=>r.name!==G.name&&r.splits.length>idx).map(r=>({name:r.name,value:r.splits[idx],me:false}));
   arr.push({name:G.name,value:myTime,me:true});arr.sort((a,b)=>a.value-b.value);return arr;
 }
 function cumEntries(idx,myCum){
-  const arr=Store.runs().filter(r=>r.splits.length>idx).map(r=>{let c=0;for(let i=0;i<=idx;i++)c+=r.splits[i];return{name:r.name,value:c,me:false};});
+  const arr=Store.runs().filter(r=>r.name!==G.name&&r.splits.length>idx).map(r=>{let c=0;for(let i=0;i<=idx;i++)c+=r.splits[i];return{name:r.name,value:c,me:false};});
   arr.push({name:G.name,value:myCum,me:true});arr.sort((a,b)=>a.value-b.value);return arr;
 }
 
@@ -495,17 +501,20 @@ function leaderboardCard(meTotal){
 }
 function screenFinal(){
   const runs=Store.runs().slice().sort((a,b)=>a.total-b.total);
-  const myIdx=runs.findIndex(r=>Math.abs(r.total-G.cum)<0.05&&r.name===G.name);
+  const myIdx=runs.findIndex(r=>r.name===G.name);   // une seule ligne conservée par joueur
+  const myBest=myIdx>=0?runs[myIdx].total:G.cum;
+  const isPB=G.cum<=myBest+0.05;                     // la partie qui vient d'être jouée est la meilleure conservée
   const leadT=runs[0]?runs[0].total:0;
   let rows='';runs.forEach((r,i)=>{const me=i===myIdx;const gap=i===0?'':`<span class="small" style="color:#8a8a92;margin-left:8px">+${fmtGapShort(r.total-leadT)}</span>`;rows+=`<div class="lb ${me?'me':''}"><span>${i+1}. ${r.name}</span><b>${fmtTime(r.total)}${gap}</b></div>`;});
   app().innerHTML=`
     <div class="brand"><span class="az">Rallye</span> <span class="r">terminé</span></div>
     <div class="card" style="text-align:center;margin-top:12px">
-      <div class="small">${G.name} — temps total</div>
-      <div class="big-time">${fmtTime(G.cum)}</div>
+      <div class="small">${G.name} — ${isPB?'temps total':'meilleur temps conservé'}</div>
+      <div class="big-time">${fmtTime(myBest)}</div>
+      ${isPB?'':`<div class="small" style="margin-top:4px">Cette partie : ${fmtTime(G.cum)}</div>`}
       <div style="margin-top:8px"><span class="pill" style="background:#fbbf2422;color:#fbbf24">${myIdx+1}${myIdx===0?'er':'e'} sur ${runs.length}</span></div>
     </div>
-    <h2>Classement final — tous les finishers (${runs.length})</h2>
+    <h2>Classement final — meilleur temps par joueur (${runs.length})</h2>
     <div class="card" style="padding:6px 14px;max-height:55vh;overflow-y:auto">${rows}</div>
     <button class="btn-primary" id="replay">Rejouer</button>
     <button class="btn-ghost" id="splits" style="width:100%;margin-top:8px">Voir mes temps par spéciale</button>
@@ -514,7 +523,7 @@ function screenFinal(){
   document.getElementById('splits').onclick=()=>{
     let h='<h2>Mes spéciales</h2><div class="card" style="padding:6px 14px">';
     G.results.forEach((r,i)=>{
-      const times=Store.runs().filter(x=>x.splits.length>i).map(x=>x.splits[i]);
+      const times=Store.runs().filter(x=>x.name!==G.name&&x.splits.length>i).map(x=>x.splits[i]);
       const y=times.length;const pos=times.filter(t=>t<r.stageTime-0.0001).length+1;
       h+=`<div class="lb"><span>${i+1}. ${r.st.nom}</span><b>${fmtTime(r.stageTime)} <span class="small" style="color:#a78bfa">${pos}ᵉ/${y}</span></b></div>`;
     });
