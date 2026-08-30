@@ -112,6 +112,25 @@ body::before{
 .sc-reroll .rr-sub{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog)}
 .sc-reroll-used{margin-top:26px;text-align:center;font-size:11px;color:var(--fog);font-style:italic}
 @media(max-width:680px){.sc-cards{grid-template-columns:1fr}.sc-dc{min-height:0}.sc-dc .pick{opacity:1;transform:none}}
+
+/* ── Bandeau projecteur de révélation (rSim) ── */
+#revealSpot:empty{display:none}
+.rv-big{position:relative;display:flex;align-items:center;gap:16px;background:rgba(18,21,26,.92);border:1px solid var(--accent);border-radius:10px;padding:15px 18px;margin-bottom:10px;box-shadow:0 12px 36px -12px rgba(249,115,22,.5);animation:rvSpotIn .45s cubic-bezier(.22,.61,.36,1) both}
+.rv-big::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:10px 10px 0 0}
+.rv-big.you{border-color:#7c3aed}
+@keyframes rvSpotIn{from{opacity:0;transform:translateY(-8px) scale(.985)}to{opacity:1;transform:none}}
+.rv-rank{font-family:var(--font-titre);font-weight:700;font-size:32px;line-height:1;color:var(--accent);min-width:56px;text-align:center}
+.rv-big.you .rv-rank{color:#c4b5fd}
+.rv-big.lead .rv-rank{color:var(--accent-soft)}
+.rv-rank .p{font-size:13px;color:var(--fog);margin-right:2px;vertical-align:top}
+.rv-mid{flex:1;min-width:0}
+.rv-lbl{font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--fog);margin-bottom:2px}
+.rv-nom{font-family:var(--font-titre);font-weight:600;text-transform:uppercase;letter-spacing:.01em;font-size:18px;line-height:1.1;color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-big.you .rv-nom{color:#c4b5fd}
+.rv-gap{text-align:right;min-width:86px}
+.rv-gv{font-family:monospace;font-weight:700;font-size:17px;color:var(--paper)}
+.rv-big.lead .rv-gv{color:var(--accent-soft)}
+.rv-gl{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog);margin-top:2px}
 </style></head><body>
 <div id="app"></div>
 <script src="solo-data.js"></script>
@@ -143,6 +162,11 @@ function coS(d){if(!d)return{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fi
 
 let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:""};
 let revealTimer=null;
+let revealSeq=0;
+const revealEls=new Map();
+const RV_APPEAR=450,RV_HOLD=700,RV_SLIDE=650,RV_GAP=350;
+const rvWait=ms=>new Promise(res=>{revealTimer=setTimeout(res,ms);});
+function stopReveal(){revealSeq++;if(revealTimer){clearTimeout(revealTimer);clearInterval(revealTimer);revealTimer=null;}ST.revealing=false;}
 
 function init(){var _u;try{_u=localStorage.getItem('azr_user');}catch(e){}if(!_u){location.replace('/');return;}ST.playerName=_u;ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};render();}
 
@@ -220,27 +244,35 @@ function revealNavChamp(){
   },400);
 }
 
+function champBefore(){const map={};for(let i=0;i<ST.cur;i++)ST.results[i].sorted.forEach(e=>{map[e.id]=(map[e.id]||0)+e.pts;});return map;}
 function buildRevealOrder(sorted){
-  const player=sorted.find(e=>e.isP);
-  const others=[...sorted.filter(e=>!e.isP)];
-  for(let i=others.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[others[i],others[j]]=[others[j],others[i]];}
-  return[player,...others];
+  const arr=[...sorted];
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  if(ST.cur===0)return arr;                       // 1er rallye : aléatoire
+  const pts=champBefore();                         // rallyes suivants : inverse du championnat
+  arr.sort((a,b)=>(pts[a.id]||0)-(pts[b.id]||0));  // dernier au général révélé en premier
+  return arr;
 }
 
 let revealOrder=[];
 let revealedEntries=[];
 
 function makeRowWithGap(e,provRank,provGap,provPts,allRevealed){
+  const div=document.createElement("div");
+  div.className="result-row";div.dataset.id=e.id;
+  fillRow(div,e,provRank,provGap,provPts,allRevealed);
+  return div;
+}
+function fillRow(div,e,provRank,provGap,provPts,allRevealed){
   const dnf=e.isDNF,isP=e.isP;
   const hasPen=e.inc?.type==="Crevaison"||e.inc?.type==="Panne";
-  const isLead=!dnf&&(e.rank===1)&&!!allRevealed;
+  const isWinner=!dnf&&(e.rank===1)&&!!allRevealed;
+  const isProvLead=!dnf&&!allRevealed&&provGap===0;
   if(provPts===undefined){const PTS_SCALE=[25,18,15,12,10,8,6,4,2,1];provPts=dnf?0:(typeof provRank==="number"?PTS_SCALE[provRank-1]||0:0);}
   const _topName=isP?(ST.playerName||"Joueur"):e.nom;
   const _subLine=isP?`${(e.driver&&e.driver.nom)||e.nom}${e.cop?" · "+e.cop:""}${e.car?" · "+e.car.nom:""}`:`${e.cop}${e.car?" · "+e.car.nom:""}`;
-  const div=document.createElement("div");
-  div.className="result-row";
+  const rightTxt=dnf?"Abandon":isWinner?"✓ Vainqueur":isProvLead?"Leader":fmtG(provGap);
   div.style.cssText=`background:${isP?"#1a1020":"#0f1117"};border:1px solid ${isP?"#7c3aed":"#1f2937"};opacity:${dnf?.6:1}`;
-  div.dataset.id=e.id;
   div.innerHTML=`
     <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?"#4b5563":"#6b7280"};flex-shrink:0">${dnf?"DNF":provRank}</span>
     <div style="flex:1;min-width:0">
@@ -249,10 +281,9 @@ function makeRowWithGap(e,provRank,provGap,provPts,allRevealed){
     </div>
     ${hasPen?`<span style="font-size:9px;color:${e.inc.type==="Crevaison"?"#fbbf24":"#f97316"};background:#1f2937;padding:1px 5px;border-radius:3px;flex-shrink:0">${e.inc.type}</span>`:""}
     <div style="text-align:right;min-width:65px;flex-shrink:0">
-      <div style="font-size:11px;font-family:monospace;color:${dnf?"#ef4444":"#9ca3af"}">${dnf?"Abandon":isLead?"✓ Vainqueur":fmtG(provGap)}</div>
+      <div style="font-size:11px;font-family:monospace;color:${dnf?"#ef4444":isProvLead?"#fdba74":"#9ca3af"}">${rightTxt}</div>
       ${provPts>0?`<div style="font-size:11px;color:#60a5fa;font-weight:600">+${provPts} pts</div>`:""}
     </div>`;
-  return div;
 }
 
 function makeRow(e,finalRank){return makeRowWithGap(e,finalRank,e.gap);}
@@ -267,67 +298,104 @@ function rebuildList(){
   sorted.forEach((e,i)=>{const div=makeRow(e,e.isDNF?"DNF":i+1);div.style.animation="none";container.appendChild(div);});
 }
 
+function computeProv(list){
+  const PTS=[25,18,15,12,10,8,6,4,2,1];
+  const finishers=list.filter(x=>!x.isDNF).sort((a,b)=>a.rank-b.rank);
+  const dnfs=list.filter(x=>x.isDNF);
+  const trueWinner=finishers.some(x=>x.rank===1);
+  const leader=finishers[0];
+  return [...finishers,...dnfs].map((entry,i)=>{
+    const isDNF=entry.isDNF;
+    const gap=isDNF?Infinity:(trueWinner?entry.gap:entry.gap-leader.gap);
+    return {entry,provRank:isDNF?"DNF":i+1,provGap:gap,provPts:isDNF?0:(PTS[i]||0)};
+  });
+}
+
+function bigSpotCard(e,provRank,provGap){
+  const dnf=e.isDNF,isP=e.isP;
+  const lead=!dnf&&provGap===0;
+  const nom=isP?(ST.playerName||"Joueur"):e.nom;
+  const gv=dnf?"Abandon":lead?"Leader":fmtG(provGap);
+  const gl=dnf?"":lead?"meilleur temps":"écart au 1er";
+  return `<div class="rv-big${lead?" lead":""}${isP?" you":""}">
+    <div class="rv-rank">${dnf?"DNF":`<span class="p">P</span>${provRank}`}</div>
+    <div class="rv-mid"><div class="rv-lbl">Position provisoire</div><div class="rv-nom">${nom}</div></div>
+    <div class="rv-gap"><div class="rv-gv">${gv}</div><div class="rv-gl">${gl}</div></div>
+  </div>`;
+}
+
+function renderRevealFinal(container){
+  const rows=computeProv(revealedEntries);
+  container.innerHTML="";
+  rows.forEach(r=>{const div=makeRowWithGap(r.entry,r.provRank,r.provGap,r.provPts,true);div.style.animation="none";container.appendChild(div);});
+}
+
+function flipInsert(container,rows,curId,bigEl){
+  if(!container)return;
+  const firsts=new Map();
+  revealEls.forEach((el,id)=>firsts.set(id,el.getBoundingClientRect()));
+  rows.forEach(r=>{
+    let el=revealEls.get(r.entry.id);
+    if(!el){el=makeRowWithGap(r.entry,r.provRank,r.provGap,r.provPts,false);el.style.animation="none";revealEls.set(r.entry.id,el);}
+    else{fillRow(el,r.entry,r.provRank,r.provGap,r.provPts,false);}
+  });
+  rows.forEach(r=>container.appendChild(revealEls.get(r.entry.id)));
+  firsts.forEach((first,id)=>{
+    const el=revealEls.get(id);if(!el)return;
+    const last=el.getBoundingClientRect();const dy=first.top-last.top;
+    if(dy){el.style.transition="none";el.style.transform=`translateY(${dy}px)`;
+      requestAnimationFrame(()=>{el.style.transition=`transform ${RV_SLIDE}ms cubic-bezier(.22,.61,.36,1)`;el.style.transform="";});}
+  });
+  const line=revealEls.get(curId);
+  if(line&&bigEl){
+    const from=bigEl.getBoundingClientRect();const to=line.getBoundingClientRect();const dy=from.top-to.top;
+    line.style.transition="none";line.style.opacity="0";line.style.transform=`translateY(${dy}px)`;
+    bigEl.style.transition="opacity .3s ease";bigEl.style.opacity="0";
+    requestAnimationFrame(()=>{line.style.transition=`transform ${RV_SLIDE}ms cubic-bezier(.22,.61,.36,1),opacity ${Math.round(RV_SLIDE*.6)}ms ease`;line.style.opacity="";line.style.transform="";});
+  }
+}
+
 function startReveal(instant){
-  if(revealTimer)clearInterval(revealTimer);
-  ST.revealed=0;ST.revealing=true;
-  revealedEntries=[];
+  stopReveal();
+  const myRun=revealSeq;
+  ST.revealed=0;ST.revealing=true;revealedEntries=[];revealEls.clear();
+  const spot=document.getElementById("revealSpot");
+  const container=document.getElementById("revealList");
+  if(spot)spot.innerHTML="";
+  if(container)container.innerHTML="";
   const sorted=ST.results[ST.cur].sorted;
   const total=sorted.length;
-  const container=document.getElementById("revealList");
-  if(container)container.innerHTML="";
   if(instant){
-    revealedEntries=[...sorted];
-    ST.revealed=total;ST.revealing=false;
-    const PTS_SCALE_I=[25,18,15,12,10,8,6,4,2,1];
-    if(container){container.innerHTML="";sorted.forEach((entry,i)=>{const div=makeRowWithGap(entry,entry.isDNF?"DNF":i+1,entry.gap,entry.isDNF?0:(PTS_SCALE_I[i]||0),true);div.style.animation="none";container.appendChild(div);});}
+    revealedEntries=[...sorted];ST.revealed=total;ST.revealing=false;
+    if(container)renderRevealFinal(container);
     const ctr=document.getElementById("revealCounter");if(ctr)ctr.textContent="";
     revealNavChamp();return;
   }
   revealOrder=buildRevealOrder(sorted);
-  revealTimer=setInterval(()=>{
-    const e=revealOrder[ST.revealed];if(!e)return;
-    revealedEntries.push(e);ST.revealed++;
-    const container=document.getElementById("revealList");
-    if(container){
-      const PTS_SCALE=[25,18,15,12,10,8,6,4,2,1];
-      const finishers=revealedEntries.filter(x=>!x.isDNF).sort((a,b)=>a.rank-b.rank);
-      const dnfs=revealedEntries.filter(x=>x.isDNF);
-      const toShow=[...finishers,...dnfs];
-      const trueWinnerRevealed=finishers.some(x=>x.rank===1);
-      const provLeader=finishers[0];
-      container.innerHTML="";
-      toShow.forEach((entry,i)=>{
-        const provRank=entry.isDNF?"DNF":i+1;
-        const provPts=entry.isDNF?0:(PTS_SCALE[i]||0);
-        let displayGap;
-        if(entry.isDNF)displayGap=Infinity;
-        else if(trueWinnerRevealed)displayGap=entry.gap;
-        else displayGap=entry.gap-provLeader.gap;
-        const div=makeRowWithGap(entry,provRank,displayGap,provPts,false);
-        if(entry.id===e.id){div.style.animation="fadeIn .4s ease-out";}else{div.style.animation="none";}
-        container.appendChild(div);
-      });
+  (async()=>{
+    for(let k=0;k<revealOrder.length;k++){
+      if(myRun!==revealSeq)return;
+      const e=revealOrder[k];
+      revealedEntries.push(e);ST.revealed++;
+      const rows=computeProv(revealedEntries);
+      const cur=rows.find(r=>r.entry.id===e.id);
+      if(spot)spot.innerHTML=bigSpotCard(e,cur.provRank,cur.provGap);
+      const bigEl=spot?spot.querySelector(".rv-big"):null;
+      const ctr=document.getElementById("revealCounter");
+      if(ctr){const reste=total-ST.revealed;ctr.textContent=reste>0?`${reste} équipage${reste>1?"s":""} restant${reste>1?"s":""}...`:"";}
+      await rvWait(RV_APPEAR+RV_HOLD);
+      if(myRun!==revealSeq)return;
+      flipInsert(container,rows,e.id,bigEl);
+      await rvWait(RV_SLIDE+RV_GAP);
+      if(myRun!==revealSeq)return;
     }
-    const ctr=document.getElementById("revealCounter");
-    if(ctr){const reste=total-ST.revealed;ctr.textContent=reste>0?`${reste} équipage${reste>1?"s":""} restant${reste>1?"s":""}...`:""}
-    if(ST.revealed>=total){
-      clearInterval(revealTimer);revealTimer=null;ST.revealing=false;
-      // Rebuild list with allRevealed=true to show "Vainqueur"
-      const finalContainer=document.getElementById("revealList");
-      if(finalContainer){
-        const PTS_FINAL=[25,18,15,12,10,8,6,4,2,1];
-        const finishersF=revealedEntries.filter(x=>!x.isDNF).sort((a,b)=>a.rank-b.rank);
-        const dnfsF=revealedEntries.filter(x=>x.isDNF);
-        finalContainer.innerHTML="";
-        [...finishersF,...dnfsF].forEach((entry,i)=>{
-          const div=makeRowWithGap(entry,entry.isDNF?"DNF":i+1,entry.gap,entry.isDNF?0:(PTS_FINAL[i]||0),true);
-          div.style.animation="none";finalContainer.appendChild(div);
-        });
-      }
-      const ctr2=document.getElementById("revealCounter");if(ctr2)ctr2.textContent="";
-      revealNavChamp();
-    }
-  },700);
+    if(myRun!==revealSeq)return;
+    ST.revealing=false;
+    if(spot)spot.innerHTML="";
+    if(container)renderRevealFinal(container);
+    const ctr2=document.getElementById("revealCounter");if(ctr2)ctr2.textContent="";
+    revealNavChamp();
+  })();
 }
 
 function selectDraft(offer){
@@ -350,7 +418,7 @@ function selectDraft(offer){
 }
 
 function goToRally(idx){
-  if(revealTimer){clearInterval(revealTimer);revealTimer=null;}
+  stopReveal();
   const isNew=idx>ST.maxReached;
   if(isNew)ST.maxReached=idx;
   ST.cur=idx;ST.revealed=0;
@@ -672,6 +740,7 @@ function rSim(){
     <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em">Classement du rallye</div>
     <div id="revealCounter" style="font-size:11px;color:#4b5563;font-style:italic"></div>
   </div>
+  <div id="revealSpot" style="padding:0 20px"></div>
   <div id="revealList" style="padding:0 20px 8px"></div>
   <div id="simNav" class="nav" style="opacity:0;pointer-events:none">${prevBtn}${nextBtn}</div>
   <div id="champBlock" style="background:#0f1117;border:1px solid #1f2937;border-radius:8px;margin:0 20px 16px;padding:10px 14px;opacity:0">
@@ -682,10 +751,10 @@ function rSim(){
 
 function attachSimEv(){
   document.querySelectorAll("[data-rally]").forEach(el=>{
-    el.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}goToRally(parseInt(el.dataset.rally));});
+    el.addEventListener("click",()=>{stopReveal();goToRally(parseInt(el.dataset.rally));});
   });
-  const prev=document.getElementById("prevR");if(prev)prev.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}goToRally(ST.cur-1);});
-  const next=document.getElementById("nextR");if(next)next.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}goToRally(ST.cur+1);});
+  const prev=document.getElementById("prevR");if(prev)prev.addEventListener("click",()=>{stopReveal();goToRally(ST.cur-1);});
+  const next=document.getElementById("nextR");if(next)next.addEventListener("click",()=>{stopReveal();goToRally(ST.cur+1);});
   const fin=document.getElementById("toResults");if(fin)fin.addEventListener("click",()=>{ST.phase="results";render();});
 }
 
@@ -717,7 +786,7 @@ function rResults(){
 function attachEv(){
   const tb=document.getElementById("tirageBtn");if(tb)tb.addEventListener("click",()=>{ST.tirageState="spinning";render();setTimeout(()=>{ST.tirageState="revealed";render();},800);});
   const cb=document.getElementById("chooseBtn");if(cb)cb.addEventListener("click",()=>{ST.phase="draft";render();});
-  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{if(revealTimer){clearInterval(revealTimer);revealTimer=null;}ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:ST.playerName||""};render();});
+  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{stopReveal();ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:ST.playerName||""};render();});
 }
 init();
 </script>
