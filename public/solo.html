@@ -60,14 +60,6 @@ body::before{
 .sc-stage{position:relative;min-height:calc(100vh - 81px);display:flex;align-items:center;justify-content:center;padding:48px 20px;overflow:hidden}
 .sc-spot{position:absolute;left:50%;top:-150px;transform:translateX(-50%);width:760px;height:420px;pointer-events:none;background:radial-gradient(closest-side,rgba(249,115,22,.16),transparent 72%);filter:blur(6px);z-index:0}
 /* Hoardings sponsors (bord de piste) */
-.sc-hoardings{position:absolute;top:50%;transform:translateY(-50%);z-index:1;display:flex;flex-direction:column;gap:12px;width:158px}
-.sc-hoardings.left{left:26px;-webkit-mask:linear-gradient(90deg,transparent,#000 34%);mask:linear-gradient(90deg,transparent,#000 34%)}
-.sc-hoardings.right{right:26px;-webkit-mask:linear-gradient(270deg,transparent,#000 34%);mask:linear-gradient(270deg,transparent,#000 34%)}
-.sc-sp{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:9px;background:rgba(21,24,29,.66);border:1px solid var(--line);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:.62;transition:opacity .2s ease}
-.sc-hoardings:hover .sc-sp{opacity:.9}
-.sc-sp .g{width:16px;height:16px;flex-shrink:0;color:var(--fog)}
-.sc-sp .n{font-family:var(--font-titre);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:11px;color:var(--paper);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sc-sp .k{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--fog)}
 /* Carte hero (frosted glass) */
 .sc-card{position:relative;z-index:3;width:100%;max-width:468px;text-align:center;padding:44px 38px 34px;border-radius:var(--radius);background:rgba(18,21,26,.82);border:1px solid var(--line);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);box-shadow:0 24px 60px -18px rgba(0,0,0,.7);animation:scRise .55s cubic-bezier(.22,.61,.36,1) both}
 @keyframes scRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -88,9 +80,39 @@ body::before{
 .sc-path .st .l{font-family:var(--font-titre);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--paper)}
 .sc-path .st.active .n{color:var(--accent)}
 .sc-path .ar{align-self:center;color:var(--line);font-size:13px;padding-top:2px}
-@media(max-width:1120px){.sc-hoardings{display:none}}
 @media(max-width:560px){.sc-stage{padding:32px 16px}.sc-card{padding:36px 24px 28px}}
 @media(prefers-reduced-motion:reduce){.sc-card{animation:none}}
+
+/* ============================================================
+   ÉCRAN DRAFT SOLO CARRIÈRE (rDraft) — cartes + relance
+   ============================================================ */
+.pbar.sc-pb-done,.pbar.sc-pb-cur{background:var(--accent)}
+.pbar.sc-pb-cur{box-shadow:0 0 10px rgba(249,115,22,.6)}
+.pbar.sc-pb-todo{background:#1f2937}
+.sc-draft-body{padding:22px 20px 40px;max-width:900px;margin:0 auto}
+.sc-tour{font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:.14em;margin-bottom:6px}
+.sc-consigne{font-family:var(--font-titre);font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:22px;color:var(--paper);margin-bottom:6px}
+.sc-sub{font-size:12.5px;color:var(--fog);margin-bottom:24px;max-width:560px}
+.sc-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.sc-dc{position:relative;display:flex;flex-direction:column;background:rgba(18,21,26,.82);border:1px solid var(--line);border-radius:var(--radius);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:18px 20px 16px;cursor:pointer;overflow:hidden;min-height:112px;transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+.sc-dc::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;transition:opacity .18s ease}
+.sc-dc:hover,.sc-dc:focus-visible{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 18px 40px -14px rgba(249,115,22,.35);outline:none}
+.sc-dc:hover::before,.sc-dc:focus-visible::before{opacity:1}
+.sc-dc .idx{position:absolute;top:16px;right:18px;font-family:var(--font-titre);font-size:12px;letter-spacing:.1em;color:var(--line)}
+.sc-dc .nom{font-family:var(--font-titre);font-weight:600;text-transform:uppercase;letter-spacing:.01em;font-size:18px;line-height:1.25;color:var(--paper);margin:0 0 6px}
+.sc-dc .saison{font-family:var(--font-titre);font-weight:600;text-transform:uppercase;letter-spacing:.01em;font-size:18px;line-height:1.25;color:#b6bcc4}
+.sc-dc .pick{margin-top:auto;padding-top:14px;display:inline-flex;align-items:center;gap:7px;font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.09em;font-size:12px;color:var(--accent);opacity:0;transform:translateY(4px);transition:opacity .18s ease,transform .18s ease}
+.sc-dc:hover .pick,.sc-dc:focus-visible .pick{opacity:1;transform:none}
+.sc-dc .pick .chev{transition:transform .2s ease}
+.sc-dc:hover .pick .chev{transform:translateX(4px)}
+.sc-reroll-wrap{margin-top:26px;display:flex;justify-content:center}
+.sc-reroll{display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--asphalt-2);border:1px solid var(--line);border-radius:var(--radius);padding:14px 32px;cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .12s ease}
+.sc-reroll:hover,.sc-reroll:focus-visible{border-color:var(--accent);background:#1b1f26;transform:translateY(-1px);outline:none}
+.sc-reroll .rr-main{display:inline-flex;align-items:center;gap:9px;font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.09em;font-weight:600;font-size:14px;color:var(--paper)}
+.sc-reroll .rr-main .ic{font-size:16px;line-height:1}
+.sc-reroll .rr-sub{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog)}
+.sc-reroll-used{margin-top:26px;text-align:center;font-size:11px;color:var(--fog);font-style:italic}
+@media(max-width:680px){.sc-cards{grid-template-columns:1fr}.sc-dc{min-height:0}.sc-dc .pick{opacity:1;transform:none}}
 </style></head><body>
 <div id="app"></div>
 <script src="solo-data.js"></script>
@@ -348,7 +370,6 @@ function render(){
 }
 
 function rRules(){
-  const sp=(g,n,k)=>`<div class="sc-sp"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${g}</svg><div><div class="n">${n}</div><div class="k">${k}</div></div></div>`;
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <a href="/menu.html" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
@@ -356,20 +377,6 @@ function rRules(){
   </div>
   <div class="sc-stage">
     <div class="sc-spot"></div>
-    <aside class="sc-hoardings left" aria-hidden="true">
-      ${sp('<path d="M4 13h4l2-6 3 12 2-8h5"/>','Pulse Energy','Partenaire')}
-      ${sp('<path d="M6 6l12 12M18 6L6 18"/>','Nexora Lubricants','Officiel')}
-      ${sp('<path d="M12 3l8 5v8l-8 5-8-5V8z"/>','Altrix Racing Fuel','Carburant')}
-      ${sp('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>','Terraway Tyres','Pneus')}
-      ${sp('<path d="M4 7h16v10H4zM8 7V5h8v2"/>','Ironforge Gear','Équipement')}
-    </aside>
-    <aside class="sc-hoardings right" aria-hidden="true">
-      ${sp('<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>','Sphere Technology','Data')}
-      ${sp('<path d="M4 4h7v7H4zM13 13h7v7h-7z"/>','Norvan Components','Pièces')}
-      ${sp('<path d="M3 17l6-6 4 4 8-8"/>','Edge Suspension','Châssis')}
-      ${sp('<circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2"/>','Roamer Watches','Chrono')}
-      ${sp('<path d="M5 19a9 9 0 0114 0M8 16a5 5 0 018 0"/><circle cx="12" cy="19" r="1"/>','Signal Comms','Télémétrie')}
-    </aside>
     <section class="sc-card">
       <h1>Arriveras-tu à être <em>Champion du Monde&nbsp;?</em></h1>
       <p class="sc-lead">Constitue ton équipage, choisis ta voiture et adapte ta stratégie à chaque rallye pour monter sur la plus haute marche du podium.</p>
@@ -400,11 +407,8 @@ function attachRulesEv(){
 function rDraft(){
   const round=ST.draftRound;
   const offers=ST.draftOffers;
-  const typeLabels={driver:"Pilote",codr:"Copilote",car:"Voiture"};
-  const roundType=round===0?"driver":round===1?"codr":"car";
-  const typeColor=roundType==="driver"?"#60a5fa":roundType==="codr"?"#a78bfa":"#f59e0b";
   const consigne=round===0?"Choisis ton pilote":round===1?"Choisis ton copilote":"Choisis ta voiture";
-  const bars=[0,1,2].map(i=>`<div class="pbar" style="background:${i<round?"#dc2626":i===round?"#ef4444":"#1f2937"}"></div>`).join("");
+  const bars=[0,1,2].map(i=>`<div class="pbar ${i<round?"sc-pb-done":i===round?"sc-pb-cur":"sc-pb-todo"}"></div>`).join("");
 
   // Tags des choix déjà faits
   const tags=[];
@@ -412,16 +416,11 @@ function rDraft(){
   if(ST.sel.codr) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Copilote · </span>${ST.sel.codr.nom}</div>`);
 
   const cards=offers.map((o,i)=>{
-    return`<div class="draft-card" data-idx="${i}" style="
-      background:#0f1117;
-      border:2px solid ${typeColor};
-      border-radius:12px;padding:16px;cursor:pointer;
-      transition:all .15s;flex:1;min-width:0;
-      box-shadow:0 0 12px ${typeColor}22;
-    ">
-      <div style="font-size:9px;font-weight:700;color:${typeColor};text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px">${typeLabels[o.type]}</div>
-      <div style="font-weight:800;font-size:15px;color:#fff;line-height:1.3;margin-bottom:6px">${o.nom}</div>
-      <div style="font-size:11px;color:#6b7280">${o.annee}</div>
+    return`<div class="sc-dc" data-idx="${i}" tabindex="0">
+      <span class="idx">${String(i+1).padStart(2,"0")}</span>
+      <div class="nom">${o.nom}</div>
+      <div class="saison">Saison ${o.annee}</div>
+      <span class="pick">Choisir <span class="chev">→</span></span>
     </div>`;
   }).join("");
 
@@ -432,38 +431,33 @@ function rDraft(){
     <div style="display:flex;gap:5px">${bars}</div>
     ${tags.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${tags.join("")}</div>`:""}
   </div>
-  <div style="padding:16px 20px 10px">
-    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Tour ${round+1} / 3</div>
-    <div style="font-weight:800;font-size:19px;color:#fff;margin-bottom:4px">${consigne}</div>
-    <div style="font-size:12px;color:#6b7280;margin-bottom:20px">3 propositions au hasard dans toute l'histoire du WRC${round===2?" — ton choix fixe l'année des concurrents":""}</div>
-    <div style="display:flex;flex-direction:column;gap:10px">
+  <div class="sc-draft-body">
+    <div class="sc-tour">Tour ${round+1} / 3</div>
+    <div class="sc-consigne">${consigne}</div>
+    <div class="sc-sub">3 propositions tirées au hasard dans toute l'histoire du WRC${round===2?" — ton choix fixe l'année des concurrents":""}.</div>
+    <div class="sc-cards">
       ${cards}
     </div>
     ${!ST.rerollUsed?`
-    <div style="margin-top:16px;text-align:center">
-      <button id="rerollBtn" style="background:transparent;border:1px solid #374151;border-radius:8px;padding:8px 20px;font-size:12px;color:#6b7280;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;transition:all .15s">
-        🔀 Relancer les propositions
+    <div class="sc-reroll-wrap">
+      <button id="rerollBtn" class="sc-reroll">
+        <span class="rr-main"><span class="ic">🔀</span> Relancer les propositions</span>
+        <span class="rr-sub">Utilisable une seule fois</span>
       </button>
-      <div style="font-size:10px;color:#4b5563;margin-top:5px">Utilisable une seule fois</div>
     </div>`:`
-    <div style="margin-top:16px;text-align:center">
-      <div style="font-size:11px;color:#374151;font-style:italic">Relance déjà utilisée</div>
-    </div>`}
+    <div class="sc-reroll-used">Relance déjà utilisée</div>`}
   </div>`;
 }
 
 function attachDraftEv(){
-  document.querySelectorAll(".draft-card").forEach(card=>{
+  document.querySelectorAll(".sc-dc").forEach(card=>{
     const idx=parseInt(card.dataset.idx);
     const offer=ST.draftOffers[idx];
-    card.addEventListener("mouseenter",()=>{card.style.filter="brightness(1.25)";});
-    card.addEventListener("mouseleave",()=>{card.style.filter="none";});
     card.addEventListener("click",()=>{if(offer)selectDraft(offer);});
+    card.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&offer){e.preventDefault();selectDraft(offer);}});
   });
   const rerollBtn=document.getElementById("rerollBtn");
   if(rerollBtn){
-    rerollBtn.addEventListener("mouseenter",()=>{rerollBtn.style.borderColor="#6b7280";rerollBtn.style.color="#e5e7eb";});
-    rerollBtn.addEventListener("mouseleave",()=>{rerollBtn.style.borderColor="#374151";rerollBtn.style.color="#6b7280";});
     rerollBtn.addEventListener("click",()=>{
       ST.rerollUsed=true;
       ST.draftOffers=makeDraftOffers();
