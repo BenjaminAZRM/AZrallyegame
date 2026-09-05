@@ -143,7 +143,8 @@ function rnd(a){return a[Math.floor(Math.random()*a.length)];}
 function rndN(a,n){const c=[...a],r=[];for(let i=0;i<n&&c.length;i++){const x=Math.floor(Math.random()*c.length);r.push(c.splice(x,1)[0]);}return r;}
 function sc(e,r){return(e.asp*r.asp+e.ter*r.ter+e.nei*r.nei+e.sec*r.sec+e.plu*r.plu+e.rap*r.rap+e.sin*r.sin)/3;}
 function basePerf(d,c,v,r){return((sc(d,r)+sc(c,r)+sc(v,r))/3)*(1+(Math.random()*.04-.02));}
-function calcInc(car,r){const risk=(1-car.fib)*(1+r.cas),t=Math.random();if(t>risk)return{type:"OK",pen:0};if(t>risk*.67)return{type:"Crevaison",pen:30};if(t>risk*.33)return{type:"Panne",pen:60};return{type:"Abandon",pen:Infinity};}
+function teamFib(e){const v=[];if(e.driver&&typeof e.driver.fib==="number")v.push(e.driver.fib);if(e.codr&&typeof e.codr.fib==="number")v.push(e.codr.fib);if(e.car&&typeof e.car.fib==="number")v.push(e.car.fib);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0.85;}
+function calcInc(fib,r){const risk=(1-fib)*(1+r.cas),t=Math.random();if(t>risk)return{type:"OK",pen:0};if(t>risk*.67)return{type:"Crevaison",pen:30};if(t>risk*.33)return{type:"Panne",pen:60};return{type:"Abandon",pen:Infinity};}
 function fmtG(s){if(s===0)return"-";if(s>=60){const m=Math.floor(s/60),x=(s%60).toFixed(1);return`+${m}m${x.padStart(4,"0")}s`;}return`+${s.toFixed(1)}s`;}
 function scol(s){
   if(s.includes("Neige")&&s.includes("Asp"))return"#94a3b8"; // mixte
@@ -207,12 +208,12 @@ function simulate(){
   const riskMods={tresPrudent:{perf:0.98,fib:1.15},prudent:{perf:0.99,fib:1.08},attaque:{perf:1.01,fib:0.92},grosseAttaque:{perf:1.02,fib:0.85}};
   const rMod=riskMods[ST.riskLevel]||{perf:1,fib:1};
   const playerDriver={...ST.sel.driver};
-  const playerCar={...ST.sel.car,fib:Math.min(0.99,ST.sel.car.fib*rMod.fib)};
-  const player={id:"JOUEUR",nom:ST.sel.driver.nom,cop:ST.sel.codr.nom||"",driver:playerDriver,codr:ST.sel.codr,car:playerCar,isP:true,riskPerfMod:rMod.perf};
+  const playerCar={...ST.sel.car};
+  const player={id:"JOUEUR",nom:ST.sel.driver.nom,cop:ST.sel.codr.nom||"",driver:playerDriver,codr:ST.sel.codr,car:playerCar,isP:true,riskPerfMod:rMod.perf,riskFibMod:rMod.fib};
   const all=[player,...rivals];
   const champ={};all.forEach(e=>{champ[e.id]=0;});
   ST.results=ST.drawn.map(r=>{
-    const comp=all.map(e=>{const p=basePerf(e.driver,e.codr,e.car,r)*(e.riskPerfMod||1),inc=calcInc(e.car,r);return{...e,p,inc,isDNF:inc.type==="Abandon"};});
+    const comp=all.map(e=>{const p=basePerf(e.driver,e.codr,e.car,r)*(e.riskPerfMod||1),inc=calcInc(Math.min(0.99,teamFib(e)*(e.riskFibMod||1)),r);return{...e,p,inc,isDNF:inc.type==="Abandon"};});
     let fin=comp.filter(e=>!e.isDNF),dnf=comp.filter(e=>e.isDNF);
     // Si tout le monde abandonne, ressuscite le meilleur performeur
     if(fin.length===0){const best=comp.reduce((a,b)=>a.p>b.p?a:b);best.isDNF=false;best.inc={type:"OK",pen:0};fin=[best];dnf=comp.filter(e=>e!==best);}
@@ -330,7 +331,7 @@ function renderRevealFinal(container){
   rows.forEach(r=>{const div=makeRowWithGap(r.entry,r.provRank,r.provGap,r.provPts,true);div.style.animation="none";container.appendChild(div);});
 }
 
-function flipInsert(container,rows,curId,bigEl){
+function flipInsert(container,rows,curId,fromRect){
   if(!container)return;
   const firsts=new Map();
   revealEls.forEach((el,id)=>firsts.set(id,el.getBoundingClientRect()));
@@ -347,11 +348,10 @@ function flipInsert(container,rows,curId,bigEl){
       requestAnimationFrame(()=>{el.style.transition=`transform ${RV_SLIDE}ms cubic-bezier(.22,.61,.36,1)`;el.style.transform="";});}
   });
   const line=revealEls.get(curId);
-  if(line&&bigEl){
-    const from=bigEl.getBoundingClientRect();const to=line.getBoundingClientRect();const dy=from.top-to.top;
-    line.style.transition="none";line.style.opacity="0";line.style.transform=`translateY(${dy}px)`;
-    bigEl.style.transition="opacity .3s ease";bigEl.style.opacity="0";
-    requestAnimationFrame(()=>{line.style.transition=`transform ${RV_SLIDE}ms cubic-bezier(.22,.61,.36,1),opacity ${Math.round(RV_SLIDE*.6)}ms ease`;line.style.opacity="";line.style.transform="";});
+  if(line&&fromRect){
+    const to=line.getBoundingClientRect();const dy=fromRect.top-to.top;
+    line.style.transition="none";line.style.opacity="1";line.style.transform=`translateY(${dy}px)`;
+    requestAnimationFrame(()=>{line.style.transition=`transform ${RV_SLIDE}ms cubic-bezier(.22,.61,.36,1)`;line.style.transform="";});
   }
 }
 
@@ -373,22 +373,29 @@ function startReveal(instant){
   }
   revealOrder=buildRevealOrder(sorted);
   (async()=>{
-    for(let k=0;k<revealOrder.length;k++){
-      if(myRun!==revealSeq)return;
-      const e=revealOrder[k];
-      revealedEntries.push(e);ST.revealed++;
-      const rows=computeProv(revealedEntries);
+    if(!revealOrder.length)return;
+    const STEP=RV_APPEAR+RV_HOLD;                       // durée d'affichage projecteur avant glissement
+    const showSpot=(e)=>{
+      const rows=computeProv([...revealedEntries,e]);   // position provisoire si e était inséré
       const cur=rows.find(r=>r.entry.id===e.id);
       if(spot)spot.innerHTML=bigSpotCard(e,cur.provRank,cur.provGap);
-      const bigEl=spot?spot.querySelector(".rv-big"):null;
       const ctr=document.getElementById("revealCounter");
       if(ctr){const reste=total-ST.revealed;ctr.textContent=reste>0?`${reste} équipage${reste>1?"s":""} restant${reste>1?"s":""}...`:"";}
-      await rvWait(RV_APPEAR+RV_HOLD);
+      return spot?spot.querySelector(".rv-big"):null;
+    };
+    let bigEl=showSpot(revealOrder[0]);
+    for(let k=0;k<revealOrder.length;k++){
       if(myRun!==revealSeq)return;
-      flipInsert(container,rows,e.id,bigEl);
-      await rvWait(RV_SLIDE+RV_GAP);
+      await rvWait(STEP);
       if(myRun!==revealSeq)return;
+      const e=revealOrder[k];
+      const fromRect=bigEl?bigEl.getBoundingClientRect():null;   // départ du glissement = position projecteur
+      revealedEntries.push(e);ST.revealed++;
+      const rows=computeProv(revealedEntries);
+      flipInsert(container,rows,e.id,fromRect);                  // la ligne glisse à sa place
+      bigEl=(k+1<revealOrder.length)?showSpot(revealOrder[k+1]):null; // le suivant apparaît aussitôt
     }
+    await rvWait(RV_SLIDE);                              // laisser finir le dernier glissement
     if(myRun!==revealSeq)return;
     ST.revealing=false;
     if(spot)spot.innerHTML="";
