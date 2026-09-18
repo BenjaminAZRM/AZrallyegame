@@ -1,0 +1,808 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CHRONORALLYERACE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="theme.css">
+<style>
+
+
+
+.azbrand{font-family:var(--font-titre);font-weight:700;font-size:17px;letter-spacing:.12em;text-transform:uppercase;color:#fff}
+.azbrand i{color:var(--accent);font-style:normal}
+/* corps de l'app gardé lisible (police UI plutôt que monospace) */
+body{font-family:'Inter',system-ui,sans-serif;min-height:100vh}
+/* Fond photo (podium de fin de rallye) + voile pour la lisibilité.
+   Calque fixe DERRIÈRE l'app (#app). L'en-tête et les cartes passent au-dessus. */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;
+  background:
+    linear-gradient(180deg,
+      rgba(10,12,15,.5) 0%,
+      rgba(10,12,15,.58) 45%,
+      rgba(10,12,15,.78) 100%),
+    url('/bg-solo.jpg') center/cover no-repeat;
+}
+.azbrand{text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.hdr{background:rgba(18,21,26,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:16px 20px;position:sticky;top:0;z-index:10}
+.pbar{flex:1;height:4px;border-radius:2px}
+.year-block{background:var(--accent);border-radius:10px;padding:8px 18px;text-align:center;flex-shrink:0}
+.year-lbl{font-size:10px;color:#7c2d12;text-transform:uppercase;letter-spacing:.1em}
+.year-num{font-weight:900;font-size:36px;color:#fff;line-height:1}
+.tirage-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:420px;padding:40px 20px;text-align:center}
+.step-label{font-size:12px;color:#9ca3af;margin-bottom:10px;text-transform:uppercase;letter-spacing:.12em}
+.step-title{font-family:var(--font-titre);font-size:24px;font-weight:700;color:#fff;margin-bottom:32px;text-transform:uppercase;letter-spacing:.02em}
+.tirage-btn{display:inline-block;background:var(--accent);border:2px solid var(--accent-soft);border-radius:12px;padding:16px 44px;font-size:17px;font-weight:900;color:#141414;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 0 28px rgba(249,115,22,.5);transition:all .15s;font-family:var(--font-titre)}
+.tirage-btn:hover{background:var(--accent-soft);transform:scale(1.04)}
+.tirage-btn:disabled{background:#374151;border-color:#4b5563;color:#9ca3af;cursor:default;transform:none;box-shadow:none}
+.choose-btn{display:inline-block;background:var(--accent);border:2px solid var(--accent-soft);border-radius:12px;padding:16px 44px;font-size:17px;font-weight:900;color:#141414;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 0 24px rgba(249,115,22,.45);transition:all .15s;font-family:var(--font-titre)}
+.choose-btn:hover{background:var(--accent-soft);transform:scale(1.04)}
+.tirage-sub{font-size:12px;color:#6b7280;margin-top:14px}
+.year-reveal{font-family:var(--font-titre);font-size:72px;font-weight:900;color:#fff;line-height:1;margin:20px 0}
+.year-reveal.spin{animation:spinIn .6s ease-out forwards}
+@keyframes spinIn{0%{opacity:0;transform:scale(.3) rotate(-10deg);color:var(--accent)}60%{transform:scale(1.15) rotate(2deg)}100%{opacity:1;transform:scale(1) rotate(0deg);color:#fff}}
+.result-row{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:3px;border-radius:6px;border:1px solid var(--line);background:rgba(18,21,26,.72);animation:fadeIn .4s ease-out}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.nav{padding:12px 20px;display:flex;gap:8px}
+.nav-btn{flex:1;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer}
+.fc-row{display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:3px;border-radius:6px;border:1px solid var(--line);background:rgba(18,21,26,.72)}
+.rallye-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:12px 20px}
+.rally-card{background:var(--asphalt-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+.stats{display:flex;gap:4px;flex-shrink:0}
+.stat{text-align:center;min-width:30px}
+.stat-k{font-size:9px;color:#6b7280}
+.stat-v{font-size:12px;font-weight:700}
+
+/* ============================================================
+   ÉCRAN D'ACCUEIL SOLO CARRIÈRE (rRules)
+   Réutilise le fond podium global (body::before). Classes sc-*.
+   ============================================================ */
+.sc-stage{position:relative;min-height:calc(100vh - 81px);display:flex;align-items:center;justify-content:center;padding:48px 20px;overflow:hidden}
+.sc-spot{position:absolute;left:50%;top:-150px;transform:translateX(-50%);width:760px;height:420px;pointer-events:none;background:radial-gradient(closest-side,rgba(249,115,22,.16),transparent 72%);filter:blur(6px);z-index:0}
+/* Hoardings sponsors (bord de piste) */
+/* Carte hero (frosted glass) */
+.sc-card{position:relative;z-index:3;width:100%;max-width:468px;text-align:center;padding:44px 38px 34px;border-radius:var(--radius);background:rgba(18,21,26,.82);border:1px solid var(--line);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);box-shadow:0 24px 60px -18px rgba(0,0,0,.7);animation:scRise .55s cubic-bezier(.22,.61,.36,1) both}
+@keyframes scRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.sc-card::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:var(--radius) var(--radius) 0 0}
+.sc-card h1{font-family:var(--font-titre);font-weight:700;text-transform:uppercase;font-size:clamp(27px,5.4vw,38px);line-height:1.04;letter-spacing:.01em;color:var(--paper)}
+.sc-card h1 em{font-style:normal;color:var(--accent)}
+.sc-lead{margin-top:18px;font-size:13px;color:var(--fog);line-height:1.6;max-width:380px;margin-left:auto;margin-right:auto}
+/* CTA orange (raccord .btn-primary) */
+.sc-cta{margin-top:28px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:12px;font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.09em;font-weight:600;font-size:15px;padding:16px 28px;border-radius:var(--radius);background:var(--accent);border:1px solid var(--accent);color:#141414;cursor:pointer;box-shadow:0 10px 30px -8px rgba(249,115,22,.55);transition:background .18s ease,transform .12s ease,box-shadow .18s ease}
+.sc-cta:hover,.sc-cta:focus-visible{background:var(--accent-soft);border-color:var(--accent-soft);transform:translateY(-1px);box-shadow:0 16px 40px -10px rgba(249,115,22,.6);outline:none}
+.sc-cta:focus-visible{outline:2px solid var(--paper);outline-offset:3px}
+.sc-cta .arw{transition:transform .2s ease}
+.sc-cta:hover .arw,.sc-cta:focus-visible .arw{transform:translateX(5px)}
+/* Parcours Draft -> Rallyes -> Victoire */
+.sc-path{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.sc-path .st{flex:1;text-align:center}
+.sc-path .st .n{font-family:var(--font-titre);font-weight:600;font-size:11px;letter-spacing:.16em;color:var(--fog);display:block;margin-bottom:5px}
+.sc-path .st .l{font-family:var(--font-titre);font-weight:600;text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--paper)}
+.sc-path .st.active .n{color:var(--accent)}
+.sc-path .ar{align-self:center;color:var(--line);font-size:13px;padding-top:2px}
+@media(max-width:560px){.sc-stage{padding:32px 16px}.sc-card{padding:36px 24px 28px}}
+@media(prefers-reduced-motion:reduce){.sc-card{animation:none}}
+
+/* ============================================================
+   ÉCRAN DRAFT SOLO CARRIÈRE (rDraft) — cartes + relance
+   ============================================================ */
+.pbar.sc-pb-done,.pbar.sc-pb-cur{background:var(--accent)}
+.pbar.sc-pb-cur{box-shadow:0 0 10px rgba(249,115,22,.6)}
+.pbar.sc-pb-todo{background:#1f2937}
+.sc-draft-body{padding:22px 20px 40px;max-width:900px;margin:0 auto}
+.sc-tour{font-size:10px;color:var(--fog);text-transform:uppercase;letter-spacing:.14em;margin-bottom:6px}
+.sc-consigne{font-family:var(--font-titre);font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:22px;color:var(--paper);margin-bottom:6px}
+.sc-sub{font-size:12.5px;color:var(--fog);margin-bottom:24px;max-width:560px}
+.sc-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.sc-dc{position:relative;display:flex;flex-direction:column;background:rgba(18,21,26,.82);border:1px solid var(--line);border-radius:var(--radius);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:18px 20px 16px;cursor:pointer;overflow:hidden;min-height:112px;transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+.sc-dc::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;transition:opacity .18s ease}
+.sc-dc:hover,.sc-dc:focus-visible{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 18px 40px -14px rgba(249,115,22,.35);outline:none}
+.sc-dc:hover::before,.sc-dc:focus-visible::before{opacity:1}
+.sc-dc .idx{position:absolute;top:16px;right:18px;font-family:var(--font-titre);font-size:12px;letter-spacing:.1em;color:var(--line)}
+.sc-dc .nom{font-family:var(--font-titre);font-weight:600;text-transform:uppercase;letter-spacing:.01em;font-size:18px;line-height:1.25;color:var(--paper);margin:0 0 6px}
+.sc-dc .saison{font-family:var(--font-titre);font-weight:600;text-transform:uppercase;letter-spacing:.01em;font-size:18px;line-height:1.25;color:#b6bcc4}
+.sc-dc .pick{margin-top:auto;padding-top:14px;display:inline-flex;align-items:center;gap:7px;font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.09em;font-size:12px;color:var(--accent);opacity:0;transform:translateY(4px);transition:opacity .18s ease,transform .18s ease}
+.sc-dc:hover .pick,.sc-dc:focus-visible .pick{opacity:1;transform:none}
+.sc-dc .pick .chev{transition:transform .2s ease}
+.sc-dc:hover .pick .chev{transform:translateX(4px)}
+.sc-reroll-wrap{margin-top:26px;display:flex;justify-content:center}
+.sc-reroll{display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--asphalt-2);border:1px solid var(--line);border-radius:var(--radius);padding:14px 32px;cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .12s ease}
+.sc-reroll:hover,.sc-reroll:focus-visible{border-color:var(--accent);background:#1b1f26;transform:translateY(-1px);outline:none}
+.sc-reroll .rr-main{display:inline-flex;align-items:center;gap:9px;font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.09em;font-weight:600;font-size:14px;color:var(--paper)}
+.sc-reroll .rr-main .ic{font-size:16px;line-height:1}
+.sc-reroll .rr-sub{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog)}
+.sc-reroll-used{margin-top:26px;text-align:center;font-size:11px;color:var(--fog);font-style:italic}
+@media(max-width:680px){.sc-cards{grid-template-columns:1fr}.sc-dc{min-height:0}.sc-dc .pick{opacity:1;transform:none}}
+
+/* ── Bandeau projecteur de révélation (rSim) ── */
+#revealSpot:empty{display:none}
+.rv-big{position:relative;display:flex;align-items:center;gap:16px;background:rgba(18,21,26,.92);border:1px solid var(--accent);border-radius:10px;padding:15px 18px;margin-bottom:10px;box-shadow:0 12px 36px -12px rgba(249,115,22,.5);animation:rvSpotIn .45s cubic-bezier(.22,.61,.36,1) both}
+.rv-big::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:10px 10px 0 0}
+.rv-big.you{border-color:#7c3aed}
+@keyframes rvSpotIn{from{opacity:0;transform:translateY(-8px) scale(.985)}to{opacity:1;transform:none}}
+.rv-rank{font-family:var(--font-titre);font-weight:700;font-size:24px;line-height:1;color:var(--accent);min-width:46px;text-align:center}
+.rv-big.you .rv-rank{color:#c4b5fd}
+.rv-big.lead .rv-rank{color:var(--accent-soft)}
+.rv-rank .p{font-size:13px;color:var(--fog);margin-right:2px;vertical-align:top}
+.rv-mid{flex:1;min-width:0}
+.rv-lbl{font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--fog);margin-bottom:2px}
+.rv-nom{font-family:var(--font-titre);font-weight:600;text-transform:uppercase;letter-spacing:.01em;font-size:15px;line-height:1.1;color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-big.you .rv-nom{color:#c4b5fd}
+.rv-gap{text-align:right;min-width:86px}
+.rv-gv{font-family:monospace;font-weight:700;font-size:14px;color:var(--paper)}
+.rv-big.lead .rv-gv{color:var(--accent-soft)}
+.rv-gl{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog);margin-top:2px}
+</style></head><body>
+<div id="app"></div>
+<script src="solo-data.js"></script>
+<script>
+const RALLYES=window.SOLO_RALLYES;
+const DATA=window.SOLO_DATA;
+const YEARS=Object.keys(DATA).map(Number);
+const PTS=[25,18,15,12,10,8,6,4,2,1];
+function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+function rndN(a,n){const c=[...a],r=[];for(let i=0;i<n&&c.length;i++){const x=Math.floor(Math.random()*c.length);r.push(c.splice(x,1)[0]);}return r;}
+function sc(e,r){return(e.asp*r.asp+e.ter*r.ter+e.nei*r.nei+e.sec*r.sec+e.plu*r.plu+e.rap*r.rap+e.sin*r.sin)/3;}
+function basePerf(d,c,v,r){return((sc(d,r)+sc(c,r)+sc(v,r))/3)*(1+(Math.random()*.04-.02));}
+function teamFib(e){const v=[];if(e.driver&&typeof e.driver.fib==="number")v.push(e.driver.fib);if(e.codr&&typeof e.codr.fib==="number")v.push(e.codr.fib);if(e.car&&typeof e.car.fib==="number")v.push(e.car.fib);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0.85;}
+function calcInc(fib,r){const risk=(1-fib)*(1+r.cas),t=Math.random();if(t>risk)return{type:"OK",pen:0};if(t>risk*.67)return{type:"Crevaison",pen:30};if(t>risk*.33)return{type:"Panne",pen:60};return{type:"Abandon",pen:Infinity};}
+function fmtG(s){if(s===0)return"-";if(s>=60){const m=Math.floor(s/60),x=(s%60).toFixed(1);return`+${m}m${x.padStart(4,"0")}s`;}return`+${s.toFixed(1)}s`;}
+function scol(s){
+  if(s.includes("Neige")&&s.includes("Asp"))return"#94a3b8"; // mixte
+  if(s.includes("Neige"))return"#f1f5f9";   // blanc neige
+  if(s.includes("Asp"))return"#9ca3af";     // gris asphalte
+  return"#a16207";                          // marron terre
+}
+function scolBg(s){
+  if(s.includes("Neige")&&s.includes("Asp"))return"#1e2432";
+  if(s.includes("Neige"))return"#1e2432";
+  if(s.includes("Asp"))return"#1c1c1e";
+  return"#1a1208";
+}
+function vCol(v){return v>=90?"#f59e0b":v>=85?"#60a5fa":"#9ca3af";}
+function coS(d){if(!d)return{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.85,nom:""};return{asp:d.casp||80,ter:d.cter||80,nei:d.cnei||80,sec:d.csec||80,plu:d.cplu||80,rap:d.crap||80,sin:d.csin||80,fib:d.cfib||0.85,nom:d.cop||""};}
+
+let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:""};
+let revealTimer=null;
+let revealSeq=0;
+const revealEls=new Map();
+const RV_APPEAR=450,RV_HOLD=700,RV_SLIDE=650,RV_GAP=350;
+const rvWait=ms=>new Promise(res=>{revealTimer=setTimeout(res,ms);});
+function stopReveal(){revealSeq++;if(revealTimer){clearTimeout(revealTimer);clearInterval(revealTimer);revealTimer=null;}ST.revealing=false;}
+
+function init(){var _u;try{_u=localStorage.getItem('azr_user');}catch(e){}if(!_u){location.replace('/connexion.html?next=/championnat.html');return;}ST.playerName=_u;ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};render();}
+
+function makeDraftOffers(){
+  // Tour 0 = 3 pilotes, Tour 1 = 3 copilotes, Tour 2 = 3 voitures.
+  // 3 propositions distinctes, tirées au hasard dans toute l'histoire du WRC.
+  const type=ST.draftRound===0?"driver":ST.draftRound===1?"codr":"car";
+  const offers=[],seen=new Set();
+  let guard=0;
+  while(offers.length<3 && guard<300){
+    guard++;
+    const yr=rnd(YEARS);
+    if(type==="driver"){
+      const row=rnd(DATA[yr].drivers);
+      if(seen.has("d|"+row.nom))continue; seen.add("d|"+row.nom);
+      offers.push({type:"driver",nom:row.nom,annee:yr,item:row});
+    }else if(type==="codr"){
+      const row=rnd(DATA[yr].drivers);
+      if(!row.cop||seen.has("c|"+row.cop))continue; seen.add("c|"+row.cop);
+      offers.push({type:"codr",nom:row.cop,annee:yr,item:row});
+    }else{
+      const row=rnd(DATA[yr].cars);
+      if(seen.has("v|"+yr+"|"+row.nom))continue; seen.add("v|"+yr+"|"+row.nom);
+      offers.push({type:"car",nom:row.nom,annee:yr,item:row});
+    }
+  }
+  return offers;
+}
+
+function simulate(){
+  const yd=DATA[ST.sel.carYear];
+  const carMap={};yd.cars.forEach(c=>{carMap[c.nom]=c;});
+  const rivals=yd.drivers.map(d=>{
+    const rivalCar=d.voiture?carMap[d.voiture]:null;
+    return{id:d.nom,nom:d.nom,cop:d.cop,driver:d,codr:coS(d),car:rivalCar||rnd(yd.cars)};
+  });
+  if(!ST.sel.driver||!ST.sel.codr||!ST.sel.car){console.error("simulate: missing sel items",ST.sel);return;}
+  const riskMods={tresPrudent:{perf:0.98,fib:1.15},prudent:{perf:0.99,fib:1.08},attaque:{perf:1.01,fib:0.92},grosseAttaque:{perf:1.02,fib:0.85}};
+  const rMod=riskMods[ST.riskLevel]||{perf:1,fib:1};
+  const playerDriver={...ST.sel.driver};
+  const playerCar={...ST.sel.car};
+  const player={id:"JOUEUR",nom:ST.sel.driver.nom,cop:ST.sel.codr.nom||"",driver:playerDriver,codr:ST.sel.codr,car:playerCar,isP:true,riskPerfMod:rMod.perf,riskFibMod:rMod.fib};
+  const all=[player,...rivals];
+  const champ={};all.forEach(e=>{champ[e.id]=0;});
+  ST.results=ST.drawn.map(r=>{
+    const comp=all.map(e=>{const p=basePerf(e.driver,e.codr,e.car,r)*(e.riskPerfMod||1),inc=calcInc(Math.min(0.99,teamFib(e)*(e.riskFibMod||1)),r);return{...e,p,inc,isDNF:inc.type==="Abandon"};});
+    let fin=comp.filter(e=>!e.isDNF),dnf=comp.filter(e=>e.isDNF);
+    // Si tout le monde abandonne, ressuscite le meilleur performeur
+    if(fin.length===0){const best=comp.reduce((a,b)=>a.p>b.p?a:b);best.isDNF=false;best.inc={type:"OK",pen:0};fin=[best];dnf=comp.filter(e=>e!==best);}
+    const best=Math.max(...fin.map(e=>e.p));
+    fin.forEach(e=>{e.tempsFinal=(best-e.p)*10+e.inc.pen;});
+    fin.sort((a,b)=>a.tempsFinal-b.tempsFinal);
+    const sorted=[...fin,...dnf];
+    sorted.forEach((e,i)=>{e.gap=e.isDNF?Infinity:e.tempsFinal;e.pts=e.isDNF?0:(PTS[i]||0);e.rank=i+1;champ[e.id]=(champ[e.id]||0)+e.pts;});
+    return{r,sorted};
+  });
+  ST.champ=champ;
+}
+
+function champSoFar(){
+  const map={};
+  for(let i=0;i<=ST.cur;i++) ST.results[i].sorted.forEach(e=>{map[e.id]=(map[e.id]||0)+e.pts;});
+  return Object.entries(map).map(([id,pts])=>({id,pts})).sort((a,b)=>b.pts-a.pts);
+}
+function champFinal(){return Object.entries(ST.champ).map(([id,pts])=>({id,pts})).sort((a,b)=>b.pts-a.pts);}
+
+function revealNavChamp(){
+  setTimeout(()=>{
+    const nav=document.getElementById("simNav");
+    const champ=document.getElementById("champBlock");
+    const info=document.getElementById("playerInfo");
+    if(info){info.style.transition="opacity .6s";info.style.opacity="1";}
+    if(nav){nav.style.transition="opacity .6s";nav.style.opacity="1";nav.style.pointerEvents="auto";}
+    if(champ){champ.style.transition="opacity .6s";champ.style.opacity="1";}
+  },400);
+}
+
+function champBefore(){const map={};for(let i=0;i<ST.cur;i++)ST.results[i].sorted.forEach(e=>{map[e.id]=(map[e.id]||0)+e.pts;});return map;}
+function buildRevealOrder(sorted){
+  const arr=[...sorted];
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  if(ST.cur===0)return arr;                       // 1er rallye : aléatoire
+  const pts=champBefore();                         // rallyes suivants : inverse du championnat
+  arr.sort((a,b)=>(pts[a.id]||0)-(pts[b.id]||0));  // dernier au général révélé en premier
+  return arr;
+}
+
+let revealOrder=[];
+let revealedEntries=[];
+
+function makeRowWithGap(e,provRank,provGap,provPts,allRevealed){
+  const div=document.createElement("div");
+  div.className="result-row";div.dataset.id=e.id;
+  fillRow(div,e,provRank,provGap,provPts,allRevealed);
+  return div;
+}
+function fillRow(div,e,provRank,provGap,provPts,allRevealed){
+  const dnf=e.isDNF,isP=e.isP;
+  const hasPen=e.inc?.type==="Crevaison"||e.inc?.type==="Panne";
+  const isWinner=!dnf&&(e.rank===1)&&!!allRevealed;
+  const isProvLead=!dnf&&!allRevealed&&provGap===0;
+  if(provPts===undefined){const PTS_SCALE=[25,18,15,12,10,8,6,4,2,1];provPts=dnf?0:(typeof provRank==="number"?PTS_SCALE[provRank-1]||0:0);}
+  const _topName=isP?(ST.playerName||"Joueur"):e.nom;
+  const _subLine=isP?`${(e.driver&&e.driver.nom)||e.nom}${e.cop?" · "+e.cop:""}${e.car?" · "+e.car.nom:""}`:`${e.cop}${e.car?" · "+e.car.nom:""}`;
+  const rightTxt=dnf?"Abandon":isWinner?"✓ Vainqueur":isProvLead?"Leader":fmtG(provGap);
+  div.style.cssText=`background:${isP?"#1a1020":"#0f1117"};border:1px solid ${isP?"#7c3aed":"#1f2937"};opacity:${dnf?.6:1}`;
+  div.innerHTML=`
+    <span style="width:22px;text-align:right;font-size:12px;font-weight:700;color:${dnf?"#4b5563":"#6b7280"};flex-shrink:0">${dnf?"DNF":provRank}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:${isP?700:500};color:${isP?"#c4b5fd":"#e5e7eb"}">${_topName}</div>
+      <div style="font-size:10px;color:#6b7280">${_subLine}</div>
+    </div>
+    ${hasPen?`<span style="font-size:9px;color:${e.inc.type==="Crevaison"?"#fbbf24":"#f97316"};background:#1f2937;padding:1px 5px;border-radius:3px;flex-shrink:0">${e.inc.type}</span>`:""}
+    <div style="text-align:right;min-width:65px;flex-shrink:0">
+      <div style="font-size:11px;font-family:monospace;color:${dnf?"#ef4444":isProvLead?"#fdba74":"#9ca3af"}">${rightTxt}</div>
+      ${provPts>0?`<div style="font-size:11px;color:#60a5fa;font-weight:600">+${provPts} pts</div>`:""}
+    </div>`;
+}
+
+function makeRow(e,finalRank){return makeRowWithGap(e,finalRank,e.gap);}
+
+function rebuildList(){
+  const container=document.getElementById("revealList");
+  if(!container)return;
+  const sorted=[...revealedEntries].sort((a,b)=>{
+    if(a.isDNF&&!b.isDNF)return 1;if(!a.isDNF&&b.isDNF)return -1;return a.rank-b.rank;
+  });
+  container.innerHTML="";
+  sorted.forEach((e,i)=>{const div=makeRow(e,e.isDNF?"DNF":i+1);div.style.animation="none";container.appendChild(div);});
+}
+
+function computeProv(list){
+  const PTS=[25,18,15,12,10,8,6,4,2,1];
+  const finishers=list.filter(x=>!x.isDNF).sort((a,b)=>a.rank-b.rank);
+  const dnfs=list.filter(x=>x.isDNF);
+  const trueWinner=finishers.some(x=>x.rank===1);
+  const leader=finishers[0];
+  return [...finishers,...dnfs].map((entry,i)=>{
+    const isDNF=entry.isDNF;
+    const gap=isDNF?Infinity:(trueWinner?entry.gap:entry.gap-leader.gap);
+    return {entry,provRank:isDNF?"DNF":i+1,provGap:gap,provPts:isDNF?0:(PTS[i]||0)};
+  });
+}
+
+function bigSpotCard(e,provRank,provGap){
+  const dnf=e.isDNF,isP=e.isP;
+  const lead=!dnf&&provGap===0;
+  const nom=isP?(ST.playerName||"Joueur"):e.nom;
+  const gv=dnf?"Abandon":lead?"Leader":fmtG(provGap);
+  const gl=dnf?"":lead?"meilleur temps":"écart au 1er";
+  return `<div class="rv-big${lead?" lead":""}${isP?" you":""}">
+    <div class="rv-rank">${dnf?"DNF":`<span class="p">P</span>${provRank}`}</div>
+    <div class="rv-mid"><div class="rv-lbl">Position provisoire</div><div class="rv-nom">${nom}</div></div>
+    <div class="rv-gap"><div class="rv-gv">${gv}</div><div class="rv-gl">${gl}</div></div>
+  </div>`;
+}
+
+function renderRevealFinal(container){
+  const rows=computeProv(revealedEntries);
+  container.innerHTML="";
+  rows.forEach(r=>{const div=makeRowWithGap(r.entry,r.provRank,r.provGap,r.provPts,true);div.style.animation="none";container.appendChild(div);});
+}
+
+function flipInsert(container,rows,curId,fromRect){
+  if(!container)return;
+  const firsts=new Map();
+  revealEls.forEach((el,id)=>firsts.set(id,el.getBoundingClientRect()));
+  rows.forEach(r=>{
+    let el=revealEls.get(r.entry.id);
+    if(!el){el=makeRowWithGap(r.entry,r.provRank,r.provGap,r.provPts,false);el.style.animation="none";revealEls.set(r.entry.id,el);}
+    else{fillRow(el,r.entry,r.provRank,r.provGap,r.provPts,false);}
+  });
+  rows.forEach(r=>container.appendChild(revealEls.get(r.entry.id)));
+  firsts.forEach((first,id)=>{
+    const el=revealEls.get(id);if(!el)return;
+    const last=el.getBoundingClientRect();const dy=first.top-last.top;
+    if(dy){el.style.transition="none";el.style.transform=`translateY(${dy}px)`;
+      requestAnimationFrame(()=>{el.style.transition=`transform ${RV_SLIDE}ms cubic-bezier(.22,.61,.36,1)`;el.style.transform="";});}
+  });
+  const line=revealEls.get(curId);
+  if(line&&fromRect){
+    const to=line.getBoundingClientRect();const dy=fromRect.top-to.top;
+    line.style.transition="none";line.style.opacity="1";line.style.transform=`translateY(${dy}px)`;
+    requestAnimationFrame(()=>{line.style.transition=`transform ${RV_SLIDE}ms cubic-bezier(.22,.61,.36,1)`;line.style.transform="";});
+  }
+}
+
+function startReveal(instant){
+  stopReveal();
+  const myRun=revealSeq;
+  ST.revealed=0;ST.revealing=true;revealedEntries=[];revealEls.clear();
+  const spot=document.getElementById("revealSpot");
+  const container=document.getElementById("revealList");
+  if(spot)spot.innerHTML="";
+  if(container)container.innerHTML="";
+  const sorted=ST.results[ST.cur].sorted;
+  const total=sorted.length;
+  if(instant){
+    revealedEntries=[...sorted];ST.revealed=total;ST.revealing=false;
+    if(container)renderRevealFinal(container);
+    const ctr=document.getElementById("revealCounter");if(ctr)ctr.textContent="";
+    revealNavChamp();return;
+  }
+  revealOrder=buildRevealOrder(sorted);
+  (async()=>{
+    if(!revealOrder.length)return;
+    const STEP=RV_APPEAR+RV_HOLD;                       // durée d'affichage projecteur avant glissement
+    const showSpot=(e)=>{
+      const rows=computeProv([...revealedEntries,e]);   // position provisoire si e était inséré
+      const cur=rows.find(r=>r.entry.id===e.id);
+      if(spot)spot.innerHTML=bigSpotCard(e,cur.provRank,cur.provGap);
+      const ctr=document.getElementById("revealCounter");
+      if(ctr){const reste=total-ST.revealed;ctr.textContent=reste>0?`${reste} équipage${reste>1?"s":""} restant${reste>1?"s":""}...`:"";}
+      return spot?spot.querySelector(".rv-big"):null;
+    };
+    let bigEl=showSpot(revealOrder[0]);
+    for(let k=0;k<revealOrder.length;k++){
+      if(myRun!==revealSeq)return;
+      await rvWait(STEP);
+      if(myRun!==revealSeq)return;
+      const e=revealOrder[k];
+      const fromRect=bigEl?bigEl.getBoundingClientRect():null;   // départ du glissement = position projecteur
+      revealedEntries.push(e);ST.revealed++;
+      const rows=computeProv(revealedEntries);
+      flipInsert(container,rows,e.id,fromRect);                  // la ligne glisse à sa place
+      bigEl=(k+1<revealOrder.length)?showSpot(revealOrder[k+1]):null; // le suivant apparaît aussitôt
+    }
+    await rvWait(RV_SLIDE);                              // laisser finir le dernier glissement
+    if(myRun!==revealSeq)return;
+    ST.revealing=false;
+    if(spot)spot.innerHTML="";
+    if(container)renderRevealFinal(container);
+    const ctr2=document.getElementById("revealCounter");if(ctr2)ctr2.textContent="";
+    revealNavChamp();
+  })();
+}
+
+function selectDraft(offer){
+  // Enregistre le choix avec l'année
+  if(offer.type==="driver"){ST.sel.driver=offer.item;ST.sel.driverYear=offer.annee;}
+  else if(offer.type==="codr"){ST.sel.codr=coS(offer.item);ST.sel.codrYear=offer.annee;}
+  else{ST.sel.car=offer.item;ST.sel.carYear=offer.annee;}
+
+  // Si les 3 types sont choisis → lancer la saison
+  if(ST.sel.driver&&ST.sel.codr&&ST.sel.car){
+    ST.drawn=rndN(RALLYES,10);
+    simulate();
+    ST.phase="recap";ST.cur=0;ST.revealed=0;ST.maxReached=0;render();return;
+  }
+
+  // Sinon tour suivant
+  ST.draftRound++;
+  ST.draftOffers=makeDraftOffers();
+  render();
+}
+
+function goToRally(idx){
+  stopReveal();
+  const isNew=idx>ST.maxReached;
+  if(isNew)ST.maxReached=idx;
+  ST.cur=idx;ST.revealed=0;
+  if(isNew){ST.phase="launch";ST.riskLevel=null;render();}
+  else{ST.phase="sim";render();startReveal(true);}
+}
+
+function render(){
+  const app=document.getElementById("app");
+  if(ST.phase==="rules"){app.innerHTML=rRules();attachRulesEv();}
+  else if(ST.phase==="draft"){app.innerHTML=rDraft();attachDraftEv();}
+  else if(ST.phase==="recap"){app.innerHTML=rRecap();attachRecapEv();}
+  else if(ST.phase==="launch"){app.innerHTML=rLaunch();attachLaunchEv();}
+  else if(ST.phase==="sim"){app.innerHTML=rSim();attachSimEv();}
+  else{app.innerHTML=rResults();attachEv();}
+}
+
+function rRules(){
+  return`<div class="hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <a href="/" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
+    </div>
+  </div>
+  <div class="sc-stage">
+    <div class="sc-spot"></div>
+    <section class="sc-card">
+      <h1>Arriveras-tu à être <em>Champion du Monde&nbsp;?</em></h1>
+      <p class="sc-lead">Constitue ton équipage, choisis ta voiture et adapte ta stratégie à chaque rallye pour monter sur la plus haute marche du podium.</p>
+      <button class="sc-cta" id="startDraft">Démarrer la draft <span class="arw">→</span></button>
+      <div class="sc-path" aria-hidden="true">
+        <div class="st active"><span class="n">01</span><span class="l">Draft</span></div>
+        <span class="ar">→</span>
+        <div class="st"><span class="n">02</span><span class="l">Rallyes</span></div>
+        <span class="ar">→</span>
+        <div class="st"><span class="n">03</span><span class="l">Victoire</span></div>
+      </div>
+    </section>
+  </div>`;
+}
+
+function attachRulesEv(){
+  const btn=document.getElementById("startDraft");
+  if(btn){
+    btn.addEventListener("click",()=>{
+      ST.phase="draft";
+      ST.draftRound=0;
+      ST.draftOffers=makeDraftOffers();
+      render();
+    });
+  }
+}
+
+function rDraft(){
+  const round=ST.draftRound;
+  const offers=ST.draftOffers;
+  const consigne=round===0?"Choisis ton pilote":round===1?"Choisis ton copilote":"Choisis ta voiture";
+  const bars=[0,1,2].map(i=>`<div class="pbar ${i<round?"sc-pb-done":i===round?"sc-pb-cur":"sc-pb-todo"}"></div>`).join("");
+
+  // Tags des choix déjà faits
+  const tags=[];
+  if(ST.sel.driver) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Pilote · </span>${ST.sel.driver.nom}</div>`);
+  if(ST.sel.codr) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Copilote · </span>${ST.sel.codr.nom}</div>`);
+
+  const cards=offers.map((o,i)=>{
+    return`<div class="sc-dc" data-idx="${i}" tabindex="0">
+      <span class="idx">${String(i+1).padStart(2,"0")}</span>
+      <div class="nom">${o.nom}</div>
+      <div class="saison">Saison ${o.annee}</div>
+      <span class="pick">Choisir <span class="chev">→</span></span>
+    </div>`;
+  }).join("");
+
+  return`<div class="hdr" style="position:sticky;top:0;z-index:10">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <a href="/" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
+    </div>
+    <div style="display:flex;gap:5px">${bars}</div>
+    ${tags.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${tags.join("")}</div>`:""}
+  </div>
+  <div class="sc-draft-body">
+    <div class="sc-tour">Tour ${round+1} / 3</div>
+    <div class="sc-consigne">${consigne}</div>
+    <div class="sc-sub">3 propositions tirées au hasard dans toute l'histoire du WRC${round===2?" — ton choix fixe l'année des concurrents":""}.</div>
+    <div class="sc-cards">
+      ${cards}
+    </div>
+    ${!ST.rerollUsed?`
+    <div class="sc-reroll-wrap">
+      <button id="rerollBtn" class="sc-reroll">
+        <span class="rr-main"><span class="ic">🔀</span> Relancer les propositions</span>
+        <span class="rr-sub">Utilisable une seule fois</span>
+      </button>
+    </div>`:`
+    <div class="sc-reroll-used">Relance déjà utilisée</div>`}
+  </div>`;
+}
+
+function attachDraftEv(){
+  document.querySelectorAll(".sc-dc").forEach(card=>{
+    const idx=parseInt(card.dataset.idx);
+    const offer=ST.draftOffers[idx];
+    card.addEventListener("click",()=>{if(offer)selectDraft(offer);});
+    card.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&offer){e.preventDefault();selectDraft(offer);}});
+  });
+  const rerollBtn=document.getElementById("rerollBtn");
+  if(rerollBtn){
+    rerollBtn.addEventListener("click",()=>{
+      ST.rerollUsed=true;
+      ST.draftOffers=makeDraftOffers();
+      render();
+    });
+  }
+}
+
+const KEYS=["asp","ter","nei","sec","plu","rap","sin"];
+const LABELS={asp:"Asphalte",ter:"Terre",nei:"Neige",sec:"Sec",plu:"Pluie",rap:"Rapide",sin:"Sinueux"};
+
+function rRecap(){
+  const d=ST.sel.driver,c=ST.sel.codr,v=ST.sel.car;
+
+  function getDriverStats(nom,yr){
+    const yd=DATA[yr];if(!yd)return null;
+    return yd.drivers.find(x=>x.nom===nom)||null;
+  }
+  function getCopiloteStats(nom,yr){
+    const yd=DATA[yr];if(!yd)return null;
+    const row=yd.drivers.find(x=>x.cop===nom);
+    if(!row)return null;
+    return{asp:row.casp,ter:row.cter,nei:row.cnei,sec:row.csec,plu:row.cplu,rap:row.crap,sin:row.csin};
+  }
+  function getCarStats(nom,yr){
+    const yd=DATA[yr];if(!yd)return null;
+    return yd.cars.find(x=>x.nom===nom)||null;
+  }
+
+  // Récupère les stats avec fallbacks robustes
+  const dStats=getDriverStats(d&&d.nom,ST.sel.driverYear)||d||{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80};
+  const cStats=getCopiloteStats(c&&c.nom,ST.sel.codrYear)||c||{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80};
+  const vStats=getCarStats(v&&v.nom,ST.sel.carYear)||v||{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80};
+
+  // Moyenne des 3 items sur les 7 caractéristiques
+  const avg={};
+  KEYS.forEach(k=>{
+    const dv=Number(dStats[k])||80, cv=Number(cStats[k])||80, vv=Number(vStats[k])||80;
+    avg[k]=Math.round((dv+cv+vv)/3);
+  });
+
+  // Point fort et faible de l'ensemble
+  let best=KEYS[0],worst=KEYS[0];
+  KEYS.forEach(k=>{
+    if(avg[k]>avg[best])best=k;
+    if(avg[k]<avg[worst])worst=k;
+  });
+
+  const bloc=(title,nom,annee)=>`
+    <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px">${title} · ${annee}</div>
+      <div style="font-weight:800;font-size:17px;color:#fff">${nom}</div>
+    </div>`;
+
+  return`<div class="hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <a href="/" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
+    </div>
+    <div style="display:flex;gap:5px">${[0,1,2].map(()=>`<div class="pbar" style="background:#dc2626"></div>`).join("")}</div>
+  </div>
+  <div style="padding:16px 20px 24px">
+    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Votre composition</div>
+    <div style="font-weight:800;font-size:20px;color:#fff;margin-bottom:16px">Récapitulatif du draft</div>
+
+    ${bloc("Pilote",d.nom,ST.sel.driverYear)}
+    ${bloc("Copilote",c.nom,ST.sel.codrYear)}
+    ${bloc("Voiture",v.nom,ST.sel.carYear)}
+
+    <div style="background:#0f1117;border:1px solid #374151;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Force de l'équipage</div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1;background:#0a1a0a;border:1px solid #166534;border-radius:8px;padding:10px 12px">
+          <div style="font-size:9px;color:#4ade80;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Point fort</div>
+          <div style="font-weight:700;font-size:15px;color:#f0fdf4">${LABELS[best]}</div>
+          
+        </div>
+        <div style="flex:1;background:#1a0a0a;border:1px solid #991b1b;border-radius:8px;padding:10px 12px">
+          <div style="font-size:9px;color:#f87171;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Point faible</div>
+          <div style="font-weight:700;font-size:15px;color:#fef2f2">${LABELS[worst]}</div>
+          
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#1a0f0f;border:1px solid #dc2626;border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:#9ca3af">Concurrents de la saison :</span>
+      <span style="font-weight:900;font-size:22px;color:#ef4444">${ST.sel.carYear}</span>
+    </div>
+
+    <button id="startSeason" style="width:100%;background:#f97316;border:2px solid #fdba74;border-radius:12px;padding:15px;font-size:16px;font-weight:900;color:#141414;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 0 24px rgba(249,115,22,.5)">
+      Démarrer la saison
+    </button>
+  </div>`;
+}
+
+function attachRecapEv(){
+  const btn=document.getElementById("startSeason");
+  if(btn){
+    btn.addEventListener("mouseenter",()=>{btn.style.background="#ef4444";});
+    btn.addEventListener("mouseleave",()=>{btn.style.background="#dc2626";});
+    btn.addEventListener("click",()=>{ST.phase="launch";render();});
+  }
+}
+
+function rLaunch(){
+  const rr=ST.results[ST.cur],{r}=rr;
+  const col=scol(r.surface);
+  const bg=scolBg(r.surface);
+  const bars=ST.results.map((_,i)=>`<div class="pbar" style="background:${i<ST.cur?"#dc2626":i===ST.cur?"#ef4444":"#1f2937"}"></div>`).join("");
+
+  const risks=[
+    {id:"tresPrudent",  label:"Très prudent",  desc:"Zéro risque", perf:"-2%", fib:"+15%", pc:"#f87171", fc:"#4ade80", bc:"#3b82f6"},
+    {id:"prudent",      label:"Prudent",       desc:"On sécurise", perf:"-1%", fib:"+8%",  pc:"#f87171", fc:"#4ade80", bc:"#60a5fa"},
+    {id:"attaque",      label:"Attaque",       desc:"On pousse",   perf:"+1%", fib:"-8%",  pc:"#4ade80", fc:"#f87171", bc:"#fb923c"},
+    {id:"grosseAttaque",label:"Grosse attaque",desc:"Tout donner", perf:"+2%", fib:"-15%", pc:"#4ade80", fc:"#f87171", bc:"#ef4444"},
+  ];
+
+  const riskCards=risks.map(rx=>{
+    const sel=ST.riskLevel===rx.id;
+    return`<div data-risk="${rx.id}" style="flex:1;min-width:0;background:${sel?"#111827":"#0f1117"};border:2px solid ${sel?rx.bc:"#1f2937"};border-radius:10px;padding:14px 4px;cursor:pointer;text-align:center;transition:all .15s;${sel?"box-shadow:0 0 12px "+rx.bc+"44;":""}">
+      <div style="font-size:11px;line-height:1.2;font-weight:800;color:${sel?rx.bc:"#6b7280"};text-transform:uppercase;letter-spacing:.03em">${rx.label}</div>
+    </div>`;
+  }).join("");
+
+  return`<div class="hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <a href="/" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
+    </div>
+    <div style="display:flex;gap:5px">${bars}</div>
+  </div>
+  <div style="padding:28px 20px 32px;text-align:center;background:${bg}">
+    <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.15em;margin-bottom:12px">Rallye ${ST.cur+1} / 10</div>
+    <div style="font-weight:900;font-size:34px;color:#fff;margin-bottom:16px">${r.name}</div>
+    <div style="display:inline-flex;align-items:center;gap:10px;background:${col}18;border:2px solid ${col};border-radius:10px;padding:8px 20px;margin-bottom:28px">
+      <span style="font-size:14px;font-weight:700;color:${col};letter-spacing:.05em">${r.surface}</span>
+    </div>
+    <div style="margin-bottom:24px;text-align:left">
+      <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px">Votre stratégie</div>
+      <div style="display:flex;gap:6px" id="riskCards">${riskCards}</div>
+    </div>
+    <button id="launchBtn" ${!ST.riskLevel?"disabled":""} style="width:100%;background:${ST.riskLevel?"#dc2626":"#1f2937"};border:2px solid ${ST.riskLevel?"#ef4444":"#374151"};border-radius:12px;padding:14px;font-size:16px;font-weight:900;color:${ST.riskLevel?"#fff":"#4b5563"};cursor:${ST.riskLevel?"pointer":"not-allowed"};letter-spacing:.06em;text-transform:uppercase;${ST.riskLevel?"box-shadow:0 0 24px rgba(220,38,38,.5);":""}transition:all .2s">
+      Lancer le rallye
+    </button>
+  </div>`;
+}
+
+function attachLaunchEv(){
+  const riskColors={tresPrudent:"#3b82f6",prudent:"#60a5fa",attaque:"#fb923c",grosseAttaque:"#ef4444"};
+  document.querySelectorAll("#riskCards > div").forEach(card=>{
+    const col=riskColors[card.dataset.risk]||"#6b7280";
+    card.addEventListener("mouseenter",()=>{
+      if(ST.riskLevel!==card.dataset.risk){
+        card.style.borderColor=col;
+        card.style.boxShadow=`0 0 16px ${col}66`;
+      }
+    });
+    card.addEventListener("mouseleave",()=>{
+      if(ST.riskLevel!==card.dataset.risk){
+        card.style.borderColor="#1f2937";
+        card.style.boxShadow="none";
+      }
+    });
+    card.addEventListener("click",()=>{ST.riskLevel=card.dataset.risk;render();});
+  });
+  const btn=document.getElementById("launchBtn");
+  if(btn){
+    btn.addEventListener("mouseenter",()=>{btn.style.background="#ef4444";});
+    btn.addEventListener("mouseleave",()=>{btn.style.background="#dc2626";});
+    btn.addEventListener("click",()=>{ST.phase="sim";render();startReveal(false);});
+  }
+}
+
+
+function rSim(){
+  const rr=ST.results[ST.cur],{r}=rr;
+  const col=scol(r.surface);
+  const ca=champSoFar();
+  const bars=ST.results.map((_,i)=>`<div class="pbar" style="background:${i<ST.cur?"#dc2626":i===ST.cur?"#ef4444":"#1f2937"};cursor:pointer" data-rally="${i}"></div>`).join("");
+  const prevBtn=ST.cur>0?`<button class="nav-btn" style="background:#1f2937;color:#e5e7eb" id="prevR">← Précédent</button>`:"";
+  const nextBtn=ST.cur<ST.results.length-1
+    ?`<button class="nav-btn" style="background:#f97316;color:#141414;flex:2" id="nextR">Rallye suivant →</button>`
+    :`<button class="nav-btn" style="background:linear-gradient(135deg,#7c3aed,#dc2626);color:#fff;flex:2" id="toResults">🏆 Championnat final</button>`;
+  const champRows=ca.map((e,i)=>`
+    <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:${i<ca.length-1?"1px solid #111827":"none"};font-size:12px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="color:#4b5563;width:18px;font-size:11px">${i+1}</span>
+        <span style="color:${e.id==="JOUEUR"?"#c4b5fd":"#e5e7eb"};font-weight:${e.id==="JOUEUR"?700:400}">${e.id==="JOUEUR"?(ST.playerName||"Joueur"):e.id}</span>
+      </div>
+      <span style="font-weight:700;color:${e.id==="JOUEUR"?"#c4b5fd":"#60a5fa"}">${e.pts}</span>
+    </div>`).join("");
+
+  // Bloc position+points joueur : masqué jusqu'à la fin de la révélation
+  const pr=rr.sorted.find(e=>e.isP),isDNF=pr?.isDNF;
+  const playerInfo=`
+    <div id="playerInfo" style="padding:12px 20px;background:#0f1117;border-bottom:1px solid #1f2937;opacity:0">
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px">${ST.sel.driver.nom} <span style="color:#4b5563">(${ST.sel.driverYear})</span> · ${ST.sel.codr.nom} <span style="color:#4b5563">(${ST.sel.codrYear})</span> · ${ST.sel.car.nom} <span style="color:#4b5563">(${ST.sel.carYear})</span></div>
+      <div style="display:flex;gap:16px;align-items:center">
+        <div><span style="font-size:11px;color:#6b7280">Position </span><span style="font-weight:900;font-size:22px;color:${isDNF?"#ef4444":"#f59e0b"}">${isDNF?"DNF":"P"+pr?.rank}</span></div>
+        ${pr?.inc?.type&&pr.inc.type!=="OK"?`<div style="background:#1f2937;border-radius:4px;padding:2px 8px;font-size:11px;color:${pr.inc.type==="Abandon"?"#ef4444":"#fbbf24"}">⚠ ${pr.inc.type}</div>`:""}
+        <div style="margin-left:auto"><span style="font-size:11px;color:#6b7280">Points </span><span style="font-weight:700;font-size:16px;color:#60a5fa">${pr?.pts||0}</span></div>
+      </div>
+    </div>`;
+
+  return`<div class="hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <a href="/" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><div style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:.1em">Rallye ${ST.cur+1}/10</div><div style="font-weight:900;font-size:19px;color:#fff">${r.name}</div></div>
+      <div style="background:${col}22;border:1px solid ${col};border-radius:4px;padding:2px 8px;font-size:11px;color:${col};font-weight:600">${r.surface}</div>
+    </div>
+    <div style="display:flex;gap:5px;margin-top:10px">${bars}</div>
+  </div>
+  ${playerInfo}
+  <div style="padding:8px 20px 2px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em">Classement du rallye</div>
+    <div id="revealCounter" style="font-size:11px;color:#4b5563;font-style:italic"></div>
+  </div>
+  <div id="revealSpot" style="padding:0 20px"></div>
+  <div id="revealList" style="padding:0 20px 8px"></div>
+  <div id="simNav" class="nav" style="opacity:0;pointer-events:none">${prevBtn}${nextBtn}</div>
+  <div id="champBlock" style="background:#0f1117;border:1px solid #1f2937;border-radius:8px;margin:0 20px 16px;padding:10px 14px;opacity:0">
+    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Championnat ${ST.sel.carYear} — après ${ST.cur+1} rallye${ST.cur>0?"s":""}</div>
+    ${champRows}
+  </div>`;
+}
+
+function attachSimEv(){
+  document.querySelectorAll("[data-rally]").forEach(el=>{
+    el.addEventListener("click",()=>{stopReveal();goToRally(parseInt(el.dataset.rally));});
+  });
+  const prev=document.getElementById("prevR");if(prev)prev.addEventListener("click",()=>{stopReveal();goToRally(ST.cur-1);});
+  const next=document.getElementById("nextR");if(next)next.addEventListener("click",()=>{stopReveal();goToRally(ST.cur+1);});
+  const fin=document.getElementById("toResults");if(fin)fin.addEventListener("click",()=>{ST.phase="results";render();});
+}
+
+function rResults(){
+  const ca=champFinal(),pRank=ca.findIndex(e=>e.id==="JOUEUR")+1,isChamp=pRank===1,pPts=ST.champ["JOUEUR"]||0;
+  const summary=ST.results.map(rr=>{const pr=rr.sorted.find(e=>e.isP),dnf=pr?.isDNF;
+    return`<div class="rally-card"><div style="font-size:10px;color:#6b7280;margin-bottom:2px">${rr.r.name}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;font-size:14px;color:${dnf?"#ef4444":pr?.rank===1?"#f59e0b":"#e5e7eb"}">${dnf?"DNF":"P"+pr?.rank}</span><span style="font-size:12px;color:#60a5fa;font-weight:600">${pr?.pts||0} pts</span></div>
+    ${pr?.inc?.type&&pr.inc.type!=="OK"?`<div style="font-size:9px;color:${dnf?"#ef4444":"#fbbf24"}">${pr.inc.type}</div>`:""}</div>`;
+  }).join("");
+  const fullChamp=ca.map((e,i)=>`
+    <div class="fc-row" style="background:${e.id==="JOUEUR"?"#1a1020":i===0?"#0f1200":"#0f1117"};border-color:${e.id==="JOUEUR"?"#7c3aed":i===0?"#92400e":"#1f2937"}">
+      <span style="width:18px;text-align:right;font-size:12px;font-weight:700;color:#4b5563">${i+1}</span>
+      <span style="flex:1;font-size:12px;font-weight:${e.id==="JOUEUR"?700:400};color:${e.id==="JOUEUR"?"#c4b5fd":"#e5e7eb"}">${e.id==="JOUEUR"?(ST.playerName||"Joueur"):e.id}</span>
+      <span style="font-size:13px;font-weight:700;color:${e.id==="JOUEUR"?"#c4b5fd":"#60a5fa"}">${e.pts}</span>
+    </div>`).join("");
+  return`<div class="hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <a href="/" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
+    </div>
+  </div>
+  <div style="background:${isChamp?"linear-gradient(135deg,#78350f,#1a1a0a)":"linear-gradient(135deg,#1a0a0a,#0a0a1a)"};border-bottom:2px solid #dc2626;padding:28px 20px;text-align:center">
+    <div style="font-size:44px;margin-bottom:8px">${isChamp?"🏆":pRank<=3?"🥈":"🏁"}</div>
+    <div style="font-weight:900;font-size:24px;color:${isChamp?"#fbbf24":"#fff"}">${isChamp?"CHAMPION DU MONDE !":pRank<=3?pRank+"ème — Podium !":pRank+"ème au championnat"}</div>
+    <div style="color:#9ca3af;font-size:12px;margin-top:6px">${ST.sel.driver.nom} / ${ST.sel.codr.nom} — ${ST.sel.car.nom}</div>
+    <div style="display:inline-block;background:#1f2937;border-radius:8px;padding:6px 20px;margin-top:14px"><span style="color:#6b7280;font-size:11px">Total </span><span style="font-weight:900;font-size:26px;color:#60a5fa">${pPts} pts</span></div>
+  </div>
+  <div style="padding:12px 20px 0"><div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Résumé des rallyes</div></div>
+  <div class="rallye-grid">${summary}</div>
+  <div style="padding:0 20px"><div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Classement final championnat ${ST.sel.carYear}</div>${fullChamp}</div>
+  <div style="padding:16px 20px 32px"><button id="restart" style="width:100%;background:#f97316;border:none;border-radius:8px;padding:13px;color:#141414;font-size:14px;font-weight:700;cursor:pointer">🔄 Nouvelle saison</button></div>`;
+}
+
+function attachEv(){
+  const tb=document.getElementById("tirageBtn");if(tb)tb.addEventListener("click",()=>{ST.tirageState="spinning";render();setTimeout(()=>{ST.tirageState="revealed";render();},800);});
+  const cb=document.getElementById("chooseBtn");if(cb)cb.addEventListener("click",()=>{ST.phase="draft";render();});
+  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{stopReveal();ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:ST.playerName||""};render();});
+}
+init();
+</script>
+</body></html>
