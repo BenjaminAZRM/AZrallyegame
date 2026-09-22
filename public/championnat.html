@@ -131,6 +131,27 @@ body::before{
 .rv-gv{font-family:monospace;font-weight:700;font-size:14px;color:var(--paper)}
 .rv-big.lead .rv-gv{color:var(--accent-soft)}
 .rv-gl{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog);margin-top:2px}
+
+/* ── Page classement du championnat (rChamp) ── */
+.champ-wrap{max-width:620px;margin:0 auto;padding:22px 20px 40px}
+.champ-eyebrow{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.16em;margin-bottom:6px}
+.champ-title{font-family:'Chakra Petch',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:26px;color:#fff;margin-bottom:22px}
+.champ-board{display:flex;flex-direction:column;gap:7px;margin-bottom:26px}
+.crow{display:flex;align-items:center;gap:12px;background:#0f1117;border:1px solid #1f2937;border-radius:9px;padding:12px 15px}
+.crow.you{background:#1a1020;border-color:#7c3aed}
+.crow.lead{border-color:rgba(249,115,22,.5)}
+.crow .crk{width:24px;text-align:right;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:15px;color:#6b7280;flex-shrink:0}
+.crow.you .crk{color:#c4b5fd}
+.crow.lead .crk{color:#fdba74}
+.crow .cnm{flex:1;min-width:0;font-family:'Chakra Petch',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.01em;font-size:15px;color:#eceef1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow.you .cnm{color:#c4b5fd}
+.crow .cpts{font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:16px;color:#fdba74;min-width:44px;text-align:right}
+.crow.you .cpts{color:#c4b5fd}
+.champ-actions{display:flex;gap:12px;align-items:center}
+.cbtn-next{flex:2;display:inline-flex;align-items:center;justify-content:center;gap:10px;font-family:'Chakra Petch',sans-serif;text-transform:uppercase;letter-spacing:.09em;font-weight:600;font-size:15px;padding:16px 24px;border-radius:12px;background:#f97316;border:1px solid #f97316;color:#141414;cursor:pointer;box-shadow:0 10px 30px -8px rgba(249,115,22,.5);transition:background .18s,transform .12s}
+.cbtn-next:hover{background:#fdba74;transform:translateY(-1px)}
+.cbtn-back{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Chakra Petch',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:12px;padding:16px 18px;border-radius:12px;background:#15181d;border:1px solid #2a2f37;color:#8b929c;cursor:pointer;transition:border-color .18s,color .18s}
+.cbtn-back:hover{border-color:#f97316;color:#eceef1}
 </style></head><body>
 <div id="app"></div>
 <script src="solo-data.js"></script>
@@ -237,11 +258,9 @@ function champFinal(){return Object.entries(ST.champ).map(([id,pts])=>({id,pts})
 function revealNavChamp(){
   setTimeout(()=>{
     const nav=document.getElementById("simNav");
-    const champ=document.getElementById("champBlock");
     const info=document.getElementById("playerInfo");
     if(info){info.style.transition="opacity .6s";info.style.opacity="1";}
     if(nav){nav.style.transition="opacity .6s";nav.style.opacity="1";nav.style.pointerEvents="auto";}
-    if(champ){champ.style.transition="opacity .6s";champ.style.opacity="1";}
   },400);
 }
 
@@ -440,6 +459,7 @@ function render(){
   else if(ST.phase==="recap"){app.innerHTML=rRecap();attachRecapEv();}
   else if(ST.phase==="launch"){app.innerHTML=rLaunch();attachLaunchEv();}
   else if(ST.phase==="sim"){app.innerHTML=rSim();attachSimEv();}
+  else if(ST.phase==="champ"){app.innerHTML=rChamp();attachChampEv();}
   else{app.innerHTML=rResults();attachEv();}
 }
 
@@ -711,9 +731,7 @@ function rSim(){
   const ca=champSoFar();
   const bars=ST.results.map((_,i)=>`<div class="pbar" style="background:${i<ST.cur?"#dc2626":i===ST.cur?"#ef4444":"#1f2937"};cursor:pointer" data-rally="${i}"></div>`).join("");
   const prevBtn=ST.cur>0?`<button class="nav-btn" style="background:#1f2937;color:#e5e7eb" id="prevR">← Précédent</button>`:"";
-  const nextBtn=ST.cur<ST.results.length-1
-    ?`<button class="nav-btn" style="background:#f97316;color:#141414;flex:2" id="nextR">Rallye suivant →</button>`
-    :`<button class="nav-btn" style="background:linear-gradient(135deg,#7c3aed,#dc2626);color:#fff;flex:2" id="toResults">🏆 Championnat final</button>`;
+  const nextBtn=`<button class="nav-btn" style="background:#f97316;color:#141414;flex:2" id="toChamp">Classement du championnat →</button>`;
   const champRows=ca.map((e,i)=>`
     <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:${i<ca.length-1?"1px solid #111827":"none"};font-size:12px">
       <div style="display:flex;gap:8px;align-items:center">
@@ -752,11 +770,7 @@ function rSim(){
   </div>
   <div id="revealSpot" style="padding:0 20px"></div>
   <div id="revealList" style="padding:0 20px 8px"></div>
-  <div id="simNav" class="nav" style="opacity:0;pointer-events:none">${prevBtn}${nextBtn}</div>
-  <div id="champBlock" style="background:#0f1117;border:1px solid #1f2937;border-radius:8px;margin:0 20px 16px;padding:10px 14px;opacity:0">
-    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Championnat ${ST.sel.carYear} — après ${ST.cur+1} rallye${ST.cur>0?"s":""}</div>
-    ${champRows}
-  </div>`;
+  <div id="simNav" class="nav" style="opacity:0;pointer-events:none">${prevBtn}${nextBtn}</div>`;
 }
 
 function attachSimEv(){
@@ -764,8 +778,45 @@ function attachSimEv(){
     el.addEventListener("click",()=>{stopReveal();goToRally(parseInt(el.dataset.rally));});
   });
   const prev=document.getElementById("prevR");if(prev)prev.addEventListener("click",()=>{stopReveal();goToRally(ST.cur-1);});
-  const next=document.getElementById("nextR");if(next)next.addEventListener("click",()=>{stopReveal();goToRally(ST.cur+1);});
-  const fin=document.getElementById("toResults");if(fin)fin.addEventListener("click",()=>{ST.phase="results";render();});
+  const toChamp=document.getElementById("toChamp");if(toChamp)toChamp.addEventListener("click",()=>{stopReveal();ST.phase="champ";render();});
+}
+
+function rChamp(){
+  const ca=champSoFar();
+  const isLast=ST.cur>=ST.results.length-1;
+  const bars=ST.results.map((_,i)=>`<div class="pbar" style="background:${i<=ST.cur?"#f97316":"#1f2937"}"></div>`).join("");
+  const rows=ca.map((e,i)=>{
+    const isP=e.id==="JOUEUR",isLead=i===0;
+    const nom=isP?(ST.playerName||"Joueur"):e.id;
+    return`<div class="crow${isP?" you":""}${isLead?" lead":""}"><span class="crk">${i+1}</span><span class="cnm">${nom}</span><span class="cpts">${e.pts}</span></div>`;
+  }).join("");
+  const nextBtn=isLast
+    ?`<button class="cbtn-next" id="toResults">🏆 Résultats finaux</button>`
+    :`<button class="cbtn-next" id="toNext">Rallye suivant →</button>`;
+  return`<div class="hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <a href="/" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
+    </div>
+    <div style="display:flex;gap:5px">${bars}</div>
+  </div>
+  <div class="champ-wrap">
+    <div class="champ-eyebrow">Après ${ST.cur+1} rallye${ST.cur>0?"s":""} sur ${ST.results.length}</div>
+    <div class="champ-title">Classement du <span style="color:#f97316">championnat</span></div>
+    <div class="champ-board">${rows}</div>
+    <div class="champ-actions">
+      <button class="cbtn-back" id="backSim">← Revoir le rallye</button>
+      ${nextBtn}
+    </div>
+  </div>`;
+}
+
+function attachChampEv(){
+  const back=document.getElementById("backSim");
+  if(back)back.addEventListener("click",()=>{ST.phase="sim";render();startReveal(true);});
+  const next=document.getElementById("toNext");
+  if(next)next.addEventListener("click",()=>goToRally(ST.cur+1));
+  const fin=document.getElementById("toResults");
+  if(fin)fin.addEventListener("click",()=>{ST.phase="results";render();});
 }
 
 function rResults(){
