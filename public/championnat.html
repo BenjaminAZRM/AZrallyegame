@@ -152,6 +152,8 @@ body::before{
 .cbtn-next:hover{background:#fdba74;transform:translateY(-1px)}
 .cbtn-back{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Chakra Petch',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:12px;padding:16px 18px;border-radius:12px;background:#15181d;border:1px solid #2a2f37;color:#8b929c;cursor:pointer;transition:border-color .18s,color .18s}
 .cbtn-back:hover{border-color:#f97316;color:#eceef1}
+.skip-btn{background:#15181d;border:1px solid #2a2f37;color:#8b929c;font-family:'Chakra Petch',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:12px;padding:11px 22px;border-radius:10px;cursor:pointer;transition:border-color .18s,color .18s}
+.skip-btn:hover{border-color:#f97316;color:#eceef1}
 </style></head><body>
 <div id="app"></div>
 <script src="solo-data.js"></script>
@@ -258,9 +260,8 @@ function champFinal(){return Object.entries(ST.champ).map(([id,pts])=>({id,pts})
 function revealNavChamp(){
   setTimeout(()=>{
     const nav=document.getElementById("simNav");
-    const info=document.getElementById("playerInfo");
-    if(info){info.style.transition="opacity .6s";info.style.opacity="1";}
     if(nav){nav.style.transition="opacity .6s";nav.style.opacity="1";nav.style.pointerEvents="auto";}
+    const sk=document.getElementById("skipRow");if(sk)sk.style.display="none";
   },400);
 }
 
@@ -374,6 +375,19 @@ function flipInsert(container,rows,curId,fromRect){
   }
 }
 
+function skipReveal(){
+  stopReveal();
+  const rr=ST.results[ST.cur];
+  revealedEntries=[...rr.sorted];
+  ST.revealed=revealedEntries.length;
+  ST.revealing=false;
+  const spot=document.getElementById("revealSpot");if(spot)spot.innerHTML="";
+  const container=document.getElementById("revealList");if(container)renderRevealFinal(container);
+  const ctr=document.getElementById("revealCounter");if(ctr)ctr.textContent="";
+  const sk=document.getElementById("skipRow");if(sk)sk.style.display="none";
+  revealNavChamp();
+}
+
 function startReveal(instant){
   stopReveal();
   const myRun=revealSeq;
@@ -386,6 +400,7 @@ function startReveal(instant){
   const total=sorted.length;
   if(instant){
     revealedEntries=[...sorted];ST.revealed=total;ST.revealing=false;
+    var sk0=document.getElementById("skipRow");if(sk0)sk0.style.display="none";
     if(container)renderRevealFinal(container);
     const ctr=document.getElementById("revealCounter");if(ctr)ctr.textContent="";
     revealNavChamp();return;
@@ -741,18 +756,6 @@ function rSim(){
       <span style="font-weight:700;color:${e.id==="JOUEUR"?"#c4b5fd":"#60a5fa"}">${e.pts}</span>
     </div>`).join("");
 
-  // Bloc position+points joueur : masqué jusqu'à la fin de la révélation
-  const pr=rr.sorted.find(e=>e.isP),isDNF=pr?.isDNF;
-  const playerInfo=`
-    <div id="playerInfo" style="padding:12px 20px;background:#0f1117;border-bottom:1px solid #1f2937;opacity:0">
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px">${ST.sel.driver.nom} <span style="color:#4b5563">(${ST.sel.driverYear})</span> · ${ST.sel.codr.nom} <span style="color:#4b5563">(${ST.sel.codrYear})</span> · ${ST.sel.car.nom} <span style="color:#4b5563">(${ST.sel.carYear})</span></div>
-      <div style="display:flex;gap:16px;align-items:center">
-        <div><span style="font-size:11px;color:#6b7280">Position </span><span style="font-weight:900;font-size:22px;color:${isDNF?"#ef4444":"#f59e0b"}">${isDNF?"DNF":"P"+pr?.rank}</span></div>
-        ${pr?.inc?.type&&pr.inc.type!=="OK"?`<div style="background:#1f2937;border-radius:4px;padding:2px 8px;font-size:11px;color:${pr.inc.type==="Abandon"?"#ef4444":"#fbbf24"}">⚠ ${pr.inc.type}</div>`:""}
-        <div style="margin-left:auto"><span style="font-size:11px;color:#6b7280">Points </span><span style="font-weight:700;font-size:16px;color:#60a5fa">${pr?.pts||0}</span></div>
-      </div>
-    </div>`;
-
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <a href="/" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
@@ -763,13 +766,13 @@ function rSim(){
     </div>
     <div style="display:flex;gap:5px;margin-top:10px">${bars}</div>
   </div>
-  ${playerInfo}
   <div style="padding:8px 20px 2px;display:flex;justify-content:space-between;align-items:center">
     <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em">Classement du rallye</div>
     <div id="revealCounter" style="font-size:11px;color:#4b5563;font-style:italic"></div>
   </div>
   <div id="revealSpot" style="padding:0 20px"></div>
   <div id="revealList" style="padding:0 20px 8px"></div>
+  <div id="skipRow" style="padding:6px 20px 14px;text-align:center"><button id="skipReveal" class="skip-btn">Afficher le résultat final</button></div>
   <div id="simNav" class="nav" style="opacity:0;pointer-events:none">${prevBtn}${nextBtn}</div>`;
 }
 
@@ -778,6 +781,7 @@ function attachSimEv(){
     el.addEventListener("click",()=>{stopReveal();goToRally(parseInt(el.dataset.rally));});
   });
   const prev=document.getElementById("prevR");if(prev)prev.addEventListener("click",()=>{stopReveal();goToRally(ST.cur-1);});
+  const skip=document.getElementById("skipReveal");if(skip)skip.addEventListener("click",skipReveal);
   const toChamp=document.getElementById("toChamp");if(toChamp)toChamp.addEventListener("click",()=>{stopReveal();ST.phase="champ";render();});
 }
 
