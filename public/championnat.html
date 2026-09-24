@@ -185,6 +185,16 @@ function vCol(v){return v>=90?"#f59e0b":v>=85?"#60a5fa":"#9ca3af";}
 function coS(d){if(!d)return{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.85,nom:""};return{asp:d.casp||80,ter:d.cter||80,nei:d.cnei||80,sec:d.csec||80,plu:d.cplu||80,rap:d.crap||80,sin:d.csin||80,fib:d.cfib||0.85,nom:d.cop||""};}
 
 let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:""};
+function statEvent(type){
+  try{
+    var tok='';try{tok=localStorage.getItem('azr_token')||'';}catch(e){}
+    fetch('/api/stats/evenement',{
+      method:'POST',keepalive:true,
+      headers:{'Content-Type':'application/json','Authorization':tok?('Bearer '+tok):''},
+      body:JSON.stringify({jeu:'course-au-titre',type:type})
+    }).catch(function(){});
+  }catch(e){}
+}
 let revealTimer=null;
 let revealSeq=0;
 const revealEls=new Map();
@@ -449,6 +459,7 @@ function selectDraft(offer){
   if(ST.sel.driver&&ST.sel.codr&&ST.sel.car){
     ST.drawn=rndN(RALLYES,10);
     simulate();
+    ST._finEnvoye=false;statEvent('draft');
     ST.phase="recap";ST.cur=0;ST.revealed=0;ST.maxReached=0;render();return;
   }
 
@@ -820,7 +831,7 @@ function attachChampEv(){
   const next=document.getElementById("toNext");
   if(next)next.addEventListener("click",()=>goToRally(ST.cur+1));
   const fin=document.getElementById("toResults");
-  if(fin)fin.addEventListener("click",()=>{ST.phase="results";render();});
+  if(fin)fin.addEventListener("click",()=>{if(!ST._finEnvoye){ST._finEnvoye=true;statEvent('fin');}ST.phase="results";render();});
 }
 
 function rResults(){
