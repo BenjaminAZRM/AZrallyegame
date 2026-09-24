@@ -79,6 +79,14 @@ module.exports = function mountCRR(deps) {
         pose BIGINT NOT NULL,
         PRIMARY KEY (rallye, joueur, joker)
       )`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS stats_evenements (
+        id     BIGSERIAL PRIMARY KEY,
+        jeu    TEXT NOT NULL,
+        type   TEXT NOT NULL,
+        joueur TEXT,
+        ts     BIGINT NOT NULL
+      )`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS stats_ev_jeu_type ON stats_evenements (jeu, type)`);
       tablesPretes = true;
       console.log('CRR — stockage : POSTGRES ✔ (tables prêtes)');
       chargerResultatsDb();          // récupère les résultats saisis en admin
@@ -1070,6 +1078,58 @@ module.exports = function mountCRR(deps) {
     console.log(`CRR admin — ${admin} a effacé : ${quoi} ${JSON.stringify(bilan)}`);
     res.json({ ok: true, quoi, bilan,
       note: 'Les rallyes écrits dans crr-rallyes.js ne sont pas touchés : seul un commit peut les modifier.' });
+  });
+
+  // ── STATISTIQUES ─────────────────────────────────────────────────────────────
+  // Écriture : appelée par les jeux à chaque draft validé et à chaque saison finie.
+  // Best-effort : ne bloque jamais le joueur, même sans base ou en cas d'erreur.
+  app.post('/api/stats/evenement', async (req, res) => {
+    try {
+      const b = req.body || {};
+      const type = (b.type === 'draft' || b.type === 'fin') ? b.type : null;
+      if (!type) return res.status(400).json({ ok: false, error: 'type invalide' });
+      const jeu = (typeof b.jeu === 'string' && b.jeu.trim())
+        ? b.jeu.trim().toLowerCase().slice(0, 40) : 'course-au-titre';
+      const u = tokenFrom(req);
+      const joueur = u ? String(u).trim().toLowerCase().slice(0, 40) : null;
+      if (pool && tablesPretes) {
+        await pool.query(
+          'INSERT INTO stats_evenements (jeu,type,joueur,ts) VALUES ($1,$2,$3,$4)',
+          [jeu, type, joueur, Date.now()]
+        );
+      }
+      res.json({ ok: true });
+    } catch (e) {
+      res.json({ ok: true }); // non-critique : on ne gêne jamais le jeu
+    }
+  });
+
+  // Lecture : réservée à l'administrateur. Alimente la section Statistiques.
+  app.get('/api/stats/admin', async (req, res) => {
+    if (!estAdmin(req)) return res.status(403).json({ ok: false, error: 'Accès refusé' });
+    try {
+      let comptes = 0, jouees = 0, finies = 0, uniqJoue = 0, uniqFini = 0;
+      if (pool) {
+        try { comptes = (await pool.query('SELECT COUNT(*)::int AS n FROM accounts')).rows[0].n; }
+        catch (e) { /* table accounts indisponible */ }
+        if (tablesPretes) {
+          const q = await pool.query(
+            `SELECT
+               COUNT(*) FILTER (WHERE type='draft')::int               AS jouees,
+               COUNT(*) FILTER (WHERE type='fin')::int                 AS finies,
+               COUNT(DISTINCT joueur) FILTER (WHERE type='draft')::int AS uniq_joue,
+               COUNT(DISTINCT joueur) FILTER (WHERE type='fin')::int   AS uniq_fini
+             FROM stats_evenements WHERE jeu=$1`,
+            ['course-au-titre']
+          );
+          const r = q.rows[0];
+          jouees = r.jouees; finies = r.finies; uniqJoue = r.uniq_joue; uniqFini = r.uniq_fini;
+        }
+      }
+      res.json({ ok: true, general: { comptes }, courseAuTitre: { jouees, finies, uniqJoue, uniqFini } });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
   });
 
 };
