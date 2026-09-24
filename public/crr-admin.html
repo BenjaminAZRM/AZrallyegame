@@ -117,6 +117,21 @@
   .vgrid .vm{font-size:12.5px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .vgrid .vn{font-size:11px;color:var(--fog);white-space:nowrap}
   .vgrid select{width:auto;padding:5px 8px;font-size:12px}
+
+  /* ── Statistiques ── */
+  #stats{margin-bottom:26px}
+  h2.sec .jeu{color:var(--amber)}
+  .st-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .st-card{border:1px solid var(--line);background:var(--card);padding:18px 16px}
+  .st-card .st-n{font-family:"Oswald",sans-serif;font-weight:700;font-size:40px;line-height:.95;letter-spacing:.01em;color:var(--paper)}
+  .st-card.st-primary .st-n{color:var(--amber)}
+  .st-card.st-secondary .st-n{font-size:30px}
+  .st-card .st-k{font-family:"Oswald",sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fog);margin-top:10px}
+  .st-card .st-sub{font-size:11px;color:var(--fog);margin-top:6px;line-height:1.5}
+  .st-bar{height:5px;background:var(--card2);border:1px solid var(--line);margin-top:10px;overflow:hidden}
+  .st-bar i{display:block;height:100%;background:var(--amber);width:0}
+  @media(max-width:640px){.st-grid{grid-template-columns:1fr 1fr}.st-card .st-n{font-size:34px}.st-card.st-secondary .st-n{font-size:26px}}
+  @media(max-width:420px){.st-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -139,6 +154,21 @@
   </div>
 
   <div id="app" class="hide">
+
+    <div id="stats">
+      <h2 class="sec">Général</h2>
+      <div class="st-grid">
+        <div class="st-card st-primary"><div class="st-n" id="st_comptes">&mdash;</div><div class="st-k">Comptes créés</div><div class="st-sub">Total sur la plateforme · rétroactif</div></div>
+      </div>
+      <h2 class="sec"><span class="jeu">Course au Titre</span></h2>
+      <div class="st-grid">
+        <div class="st-card st-primary"><div class="st-n" id="st_jouees">&mdash;</div><div class="st-k">Parties jouées</div><div class="st-sub">Drafts validés — chaque nouvelle saison comptée</div></div>
+        <div class="st-card st-primary"><div class="st-n" id="st_finies">&mdash;</div><div class="st-k">Parties finies</div><div class="st-sub">Tous les rallyes disputés jusqu'au championnat final</div></div>
+        <div class="st-card st-secondary"><div class="st-n" id="st_taux">&mdash;</div><div class="st-k">Taux de complétion</div><div class="st-sub">Parties finies ÷ parties jouées</div><div class="st-bar"><i id="st_bar"></i></div></div>
+        <div class="st-card st-secondary"><div class="st-n" id="st_uj">&mdash;</div><div class="st-k">Joueurs uniques — joué</div><div class="st-sub">Comptes ayant fait au moins un draft</div></div>
+        <div class="st-card st-secondary"><div class="st-n" id="st_uf">&mdash;</div><div class="st-k">Joueurs uniques — fini</div><div class="st-sub">Comptes ayant fini au moins une saison</div></div>
+      </div>
+    </div>
 
     <div class="ongl">
       <div class="og on" data-v="res">Résultats</div>
@@ -335,8 +365,23 @@ H('/api/crr/admin/moi').then(function(d){
   el('who').textContent=USR||'admin';
   el('app').classList.remove('hide');
   charger();
+  chargerStats();
 });
 
+function chargerStats(){
+  H('/api/stats/admin').then(function(d){
+    if(!d||!d.ok)return;
+    var g=d.general||{}, c=d.courseAuTitre||{};
+    el('st_comptes').textContent = (g.comptes!=null)?g.comptes:'\u2014';
+    el('st_jouees').textContent  = (c.jouees!=null)?c.jouees:0;
+    el('st_finies').textContent  = (c.finies!=null)?c.finies:0;
+    el('st_uj').textContent      = (c.uniqJoue!=null)?c.uniqJoue:0;
+    el('st_uf').textContent      = (c.uniqFini!=null)?c.uniqFini:0;
+    var taux = (c.jouees>0)?Math.round(c.finies*100/c.jouees):0;
+    el('st_taux').textContent = taux+'\u2009%';
+    var bar=el('st_bar'); if(bar)bar.style.width = taux+'%';
+  });
+}
 function charger(){
   H('/api/crr/admin/rallyes').then(function(d){
     if(!d.ok){el('retour').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
