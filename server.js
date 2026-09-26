@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const mailer = require('./mailer.js');
 const { RALLYES, DATA } = require('./wrc-data.js');
 // Moteur du contre-la-montre (pour recalculer les temps côté serveur = anti-triche)
 let RECORD = null;
@@ -20,6 +21,8 @@ app.use(express.json({ limit: '200kb' }));
 // DATA_DIR pointe vers le Volume Railway (/data) s'il existe, sinon le dossier local
 // (dans ce cas les records repartent à zéro à chaque redéploiement).
 const DATA_DIR = process.env.DATA_DIR || (fs.existsSync('/data') ? '/data' : __dirname);
+// URL publique du site (pour les liens dans les e-mails). Surchargée par la variable d'env PUBLIC_URL.
+const PUBLIC_URL = (process.env.PUBLIC_URL || 'https://chronorallyerace.com').replace(/\/$/, '');
 const RECORDS_FILE = path.join(DATA_DIR, 'records.json');
 const MAX_RECORDS = 5000;
 let records = [];
@@ -71,6 +74,15 @@ async function initDb() {
     await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS question TEXT`);
     await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS asalt TEXT`);
     await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS ahash TEXT`);
+    // E-mail + vérification + réinitialisation (ajouts sûrs pour les comptes existants)
+    await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS email TEXT`);
+    await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS email_verifie BOOLEAN NOT NULL DEFAULT FALSE`);
+    await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS vhash TEXT`);
+    await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS vexp BIGINT`);
+    await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS rhash TEXT`);
+    await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS rexp BIGINT`);
+    // Une adresse e-mail ne peut servir qu'à un seul compte (index partiel : ignore les NULL)
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS accounts_email_key ON accounts (email) WHERE email IS NOT NULL`);
     await pool.query(`CREATE TABLE IF NOT EXISTS records (
       id BIGSERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -151,7 +163,7 @@ async function dbAddRecord(rec) {
 }
 async function dbGetAccount(key) {
   if (dbReady) {
-    const r = await pool.query('SELECT name,salt,hash,question,asalt,ahash,created FROM accounts WHERE key=$1', [key]);
+    const r = await pool.query('SELECT name,salt,hash,question,asalt,ahash,created,email,email_verifie,vhash,vexp,rhash,rexp FROM accounts WHERE key=$1', [key]);
     return r.rows[0] || null;
   }
   return accounts[key] || null;
@@ -161,8 +173,8 @@ async function dbAddAccount(key, acc) {
     const exists = await pool.query('SELECT 1 FROM accounts WHERE key=$1', [key]);
     if (exists.rowCount > 0) return false;
     await pool.query(
-      'INSERT INTO accounts (key,name,salt,hash,question,asalt,ahash,created) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (key) DO NOTHING',
-      [key, acc.name, acc.salt, acc.hash, acc.question || null, acc.asalt || null, acc.ahash || null, acc.created]
+      'INSERT INTO accounts (key,name,salt,hash,question,asalt,ahash,created,email,email_verifie,vhash,vexp) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (key) DO NOTHING',
+      [key, acc.name, acc.salt, acc.hash, acc.question || null, acc.asalt || null, acc.ahash || null, acc.created, acc.email || null, acc.email_verifie || false, acc.vhash || null, acc.vexp || null]
     );
     const check = await pool.query('SELECT hash FROM accounts WHERE key=$1', [key]);
     return check.rowCount > 0 && check.rows[0].hash === acc.hash;
@@ -175,6 +187,58 @@ async function dbAddAccount(key, acc) {
 async function dbUpdateCode(key, salt, hash) {
   if (dbReady) { await pool.query('UPDATE accounts SET salt=$1, hash=$2 WHERE key=$3', [salt, hash, key]); return; }
   if (accounts[key]) { accounts[key].salt = salt; accounts[key].hash = hash; saveAccounts(); }
+}
+// Retrouver un compte par son adresse e-mail (connexion par e-mail, reset)
+async function dbGetAccountByEmail(email) {
+  if (!email) return null;
+  if (dbReady) {
+    const r = await pool.query('SELECT key,name,salt,hash,email,email_verifie,created FROM accounts WHERE email=$1', [email]);
+    return r.rows[0] || null;
+  }
+  for (const k in accounts) { if (accounts[k].email && normEmail(accounts[k].email) === email) return Object.assign({ key: k }, accounts[k]); }
+  return null;
+}
+// Poser un jeton de vérification d'e-mail
+async function dbSetVerifToken(key, vhash, vexp) {
+  if (dbReady) { await pool.query('UPDATE accounts SET vhash=$1, vexp=$2 WHERE key=$3', [vhash, vexp, key]); return; }
+  if (accounts[key]) { accounts[key].vhash = vhash; accounts[key].vexp = vexp; saveAccounts(); }
+}
+// Valider un e-mail à partir du jeton (haché) reçu dans le lien
+async function dbVerifyByToken(vhash) {
+  const now = Date.now();
+  if (dbReady) {
+    const r = await pool.query('SELECT key,name FROM accounts WHERE vhash=$1 AND vexp>$2', [vhash, now]);
+    if (!r.rows[0]) return null;
+    await pool.query('UPDATE accounts SET email_verifie=TRUE, vhash=NULL, vexp=NULL WHERE key=$1', [r.rows[0].key]);
+    return r.rows[0];
+  }
+  for (const k in accounts) { const a = accounts[k]; if (a.vhash === vhash && a.vexp > now) { a.email_verifie = true; a.vhash = null; a.vexp = null; saveAccounts(); return { key: k, name: a.name }; } }
+  return null;
+}
+// Poser un jeton de réinitialisation de mot de passe
+async function dbSetResetToken(key, rhash, rexp) {
+  if (dbReady) { await pool.query('UPDATE accounts SET rhash=$1, rexp=$2 WHERE key=$3', [rhash, rexp, key]); return; }
+  if (accounts[key]) { accounts[key].rhash = rhash; accounts[key].rexp = rexp; saveAccounts(); }
+}
+// Appliquer un nouveau mot de passe via le jeton (haché). Le lien reçu prouve la possession de l'e-mail → on valide l'e-mail au passage.
+async function dbResetByToken(rhash, salt, hash) {
+  const now = Date.now();
+  if (dbReady) {
+    const r = await pool.query('SELECT key,name FROM accounts WHERE rhash=$1 AND rexp>$2', [rhash, now]);
+    if (!r.rows[0]) return null;
+    await pool.query('UPDATE accounts SET salt=$1, hash=$2, rhash=NULL, rexp=NULL, email_verifie=TRUE WHERE key=$3', [salt, hash, r.rows[0].key]);
+    return r.rows[0];
+  }
+  for (const k in accounts) { const a = accounts[k]; if (a.rhash === rhash && a.rexp > now) { a.salt = salt; a.hash = hash; a.rhash = null; a.rexp = null; a.email_verifie = true; saveAccounts(); return { key: k, name: a.name }; } }
+  return null;
+}
+// Ajouter/mettre à jour l'e-mail d'un compte (renvoie false si déjà pris par un autre compte)
+async function dbSetEmail(key, email) {
+  const existing = await dbGetAccountByEmail(email);
+  if (existing && String(existing.key || '').toLowerCase() !== key) return false;
+  if (dbReady) { await pool.query('UPDATE accounts SET email=$1, email_verifie=FALSE WHERE key=$2', [email, key]); return true; }
+  if (accounts[key]) { accounts[key].email = email; accounts[key].email_verifie = false; saveAccounts(); return true; }
+  return false;
 }
 // RGPD : supprimer un compte et tous ses scores
 async function dbDeleteAccount(key, name) {
@@ -331,41 +395,51 @@ function saveAccounts() {
 function hashCode(code, salt) {
   return crypto.scryptSync(String(code), salt, 64).toString('hex');
 }
+// Jetons de vérification / réinitialisation : aléatoire envoyé par mail, haché en base
+function randToken() { return crypto.randomBytes(32).toString('hex'); }
+function hashToken(t) { return crypto.createHash('sha256').update(String(t)).digest('hex'); }
+function normEmail(e) { return String(e == null ? '' : e).trim().toLowerCase(); }
+function emailValide(e) { return e.length <= 180 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 // Réponse secrète : on ignore casse, accents et espaces superflus (sinon trop fragile)
 function normAnswer(a) {
   return String(a).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
 }
 
-// Créer un compte
+// Créer un compte (e-mail + pseudo + mot de passe). Un mail de vérification est envoyé.
 app.post('/api/register', async (req, res) => {
   if (!rateLimit('reg:' + req.ip, 5, 3600000)) {
     return res.status(429).json({ ok: false, error: 'Trop de créations de compte depuis ce réseau. Réessaie plus tard.' });
   }
   const b = req.body || {};
   const username = (typeof b.username === 'string' ? b.username : '').trim().slice(0, 20);
+  const email = normEmail(b.email);
   const code = typeof b.code === 'string' ? b.code : '';
-  const question = (typeof b.question === 'string' ? b.question : '').trim().slice(0, 120);
-  const answer = (typeof b.answer === 'string' ? b.answer : '').trim();
   if (username.length < 3 || !/^[\p{L}0-9 _-]+$/u.test(username)) {
-    return res.status(400).json({ ok: false, error: 'Identifiant invalide (3 à 20 caractères : lettres, chiffres, espace, - ou _).' });
+    return res.status(400).json({ ok: false, error: 'Pseudo invalide (3 à 20 caractères : lettres, chiffres, espace, - ou _).' });
+  }
+  if (!emailValide(email)) {
+    return res.status(400).json({ ok: false, error: 'Adresse e-mail invalide.' });
   }
   if (code.length < 6 || code.length > 128) {
-    return res.status(400).json({ ok: false, error: 'Code invalide (6 caractères minimum).' });
-  }
-  if (question.length < 5 || answer.length < 3) {
-    return res.status(400).json({ ok: false, error: 'Question secrète et réponse obligatoires (réponse : 3 caractères minimum).' });
+    return res.status(400).json({ ok: false, error: 'Mot de passe invalide (6 caractères minimum).' });
   }
   const key = username.toLowerCase();
   try {
+    if (await dbGetAccountByEmail(email)) {
+      return res.status(409).json({ ok: false, error: 'Cette adresse e-mail est déjà utilisée.' });
+    }
     const salt = crypto.randomBytes(16).toString('hex');
-    const asalt = crypto.randomBytes(16).toString('hex');
+    const vtoken = randToken();
     const created = await dbAddAccount(key, {
       name: username, salt, hash: hashCode(code, salt),
-      question, asalt, ahash: hashCode(normAnswer(answer), asalt),
+      email, email_verifie: false,
+      vhash: hashToken(vtoken), vexp: Date.now() + 24 * 3600000,
       created: Date.now()
     });
-    if (!created) return res.status(409).json({ ok: false, error: 'Cet identifiant est déjà pris.' });
-    res.json({ ok: true, username, token: signToken(username) });
+    if (!created) return res.status(409).json({ ok: false, error: 'Ce pseudo est déjà pris.' });
+    mailer.envoyerVerification(email, PUBLIC_URL + '/verifier.html?token=' + vtoken)
+      .catch(e => console.error('mail vérif (register):', e.message));
+    res.json({ ok: true, username, email_verifie: false, token: signToken(username) });
   } catch (e) {
     console.error('POST /api/register', e.message);
     res.status(500).json({ ok: false, error: 'Création impossible pour le moment.' });
@@ -412,39 +486,152 @@ app.post('/api/recover/reset', async (req, res) => {
   }
 });
 
-// Se connecter
+// Se connecter — par e-mail OU par pseudo (champ `identifier`; `username` accepté pour compat)
 app.post('/api/login', async (req, res) => {
   if (!rateLimit('login:' + req.ip, 20, 900000)) {
     return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie dans quelques minutes.' });
   }
   const b = req.body || {};
-  const username = (typeof b.username === 'string' ? b.username : '').trim();
+  const ident = (typeof b.identifier === 'string' ? b.identifier : (typeof b.username === 'string' ? b.username : '')).trim();
   const code = typeof b.code === 'string' ? b.code : '';
-  const key = username.toLowerCase();
-  const lock = failedLogins[key];
-  if (lock && lock.until > Date.now()) {
-    return res.status(429).json({ ok: false, error: 'Compte temporairement bloqué (trop d’essais). Réessaie plus tard.' });
-  }
   try {
-    const acc = await dbGetAccount(key);
+    let acc = null, key = null;
+    if (ident.indexOf('@') >= 0) {
+      acc = await dbGetAccountByEmail(normEmail(ident));
+      if (acc) key = acc.key || (acc.name ? acc.name.toLowerCase() : null);
+    } else {
+      key = ident.toLowerCase();
+      acc = await dbGetAccount(key);
+    }
+    const lock = key ? failedLogins[key] : null;
+    if (lock && lock.until > Date.now()) {
+      return res.status(429).json({ ok: false, error: 'Compte temporairement bloqué (trop d’essais). Réessaie plus tard.' });
+    }
     // Message générique (on ne révèle pas si l'identifiant existe)
-    if (!acc) { noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou code incorrect.' }); }
+    if (!acc) { if (key) noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou mot de passe incorrect.' }); }
     const h = hashCode(code, acc.salt);
     const ok = h.length === acc.hash.length && crypto.timingSafeEqual(Buffer.from(h), Buffer.from(acc.hash));
-    if (!ok) { noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou code incorrect.' }); }
+    if (!ok) { noteLoginFail(key); return res.status(401).json({ ok: false, error: 'Identifiant ou mot de passe incorrect.' }); }
     delete failedLogins[key];
-    res.json({ ok: true, username: acc.name, token: signToken(acc.name) });
+    res.json({ ok: true, username: acc.name, aEmail: !!acc.email, email_verifie: !!acc.email_verifie, token: signToken(acc.name) });
   } catch (e) {
     console.error('POST /api/login', e.message);
     res.status(500).json({ ok: false, error: 'Connexion impossible pour le moment.' });
   }
 });
 
-// Vérifier une session (jeton)
-app.get('/api/me', (req, res) => {
+// Vérifier une session (jeton) + état de l'e-mail (pour le bandeau et l'écran "ajoute ton e-mail")
+app.get('/api/me', async (req, res) => {
   const user = tokenFrom(req);
   if (!user) return res.status(401).json({ ok: false });
-  res.json({ ok: true, username: user });
+  try {
+    const acc = await dbGetAccount(user.toLowerCase());
+    res.json({ ok: true, username: user,
+      email: acc && acc.email ? acc.email : null,
+      aEmail: !!(acc && acc.email),
+      email_verifie: !!(acc && acc.email_verifie) });
+  } catch (e) {
+    res.json({ ok: true, username: user });
+  }
+});
+
+// Vérifier l'e-mail à partir du jeton reçu dans le lien (appelé par verifier.html)
+app.post('/api/verify', async (req, res) => {
+  if (!rateLimit('vf:' + req.ip, 30, 900000)) return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie plus tard.' });
+  const token = typeof (req.body || {}).token === 'string' ? req.body.token : '';
+  if (token.length < 20) return res.status(400).json({ ok: false, error: 'Lien invalide.' });
+  try {
+    const r = await dbVerifyByToken(hashToken(token));
+    if (!r) return res.status(400).json({ ok: false, error: 'Lien invalide ou expiré. Reconnecte-toi pour en recevoir un nouveau.' });
+    res.json({ ok: true, username: r.name });
+  } catch (e) {
+    console.error('POST /api/verify', e.message);
+    res.status(500).json({ ok: false, error: 'Indisponible pour le moment.' });
+  }
+});
+
+// Renvoyer le lien de vérification (utilisateur connecté, e-mail non encore vérifié)
+app.post('/api/verify/resend', async (req, res) => {
+  const user = tokenFrom(req);
+  if (!user) return res.status(401).json({ ok: false, error: 'Session expirée.' });
+  const key = user.toLowerCase();
+  if (!rateLimit('vr:' + key, 3, 900000)) return res.status(429).json({ ok: false, error: 'Un lien vient d’être envoyé. Patiente quelques minutes.' });
+  try {
+    const acc = await dbGetAccount(key);
+    if (!acc || !acc.email) return res.status(400).json({ ok: false, error: 'Aucune adresse e-mail sur ce compte.' });
+    if (acc.email_verifie) return res.json({ ok: true, deja: true });
+    const vtoken = randToken();
+    await dbSetVerifToken(key, hashToken(vtoken), Date.now() + 24 * 3600000);
+    mailer.envoyerVerification(acc.email, PUBLIC_URL + '/verifier.html?token=' + vtoken)
+      .catch(e => console.error('mail vérif (resend):', e.message));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('POST /api/verify/resend', e.message);
+    res.status(500).json({ ok: false, error: 'Indisponible pour le moment.' });
+  }
+});
+
+// Ajouter une adresse e-mail à un compte existant qui n'en a pas (ex. comptes créés avant l'e-mail, dont l'admin)
+app.post('/api/me/email', async (req, res) => {
+  const user = tokenFrom(req);
+  if (!user) return res.status(401).json({ ok: false, error: 'Session expirée.' });
+  const key = user.toLowerCase();
+  if (!rateLimit('em:' + key, 8, 3600000)) return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie plus tard.' });
+  const email = normEmail((req.body || {}).email);
+  if (!emailValide(email)) return res.status(400).json({ ok: false, error: 'Adresse e-mail invalide.' });
+  try {
+    const set = await dbSetEmail(key, email);
+    if (!set) return res.status(409).json({ ok: false, error: 'Cette adresse e-mail est déjà utilisée.' });
+    const vtoken = randToken();
+    await dbSetVerifToken(key, hashToken(vtoken), Date.now() + 24 * 3600000);
+    mailer.envoyerVerification(email, PUBLIC_URL + '/verifier.html?token=' + vtoken)
+      .catch(e => console.error('mail vérif (ajout email):', e.message));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('POST /api/me/email', e.message);
+    res.status(500).json({ ok: false, error: 'Indisponible pour le moment.' });
+  }
+});
+
+// Mot de passe oublié — étape 1 : demander un lien par e-mail (réponse toujours identique)
+app.post('/api/recover/request', async (req, res) => {
+  if (!rateLimit('rrq:' + req.ip, 10, 900000)) return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie plus tard.' });
+  const email = normEmail((req.body || {}).email);
+  try {
+    if (emailValide(email)) {
+      const acc = await dbGetAccountByEmail(email);
+      if (acc && acc.key && rateLimit('rrqk:' + acc.key, 4, 900000)) {
+        const rtoken = randToken();
+        await dbSetResetToken(acc.key, hashToken(rtoken), Date.now() + 3600000);
+        mailer.envoyerReset(email, PUBLIC_URL + '/reinitialiser.html?token=' + rtoken)
+          .catch(e => console.error('mail reset:', e.message));
+      }
+    }
+    res.json({ ok: true }); // ne révèle pas si l'e-mail existe
+  } catch (e) {
+    console.error('POST /api/recover/request', e.message);
+    res.json({ ok: true });
+  }
+});
+
+// Mot de passe oublié — étape 2 : appliquer le nouveau mot de passe via le jeton du lien
+app.post('/api/recover/apply', async (req, res) => {
+  if (!rateLimit('rap:' + req.ip, 10, 900000)) return res.status(429).json({ ok: false, error: 'Trop de tentatives. Réessaie plus tard.' });
+  const b = req.body || {};
+  const token = typeof b.token === 'string' ? b.token : '';
+  const newCode = typeof b.newCode === 'string' ? b.newCode : '';
+  if (token.length < 20) return res.status(400).json({ ok: false, error: 'Lien invalide.' });
+  if (newCode.length < 6 || newCode.length > 128) return res.status(400).json({ ok: false, error: 'Nouveau mot de passe invalide (6 caractères minimum).' });
+  try {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const r = await dbResetByToken(hashToken(token), salt, hashCode(newCode, salt));
+    if (!r) return res.status(400).json({ ok: false, error: 'Lien invalide ou expiré. Redemande un lien.' });
+    delete failedLogins[r.key];
+    res.json({ ok: true, username: r.name, token: signToken(r.name) });
+  } catch (e) {
+    console.error('POST /api/recover/apply', e.message);
+    res.status(500).json({ ok: false, error: 'Indisponible pour le moment.' });
+  }
 });
 
 // ─── RGPD : accès et effacement des données personnelles ────────────────────────
