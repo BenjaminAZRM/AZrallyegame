@@ -8,13 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="theme.css">
 <style>
-  /* ── Spécifique à la page de connexion ──
-     Couleurs, police de titre et bouton viennent de theme.css.
-     Le fond est une photo de rallye (route de montagne au crépuscule). */
+  /* ── Spécifique à la page de connexion ── */
   body{display:flex;flex-direction:column;min-height:100vh}
-
-  /* Fond photo plein écran + voile sombre pour garder le texte lisible.
-     Calque fixe placé DERRIÈRE tout le contenu (z-index:-1). */
   body::before{
     content:"";position:fixed;inset:0;z-index:-1;
     background:
@@ -24,29 +19,20 @@
         rgba(10,12,15,.66) 100%),
       url('/bg-connexion.jpg') center/cover no-repeat;
   }
-
-  /* Logo en grand, centré, au-dessus du panneau de connexion */
   main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:40px 20px}
   .brand-hero{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
-  .brand-logo-big{height:190px;width:auto;display:block}
+  .brand-logo-big{height:190px;width:auto;display:block;filter:drop-shadow(0 4px 22px rgba(0,0,0,.55))}
   .brand-txt-big{
     font-family:var(--font-titre);font-weight:700;letter-spacing:.1em;
-    font-size:30px;line-height:1;text-transform:uppercase;
-    text-shadow:0 2px 18px rgba(0,0,0,.75);
+    font-size:30px;line-height:1;text-transform:uppercase;text-shadow:0 2px 18px rgba(0,0,0,.75);
   }
-  .brand-logo-big{filter:drop-shadow(0 4px 22px rgba(0,0,0,.55))}
-  .brand-txt-big .c1{color:#fff}
-  .brand-txt-big .c2{color:#F57C00}
-  .brand-txt-big .c3{color:#fff}
+  .brand-txt-big .c1{color:#fff}.brand-txt-big .c2{color:#F57C00}.brand-txt-big .c3{color:#fff}
   @media(max-width:600px){.brand-logo-big{height:130px}.brand-txt-big{font-size:23px}}
 
-  /* Panneau connexion — n'utilise PAS .card (qui zoome au survol) */
   .panel{
-    width:100%;max-width:400px;
-    background:rgba(18,21,26,.9);
+    width:100%;max-width:400px;background:rgba(18,21,26,.9);
     -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
-    border:1px solid rgba(249,115,22,.28);
-    border-radius:var(--radius);padding:26px 24px 28px;
+    border:1px solid rgba(249,115,22,.28);border-radius:var(--radius);padding:26px 24px 28px;
     box-shadow:0 24px 60px -18px rgba(0,0,0,.75);
   }
   .panel .eyebrow{text-align:center;margin-bottom:6px}
@@ -68,18 +54,14 @@
   }
   input:focus{border-color:var(--accent)}
   .hint{font-size:11px;color:#5b616b;margin-top:6px}
-
   .err{min-height:18px;margin:14px 0 2px;font-size:12px;color:#f87171;text-align:center}
+  .ok{margin:14px 0 2px;font-size:13px;color:#4ade80;text-align:center;line-height:1.6}
 
-  /* Le bouton reprend .btn .btn-primary de theme.css, en pleine largeur */
   .submit{width:100%;margin-top:10px;justify-content:center;padding:15px;font-size:16px}
   .submit:disabled{opacity:.55;cursor:default;transform:none}
-
   .swap{text-align:center;margin-top:16px;font-size:12px;color:var(--fog)}
   .swap b{color:var(--accent);cursor:pointer}
-
   footer{border-top:1px solid var(--line);padding:14px;text-align:center;color:var(--fog);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
-
   .hidden{display:none}
 </style>
 </head>
@@ -93,143 +75,159 @@
       <div class="eyebrow" id="eyebrow">Bienvenue</div>
       <h1 id="h1">Connexion</h1>
 
-      <div class="tabs">
+      <div class="tabs" id="tabs">
         <div class="tab on" id="tab-login">Se connecter</div>
         <div class="tab" id="tab-register">Créer un compte</div>
       </div>
 
-      <label for="username">Identifiant</label>
-      <input id="username" type="text" maxlength="20" autocomplete="username" placeholder="Ton pseudo de pilote">
-
-      <label for="code">Code</label>
-      <input id="code" type="password" autocomplete="current-password" placeholder="Ton code secret">
-
-      <div id="confirm-wrap" class="hidden">
-        <label for="code2">Confirme le code</label>
-        <input id="code2" type="password" autocomplete="new-password" placeholder="Retape ton code">
-        <div class="hint">6 caractères minimum. Choisis un code dédié à CHRONORALLYERACE (pas un mot de passe important).</div>
-
-        <label for="question">Question secrète</label>
-        <input id="question" type="text" maxlength="120" placeholder="Ex : le surnom de mon premier chien ?">
-        <label for="answer">Réponse</label>
-        <input id="answer" type="text" maxlength="80" placeholder="Ta réponse">
-        <div class="hint">Elle servira à récupérer ton code si tu l'oublies. Choisis une réponse que personne ne peut deviner.</div>
+      <!-- LOGIN : e-mail OU pseudo -->
+      <div id="f-ident">
+        <label for="ident">E-mail ou pseudo</label>
+        <input id="ident" type="text" autocomplete="username" placeholder="ton@email.fr ou ton pseudo">
       </div>
 
-      <div id="recover-wrap" class="hidden">
-        <div id="recover-q" class="hint" style="margin-top:14px;color:var(--accent)"></div>
-        <label for="ranswer">Réponse à la question secrète</label>
-        <input id="ranswer" type="text" maxlength="80" placeholder="Ta réponse">
-        <label for="ncode">Nouveau code</label>
-        <input id="ncode" type="password" autocomplete="new-password" placeholder="Nouveau code (6 car. min)">
+      <!-- REGISTER : e-mail + pseudo -->
+      <div id="f-reg-top" class="hidden">
+        <label for="email">Adresse e-mail</label>
+        <input id="email" type="email" autocomplete="email" placeholder="ton@email.fr">
+        <div class="hint">Sert à vérifier ton compte et à réinitialiser ton mot de passe. Jamais affichée aux autres joueurs.</div>
+        <label for="pseudo">Pseudo de pilote</label>
+        <input id="pseudo" type="text" maxlength="20" placeholder="Ton pseudo affiché dans les classements">
+      </div>
+
+      <!-- MOT DE PASSE (login + register) -->
+      <div id="f-pass">
+        <label for="code">Mot de passe</label>
+        <input id="code" type="password" autocomplete="current-password" placeholder="Ton mot de passe">
+      </div>
+
+      <!-- REGISTER : confirmation -->
+      <div id="f-reg-code2" class="hidden">
+        <label for="code2">Confirme le mot de passe</label>
+        <input id="code2" type="password" autocomplete="new-password" placeholder="Retape ton mot de passe">
+        <div class="hint">6 caractères minimum. Choisis un mot de passe dédié à CHRONORALLYERACE.</div>
+      </div>
+
+      <!-- RECOVER : e-mail seul -->
+      <div id="f-recover" class="hidden">
+        <label for="remail">Adresse e-mail du compte</label>
+        <input id="remail" type="email" autocomplete="email" placeholder="ton@email.fr">
+        <div class="hint">On t'envoie un lien pour choisir un nouveau mot de passe. Le lien expire après 1&nbsp;h.</div>
       </div>
 
       <div class="err" id="err"></div>
+      <div class="ok hidden" id="ok"></div>
 
       <button class="btn btn-primary submit" id="submit">Se connecter</button>
 
       <div class="swap" id="swap"></div>
-      <div class="swap" style="margin-top:8px"><b id="forgot">Code oublié ?</b></div>
+      <div class="swap" style="margin-top:8px"><b id="forgot">Mot de passe oublié ?</b></div>
     </div>
   </main>
 
   <footer>CHRONORALLYERACE — Simulation amateur, non officielle</footer>
 
 <script>
-  // Déjà connecté ? → direction le menu des jeux
   function getNext(){try{var n=new URLSearchParams(location.search).get('next');if(n&&n.charAt(0)==='/'&&n.charAt(1)!=='/')return n;}catch(e){}return '/';}
+  // Déjà connecté ? → au jeu
   try{ if(localStorage.getItem('azr_user') && localStorage.getItem('azr_token')){ location.replace(getNext()); } }catch(e){}
 
   var mode='login';
   var $=function(id){return document.getElementById(id);};
-  var err=$('err');
+  var err=$('err'), ok=$('ok');
+  function show(id,on){ $(id).classList.toggle('hidden',!on); }
 
   function setMode(m){
     mode=m;
     var reg=(m==='register'), rec=(m==='recover');
     $('tab-login').classList.toggle('on',!reg&&!rec);
     $('tab-register').classList.toggle('on',reg);
-    $('confirm-wrap').classList.toggle('hidden',!reg);
-    $('recover-wrap').classList.toggle('hidden',!rec);
-    $('code').parentNode.querySelector('label[for=code]').style.display=rec?'none':'block';
-    $('code').style.display=rec?'none':'block';
-    $('h1').textContent=reg?'Créer un compte':rec?'Code oublié':'Connexion';
+    show('tabs',!rec);
+    show('f-ident',!reg&&!rec);
+    show('f-reg-top',reg);
+    show('f-pass',!rec);
+    show('f-reg-code2',reg);
+    show('f-recover',rec);
+    $('h1').textContent=reg?'Créer un compte':rec?'Mot de passe oublié':'Connexion';
     $('eyebrow').textContent=reg?'Nouveau pilote':rec?'Récupération':'Bienvenue';
-    $('submit').textContent=reg?'Créer mon compte':rec?'Réinitialiser mon code':'Se connecter';
+    $('submit').textContent=reg?'Créer mon compte':rec?'Envoyer le lien':'Se connecter';
     $('forgot').parentNode.style.display=rec?'none':'block';
     $('swap').innerHTML=(reg||rec)
       ? 'Déjà un compte ? <b id="go-login">Se connecter</b>'
       : 'Pas encore de compte ? <b id="go-register">Créer un compte</b>';
     var gl=$('go-login'); if(gl) gl.onclick=function(){setMode('login');};
     var gr=$('go-register'); if(gr) gr.onclick=function(){setMode('register');};
-    err.textContent='';
-    if(rec) $('recover-q').textContent='';
+    err.textContent=''; ok.classList.add('hidden'); ok.textContent='';
   }
   $('tab-login').onclick=function(){setMode('login');};
   $('tab-register').onclick=function(){setMode('register');};
+  $('forgot').onclick=function(){setMode('recover');};
 
-  // Code oublié : on récupère d'abord la question secrète du compte
-  $('forgot').onclick=async function(){
-    var username=$('username').value.trim();
-    if(!username){ err.textContent='Entre d\u2019abord ton identifiant.'; return; }
-    err.textContent='';
-    try{
-      var res=await fetch('/api/recover/question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username})});
-      var data=await res.json();
-      if(!res.ok||!data.ok){ err.textContent=(data&&data.error)||'Impossible de récupérer la question.'; return; }
-      setMode('recover');
-      $('recover-q').textContent='Question : '+data.question;
-    }catch(e){ err.textContent='Serveur injoignable.'; }
-  };
-
-  function enter(){ localStorage.setItem; }
+  function apresConnexion(data){
+    try{ localStorage.setItem('azr_user', data.username); localStorage.setItem('azr_token', data.token||''); }catch(e){}
+    // Compte existant sans e-mail → on l'invite à en ajouter un (ex. anciens comptes, admin)
+    if(data.aEmail===false){
+      var nx=getNext();
+      location.href='/ajouter-email.html'+(nx&&nx!=='/'?('?next='+encodeURIComponent(nx)):'');
+      return;
+    }
+    location.href=getNext();
+  }
 
   async function submit(){
-    err.textContent='';
-    var username=$('username').value.trim();
+    err.textContent=''; ok.classList.add('hidden');
     var btn=$('submit');
 
+    // ── MOT DE PASSE OUBLIÉ ──
     if(mode==='recover'){
-      var ans=$('ranswer').value.trim(), nc=$('ncode').value;
-      if(!ans||!nc){ err.textContent='Remplis la réponse et le nouveau code.'; return; }
-      if(nc.length<6){ err.textContent='Nouveau code trop court (6 caractères minimum).'; return; }
+      var email=$('remail').value.trim();
+      if(!email){ err.textContent='Entre ton adresse e-mail.'; return; }
       btn.disabled=true;
       try{
-        var r=await fetch('/api/recover/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:username,answer:ans,newCode:nc})});
-        var d=await r.json();
-        if(!r.ok||!d.ok){ err.textContent=(d&&d.error)||'Échec.'; btn.disabled=false; return; }
-        try{ localStorage.setItem('azr_user',d.username); localStorage.setItem('azr_token',d.token||''); }catch(e){}
-        location.href=getNext();
-      }catch(e){ err.textContent='Serveur injoignable.'; btn.disabled=false; }
+        await fetch('/api/recover/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});
+        // Réponse volontairement identique quoi qu'il arrive (on ne révèle pas si l'e-mail existe)
+        ok.textContent='Si un compte existe pour cette adresse, un lien vient d’être envoyé. Pense à vérifier tes spams.';
+        ok.classList.remove('hidden');
+      }catch(e){ err.textContent='Serveur injoignable. Réessaie dans un instant.'; }
+      btn.disabled=false;
       return;
     }
 
-    var code=$('code').value;
-    if(!username || !code){ err.textContent='Remplis l\u2019identifiant et le code.'; return; }
-    var body={username:username,code:code};
+    // ── INSCRIPTION ──
     if(mode==='register'){
-      if(code.length<6){ err.textContent='Code trop court (6 caractères minimum).'; return; }
-      if($('code2').value!==code){ err.textContent='Les deux codes ne correspondent pas.'; return; }
-      var q=$('question').value.trim(), a=$('answer').value.trim();
-      if(q.length<5||a.length<3){ err.textContent='Renseigne une question secrète et sa réponse.'; return; }
-      body.question=q; body.answer=a;
+      var remail=$('email').value.trim();
+      var pseudo=$('pseudo').value.trim();
+      var code=$('code').value;
+      if(!remail || !pseudo || !code){ err.textContent='Remplis l’e-mail, le pseudo et le mot de passe.'; return; }
+      if(pseudo.length<3){ err.textContent='Pseudo trop court (3 caractères minimum).'; return; }
+      if(code.length<6){ err.textContent='Mot de passe trop court (6 caractères minimum).'; return; }
+      if($('code2').value!==code){ err.textContent='Les deux mots de passe ne correspondent pas.'; return; }
+      btn.disabled=true;
+      try{
+        var res=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:pseudo,email:remail,code:code})});
+        var data=await res.json();
+        if(!res.ok || !data.ok){ err.textContent=(data&&data.error)||'Création impossible.'; btn.disabled=false; return; }
+        apresConnexion(data);
+      }catch(e){ err.textContent='Serveur injoignable. Réessaie dans un instant.'; btn.disabled=false; }
+      return;
     }
+
+    // ── CONNEXION (e-mail ou pseudo) ──
+    var ident=$('ident').value.trim();
+    var pass=$('code').value;
+    if(!ident || !pass){ err.textContent='Remplis l’identifiant et le mot de passe.'; return; }
     btn.disabled=true;
-    var endpoint=(mode==='register')?'/api/register':'/api/login';
     try{
-      var res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      var data=await res.json();
-      if(!res.ok || !data.ok){ err.textContent=(data && data.error) || 'Une erreur est survenue.'; btn.disabled=false; return; }
-      try{ localStorage.setItem('azr_user', data.username); localStorage.setItem('azr_token', data.token||''); }catch(e){}
-      location.href=getNext();
-    }catch(e){
-      err.textContent='Serveur injoignable. Réessaie dans un instant.';
-      btn.disabled=false;
-    }
+      var r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:ident,code:pass})});
+      var d=await r.json();
+      if(!r.ok || !d.ok){ err.textContent=(d&&d.error)||'Une erreur est survenue.'; btn.disabled=false; return; }
+      apresConnexion(d);
+    }catch(e){ err.textContent='Serveur injoignable. Réessaie dans un instant.'; btn.disabled=false; }
   }
+
   $('submit').onclick=submit;
-  $('code').addEventListener('keydown',function(e){ if(e.key==='Enter' && mode==='login') submit(); });
-  $('username').addEventListener('keydown',function(e){ if(e.key==='Enter') $('code').focus(); });
+  $('code').addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
+  $('ident').addEventListener('keydown',function(e){ if(e.key==='Enter') $('code').focus(); });
 
   setMode('login');
 </script>

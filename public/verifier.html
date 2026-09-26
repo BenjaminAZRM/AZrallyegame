@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="fr"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHRONORALLYERACE — Vérification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="theme.css">
+<style>
+  body{display:flex;flex-direction:column;min-height:100vh}
+  body::before{content:"";position:fixed;inset:0;z-index:-1;
+    background:linear-gradient(180deg,rgba(10,12,15,.32),rgba(10,12,15,.5) 45%,rgba(10,12,15,.7) 100%),url('/bg-connexion.jpg') center/cover no-repeat;}
+  main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:40px 20px}
+  .brand-txt-big{font-family:var(--font-titre);font-weight:700;letter-spacing:.1em;font-size:26px;line-height:1;text-transform:uppercase;text-shadow:0 2px 18px rgba(0,0,0,.75)}
+  .brand-txt-big .c1{color:#fff}.brand-txt-big .c2{color:#F57C00}.brand-txt-big .c3{color:#fff}
+  .panel{width:100%;max-width:400px;background:rgba(18,21,26,.9);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    border:1px solid rgba(249,115,22,.28);border-radius:var(--radius);padding:26px 24px 28px;box-shadow:0 24px 60px -18px rgba(0,0,0,.75);text-align:center}
+  .panel h1{font-size:22px;margin-bottom:14px}
+  .panel p{font-size:14px;color:var(--paper);line-height:1.6;margin-bottom:8px}
+  label{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fog);margin:16px 0 7px;text-align:left}
+  input{width:100%;background:#0c0e12;border:2px solid var(--line);border-radius:10px;padding:13px 14px;font-size:15px;color:var(--paper);outline:none;font-family:var(--font-corps)}
+  input:focus{border-color:var(--accent)}
+  .hint{font-size:11px;color:#5b616b;margin-top:6px;text-align:left}
+  .err{min-height:18px;margin:14px 0 2px;font-size:12px;color:#f87171}
+  .ok{margin:10px 0 2px;font-size:13px;color:#4ade80;line-height:1.6}
+  .submit{width:100%;margin-top:14px;justify-content:center;padding:15px;font-size:16px}
+  .submit:disabled{opacity:.55;cursor:default;transform:none}
+  .lnk{display:inline-block;margin-top:14px;font-size:13px;color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent)}
+  .state{font-size:34px;margin-bottom:6px}
+  footer{border-top:1px solid var(--line);padding:14px;text-align:center;color:var(--fog);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+  .hidden{display:none}
+</style>
+</head><body>
+  <main>
+    <div class="brand-txt-big"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></div>
+    <div class="panel">
+      <div class="state" id="state">⏳</div>
+      <h1 id="h1">Vérification en cours…</h1>
+      <p id="msg">Un instant, on confirme ton adresse.</p>
+      <a class="lnk hidden" id="lnk" href="/">Continuer</a>
+    </div>
+  </main>
+  <footer>CHRONORALLYERACE — Simulation amateur, non officielle</footer>
+<script>
+  var $=function(id){return document.getElementById(id);};
+  function tok(){try{return new URLSearchParams(location.search).get('token')||'';}catch(e){return '';}}
+  function connecte(){try{return !!(localStorage.getItem('azr_user')&&localStorage.getItem('azr_token'));}catch(e){return false;}}
+  (async function(){
+    var t=tok();
+    if(!t){ $('state').textContent='⚠️'; $('h1').textContent='Lien invalide'; $('msg').textContent='Ce lien de vérification est incomplet.'; montreLien(); return; }
+    try{
+      var r=await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+      var d=await r.json();
+      if(r.ok && d.ok){
+        $('state').textContent='✅'; $('h1').textContent='Adresse vérifiée !';
+        $('msg').textContent='Ton compte est activé. Bonne route, pilote.';
+      }else{
+        $('state').textContent='⚠️'; $('h1').textContent='Lien invalide ou expiré';
+        $('msg').textContent=(d&&d.error)||'Reconnecte-toi pour recevoir un nouveau lien.';
+      }
+    }catch(e){ $('state').textContent='⚠️'; $('h1').textContent='Serveur injoignable'; $('msg').textContent='Réessaie dans un instant.'; }
+    montreLien();
+  })();
+  function montreLien(){ var l=$('lnk'); l.href=connecte()?'/menu.html':'/connexion.html'; l.textContent=connecte()?'Aller au menu':'Se connecter'; l.classList.remove('hidden'); }
+</script>
+</body></html>

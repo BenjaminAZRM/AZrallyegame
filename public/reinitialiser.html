@@ -1,0 +1,75 @@
+<!DOCTYPE html><html lang="fr"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHRONORALLYERACE — Nouveau mot de passe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="theme.css">
+<style>
+  body{display:flex;flex-direction:column;min-height:100vh}
+  body::before{content:"";position:fixed;inset:0;z-index:-1;
+    background:linear-gradient(180deg,rgba(10,12,15,.32),rgba(10,12,15,.5) 45%,rgba(10,12,15,.7) 100%),url('/bg-connexion.jpg') center/cover no-repeat;}
+  main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:40px 20px}
+  .brand-txt-big{font-family:var(--font-titre);font-weight:700;letter-spacing:.1em;font-size:26px;line-height:1;text-transform:uppercase;text-shadow:0 2px 18px rgba(0,0,0,.75)}
+  .brand-txt-big .c1{color:#fff}.brand-txt-big .c2{color:#F57C00}.brand-txt-big .c3{color:#fff}
+  .panel{width:100%;max-width:400px;background:rgba(18,21,26,.9);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    border:1px solid rgba(249,115,22,.28);border-radius:var(--radius);padding:26px 24px 28px;box-shadow:0 24px 60px -18px rgba(0,0,0,.75);text-align:center}
+  .panel h1{font-size:22px;margin-bottom:14px}
+  .panel p{font-size:14px;color:var(--paper);line-height:1.6;margin-bottom:8px}
+  label{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fog);margin:16px 0 7px;text-align:left}
+  input{width:100%;background:#0c0e12;border:2px solid var(--line);border-radius:10px;padding:13px 14px;font-size:15px;color:var(--paper);outline:none;font-family:var(--font-corps)}
+  input:focus{border-color:var(--accent)}
+  .hint{font-size:11px;color:#5b616b;margin-top:6px;text-align:left}
+  .err{min-height:18px;margin:14px 0 2px;font-size:12px;color:#f87171}
+  .ok{margin:10px 0 2px;font-size:13px;color:#4ade80;line-height:1.6}
+  .submit{width:100%;margin-top:14px;justify-content:center;padding:15px;font-size:16px}
+  .submit:disabled{opacity:.55;cursor:default;transform:none}
+  .lnk{display:inline-block;margin-top:14px;font-size:13px;color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent)}
+  .state{font-size:34px;margin-bottom:6px}
+  footer{border-top:1px solid var(--line);padding:14px;text-align:center;color:var(--fog);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+  .hidden{display:none}
+</style>
+</head><body>
+  <main>
+    <div class="brand-txt-big"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></div>
+    <div class="panel">
+      <h1>Nouveau mot de passe</h1>
+      <div id="form">
+        <p>Choisis un nouveau mot de passe pour ton compte.</p>
+        <label for="p1">Nouveau mot de passe</label>
+        <input id="p1" type="password" autocomplete="new-password" placeholder="6 caractères minimum">
+        <label for="p2">Confirme le mot de passe</label>
+        <input id="p2" type="password" autocomplete="new-password" placeholder="Retape le mot de passe">
+        <div class="err" id="err"></div>
+        <button class="btn btn-primary submit" id="submit">Valider</button>
+      </div>
+      <div id="done" class="hidden">
+        <div class="state">✅</div>
+        <p class="ok">Mot de passe modifié. Tu es connecté.</p>
+        <a class="lnk" href="/menu.html">Aller au menu</a>
+      </div>
+    </div>
+  </main>
+  <footer>CHRONORALLYERACE — Simulation amateur, non officielle</footer>
+<script>
+  var $=function(id){return document.getElementById(id);};
+  function tok(){try{return new URLSearchParams(location.search).get('token')||'';}catch(e){return '';}}
+  var T=tok();
+  if(!T){ $('form').innerHTML='<div class="state">⚠️</div><p>Lien invalide ou incomplet.</p><a class="lnk" href="/connexion.html">Retour à la connexion</a>'; }
+  async function submit(){
+    var err=$('err'); err.textContent='';
+    var p1=$('p1').value, p2=$('p2').value;
+    if(p1.length<6){ err.textContent='Mot de passe trop court (6 caractères minimum).'; return; }
+    if(p1!==p2){ err.textContent='Les deux mots de passe ne correspondent pas.'; return; }
+    var btn=$('submit'); btn.disabled=true;
+    try{
+      var r=await fetch('/api/recover/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:T,newCode:p1})});
+      var d=await r.json();
+      if(!r.ok||!d.ok){ err.textContent=(d&&d.error)||'Échec.'; btn.disabled=false; return; }
+      try{ localStorage.setItem('azr_user',d.username); localStorage.setItem('azr_token',d.token||''); }catch(e){}
+      $('form').classList.add('hidden'); $('done').classList.remove('hidden');
+    }catch(e){ err.textContent='Serveur injoignable. Réessaie dans un instant.'; btn.disabled=false; }
+  }
+  var b=$('submit'); if(b) b.onclick=submit;
+  var pp=$('p2'); if(pp) pp.addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
+</script>
+</body></html>

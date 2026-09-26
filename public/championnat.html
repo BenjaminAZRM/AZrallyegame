@@ -184,7 +184,7 @@ function scolBg(s){
 function vCol(v){return v>=90?"#f59e0b":v>=85?"#60a5fa":"#9ca3af";}
 function coS(d){if(!d)return{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.85,nom:""};return{asp:d.casp||80,ter:d.cter||80,nei:d.cnei||80,sec:d.csec||80,plu:d.cplu||80,rap:d.crap||80,sin:d.csin||80,fib:d.cfib||0.85,nom:d.cop||""};}
 
-let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:""};
+let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:"",aEmail:false,emailVerifie:true,verrou:false};
 function statEvent(type){
   try{
     var tok='';try{tok=localStorage.getItem('azr_token')||'';}catch(e){}
@@ -202,7 +202,25 @@ const RV_APPEAR=450,RV_HOLD=700,RV_SLIDE=650,RV_GAP=350;
 const rvWait=ms=>new Promise(res=>{revealTimer=setTimeout(res,ms);});
 function stopReveal(){revealSeq++;if(revealTimer){clearTimeout(revealTimer);clearInterval(revealTimer);revealTimer=null;}ST.revealing=false;}
 
-function init(){var _u;try{_u=localStorage.getItem('azr_user');}catch(e){}if(!_u){location.replace('/connexion.html?next=/championnat.html');return;}ST.playerName=_u;ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};render();}
+function init(){
+  var _u,_t;
+  try{_u=localStorage.getItem('azr_user');_t=localStorage.getItem('azr_token')||'';}catch(e){}
+  if(!_u){location.replace('/connexion.html?next=/championnat.html');return;}
+  ST.playerName=_u;ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};
+  render();
+  // Un compte dont l'e-mail n'est pas vérifié ne peut pas lancer de partie
+  try{
+    fetch('/api/me',{headers:{'Authorization':_t?('Bearer '+_t):''}})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d&&d.ok){
+          ST.aEmail=!!d.aEmail; ST.emailVerifie=!!d.email_verifie;
+          ST.verrou = ST.aEmail && !ST.emailVerifie;
+          if(ST.verrou && ST.phase==="rules") render();
+        }
+      }).catch(function(){});
+  }catch(e){}
+}
 
 function makeDraftOffers(){
   // Tour 0 = 3 pilotes, Tour 1 = 3 copilotes, Tour 2 = 3 voitures.
@@ -500,7 +518,12 @@ function rRules(){
     <section class="sc-card">
       <h1>Arriveras-tu à être <em>Champion du Monde&nbsp;?</em></h1>
       <p class="sc-lead">Constitue ton équipage, choisis ta voiture et adapte ta stratégie à chaque rallye pour monter sur la plus haute marche du podium.</p>
-      <button class="sc-cta" id="startDraft">Démarrer la draft <span class="arw">→</span></button>
+      ${ST.verrou ? `<div style="border:1px solid #f97316;background:rgba(249,115,22,.12);border-radius:12px;padding:14px 16px;margin:0 auto 14px;max-width:520px;text-align:left;color:#ffd7a8;font-size:13px;line-height:1.55">
+        <b style="color:#fff">Vérifie ton adresse e-mail pour jouer.</b> Un lien t'a été envoyé. Clique dessus, puis reviens ici.
+        <div style="margin-top:10px"><button id="resendVerif" type="button" style="background:#f97316;border:none;border-radius:8px;padding:9px 14px;color:#141414;font-weight:700;font-size:12px;cursor:pointer">Renvoyer le lien</button> <span id="resendMsg" style="margin-left:8px;color:#8b929c;font-size:12px"></span></div>
+      </div>
+      <button class="sc-cta" id="startDraft" disabled style="opacity:.5;cursor:not-allowed">Démarrer la draft <span class="arw">→</span></button>`
+      : `<button class="sc-cta" id="startDraft">Démarrer la draft <span class="arw">→</span></button>`}
       <div class="sc-path" aria-hidden="true">
         <div class="st active"><span class="n">01</span><span class="l">Draft</span></div>
         <span class="ar">→</span>
@@ -513,6 +536,19 @@ function rRules(){
 }
 
 function attachRulesEv(){
+  if(ST.verrou){
+    const rb=document.getElementById("resendVerif");
+    if(rb) rb.addEventListener("click",async()=>{
+      const msg=document.getElementById("resendMsg"); rb.disabled=true; if(msg) msg.textContent="Envoi…";
+      try{
+        var tok='';try{tok=localStorage.getItem('azr_token')||'';}catch(e){}
+        const r=await fetch('/api/verify/resend',{method:'POST',headers:{'Authorization':tok?('Bearer '+tok):''}});
+        const d=await r.json();
+        if(msg) msg.textContent=(r.ok&&d.ok)?"Lien renvoyé. Vérifie ta boîte (et les spams).":((d&&d.error)||"Réessaie plus tard.");
+      }catch(e){ const m=document.getElementById("resendMsg"); if(m) m.textContent="Serveur injoignable."; }
+    });
+    return;
+  }
   const btn=document.getElementById("startDraft");
   if(btn){
     btn.addEventListener("click",()=>{
@@ -866,7 +902,7 @@ function rResults(){
 
 function attachEv(){
   const tb=document.getElementById("tirageBtn");if(tb)tb.addEventListener("click",()=>{ST.tirageState="spinning";render();setTimeout(()=>{ST.tirageState="revealed";render();},800);});
-  const cb=document.getElementById("chooseBtn");if(cb)cb.addEventListener("click",()=>{ST.phase="draft";render();});
+  const cb=document.getElementById("chooseBtn");if(cb)cb.addEventListener("click",()=>{if(ST.verrou){render();return;}ST.phase="draft";render();});
   const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{stopReveal();ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:ST.playerName||""};render();});
 }
 init();
