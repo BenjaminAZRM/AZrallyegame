@@ -240,8 +240,10 @@ async function dbSetEmail(key, email) {
   if (accounts[key]) { accounts[key].email = email; accounts[key].email_verifie = false; saveAccounts(); return true; }
   return false;
 }
-// RGPD : supprimer un compte et tous ses scores
+// RGPD : supprimer un compte et tous ses scores (contre-la-montre + Course au Titre)
+let crrRgpd = null; // renseigné au montage de crr-routes.js (plus bas)
 async function dbDeleteAccount(key, name) {
+  if (crrRgpd) await crrRgpd.supprimerJoueur(name);
   if (dbReady) {
     await pool.query('DELETE FROM records WHERE name=$1', [name]);
     await pool.query('DELETE FROM accounts WHERE key=$1', [key]);
@@ -260,14 +262,22 @@ async function dbExportUser(key, name) {
   } else {
     mine = records.filter(r => r.name === name).map(r => ({ total: r.total, splits: r.splits, date: r.date }));
   }
+  let courseAuTitre = null;
+  if (crrRgpd) {
+    try { courseAuTitre = await crrRgpd.exporterJoueur(name); }
+    catch (e) { console.error('export CRR:', e.message); }
+  }
   return {
     compte: {
       identifiant: acc ? acc.name : name,
+      email: acc && acc.email ? acc.email : null,
+      email_verifie: !!(acc && acc.email_verifie),
       question_secrete: acc && acc.question ? acc.question : null,
       compte_cree_le: acc && acc.created ? new Date(Number(acc.created)).toISOString() : null,
-      note: "Le code et la réponse secrète ne sont pas exportables : ils sont chiffrés et illisibles, y compris par l'administrateur."
+      note: "Le mot de passe et la réponse secrète ne sont pas exportables : ils sont chiffrés et illisibles, y compris par l'administrateur."
     },
-    parties_contre_la_montre: mine
+    parties_contre_la_montre: mine,
+    course_au_titre: courseAuTitre
   };
 }
 
@@ -641,7 +651,7 @@ app.get('/api/me/export', async (req, res) => {
   if (!user) return res.status(401).json({ ok: false, error: 'Session expirée.' });
   try {
     const data = await dbExportUser(user.toLowerCase(), user);
-    res.setHeader('Content-Disposition', 'attachment; filename="azrallyegame-mes-donnees.json"');
+    res.setHeader('Content-Disposition', 'attachment; filename="chronorallyerace-mes-donnees.json"');
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.send(JSON.stringify(data, null, 2));
   } catch (e) {
@@ -1059,7 +1069,7 @@ function etatPublic(room) {
   };
 }
 
-require('./crr-routes.js')({
+crrRgpd = require('./crr-routes.js')({
   app,
   pool,
   isDbReady: () => dbReady,

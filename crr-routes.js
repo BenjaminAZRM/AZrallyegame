@@ -1132,4 +1132,60 @@ module.exports = function mountCRR(deps) {
     }
   });
 
+  // ── RGPD : export et effacement des données Course au Titre d'un joueur ────
+  // Appelés par /api/me/export et /api/me/delete (server.js). Comparaison sans
+  // tenir compte de la casse : le pseudo est unique quelle que soit la casse.
+  const memeJoueur = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+
+  async function exporterJoueur(user) {
+    const ecuries = [], jokers = [];
+    if (pg()) {
+      const e = await pool.query(
+        'SELECT rallye,equipages,voiture,cout,cree,joker_rallye FROM crr_ecuries WHERE LOWER(joueur)=LOWER($1) ORDER BY cree ASC', [user]);
+      e.rows.forEach(r => ecuries.push({
+        rallye: r.rallye, equipages: r.equipages, voiture: r.voiture, cout: r.cout,
+        joker_rallye: r.joker_rallye ? JSON.parse(r.joker_rallye) : null,
+        enregistree_le: r.cree ? new Date(Number(r.cree)).toISOString() : null }));
+      const j = await pool.query(
+        'SELECT rallye,joker,ss,equipage,pose FROM crr_jokers WHERE LOWER(joueur)=LOWER($1) ORDER BY pose ASC', [user]);
+      j.rows.forEach(r => jokers.push({ rallye: r.rallye, joker: r.joker, speciale: r.ss, equipage: r.equipage,
+        pose_le: r.pose ? new Date(Number(r.pose)).toISOString() : null }));
+    } else {
+      for (const k in store.ecuries) {
+        const [rallye, u] = k.split('|');
+        if (!memeJoueur(u, user)) continue;
+        const ec = store.ecuries[k];
+        ecuries.push({ rallye, equipages: ec.equipages, voiture: ec.voiture, cout: ec.cout, joker_rallye: ec.jokerRallye || null });
+      }
+      for (const k in store.jokers) {
+        const [rallye, u] = k.split('|');
+        if (!memeJoueur(u, user)) continue;
+        (store.jokers[k] || []).forEach(jk => jokers.push({ rallye, joker: jk.joker, speciale: jk.ss, equipage: jk.equipage }));
+      }
+    }
+    let parties = [];
+    if (pool && tablesPretes) {
+      try {
+        const s = await pool.query(
+          'SELECT jeu,type,ts FROM stats_evenements WHERE joueur=LOWER($1) ORDER BY ts ASC', [String(user).trim()]);
+        parties = s.rows.map(r => ({ jeu: r.jeu, evenement: r.type === 'fin' ? 'partie terminée' : 'partie commencée',
+          le: new Date(Number(r.ts)).toISOString() }));
+      } catch (e) { /* non bloquant */ }
+    }
+    return { ecuries, jokers, historique_parties: parties };
+  }
+
+  async function supprimerJoueur(user) {
+    if (pool && tablesPretes) {
+      await pool.query('DELETE FROM crr_ecuries WHERE LOWER(joueur)=LOWER($1)', [user]);
+      await pool.query('DELETE FROM crr_jokers WHERE LOWER(joueur)=LOWER($1)', [user]);
+      await pool.query('DELETE FROM stats_evenements WHERE joueur=LOWER($1)', [String(user).trim()]);
+    }
+    let modifie = false;
+    for (const k of Object.keys(store.ecuries)) if (memeJoueur(k.split('|')[1], user)) { delete store.ecuries[k]; modifie = true; }
+    for (const k of Object.keys(store.jokers))  if (memeJoueur(k.split('|')[1], user)) { delete store.jokers[k];  modifie = true; }
+    if (modifie) saveFile();
+  }
+
+  return { exporterJoueur, supprimerJoueur };
 };
