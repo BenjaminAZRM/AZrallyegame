@@ -98,6 +98,8 @@
     border-bottom:2px solid transparent;margin-bottom:-1px;transition:.14s}
   .og:hover{color:var(--paper)}
   .og.on{color:var(--amber);border-bottom-color:var(--amber)}
+  .ongl-top{margin-bottom:20px}
+  .ongl-top .og{font-size:13px;letter-spacing:.14em;padding:14px 24px}
 
   .cr{display:flex;align-items:center;gap:12px;padding:12px 10px;border-bottom:1px solid #23272e;
     font-size:12.5px;cursor:pointer;transition:.12s}
@@ -155,6 +157,12 @@
 
   <div id="app" class="hide">
 
+    <div class="ongl ongl-top">
+      <div class="og on" data-top="gestion">Gestion</div>
+      <div class="og" data-top="stats">Statistiques</div>
+    </div>
+
+    <div id="top-stats" class="hide">
     <div id="stats">
       <h2 class="sec">Général</h2>
       <div class="st-grid">
@@ -169,7 +177,9 @@
         <div class="st-card st-secondary"><div class="st-n" id="st_uf">&mdash;</div><div class="st-k">Joueurs uniques — fini</div><div class="st-sub">Comptes ayant fini au moins une saison</div></div>
       </div>
     </div>
+    </div><!-- /top-stats -->
 
+    <div id="top-gestion">
     <div class="ongl">
       <div class="og on" data-v="res">Résultats</div>
       <div class="og" data-v="cal">Calendrier &amp; spéciales</div>
@@ -336,6 +346,7 @@ ES2	Riudecanyes 1	16.35	14/07/2026 09:12"></textarea>
       </div>
 
     </div><!-- /vcal -->
+    </div><!-- /top-gestion -->
 
   </div>
 </div>
@@ -487,11 +498,22 @@ el('effacer').onclick=function(){
 
 
 // ══════════════════════════════════════════════════════════════
-//  Onglets
+//  Onglets principaux : Gestion / Statistiques
 // ══════════════════════════════════════════════════════════════
-Array.prototype.forEach.call(document.querySelectorAll('.og'),function(o){
+Array.prototype.forEach.call(document.querySelectorAll('.ongl-top .og'),function(o){
   o.onclick=function(){
-    Array.prototype.forEach.call(document.querySelectorAll('.og'),function(x){x.classList.remove('on');});
+    Array.prototype.forEach.call(document.querySelectorAll('.ongl-top .og'),function(x){x.classList.remove('on');});
+    o.classList.add('on');
+    var t=o.getAttribute('data-top');
+    el('top-gestion').classList.toggle('hide',t!=='gestion');
+    el('top-stats').classList.toggle('hide',t!=='stats');
+    if(t==='stats')chargerStats();
+  };
+});
+// Sous-onglets de Gestion : Résultats / Calendrier
+Array.prototype.forEach.call(document.querySelectorAll('#top-gestion .ongl .og'),function(o){
+  o.onclick=function(){
+    Array.prototype.forEach.call(document.querySelectorAll('#top-gestion .ongl .og'),function(x){x.classList.remove('on');});
     o.classList.add('on');
     var v=o.getAttribute('data-v');
     el('vres').classList.toggle('hide',v!=='res');
