@@ -658,4 +658,35 @@ const DATA={
   ],
 };
 
-module.exports={RALLYES,DATA};
+// Voitures proposées au draft solo (Course au Titre / Solo Carrière) sans équipage associé dans DATA.
+// Le mode multi ne les utilise pas.
+const VOITURES_SUPP={
+  "1997":[{"nom":"Ford Escort RS Cosworth","asp":85,"ter":83,"nei":81,"sec":83,"plu":82,"rap":83,"sin":86,"fib":0.85}],
+  "1998":[{"nom":"Mitsubishi Carisma GT Evo IV","asp":85,"ter":93,"nei":95,"sec":91,"plu":92,"rap":93,"sin":86,"fib":0.93},{"nom":"Mitsubishi Lancer Evo IV","asp":85,"ter":93,"nei":95,"sec":91,"plu":92,"rap":93,"sin":86,"fib":0.93},{"nom":"Toyota Celica GT-Four (ST205)","asp":87,"ter":83,"nei":82,"sec":84,"plu":83,"rap":84,"sin":87,"fib":0.8}],
+  "1999":[{"nom":"Ford Escort WRC","asp":90,"ter":86,"nei":81,"sec":87,"plu":85,"rap":86,"sin":90,"fib":0.85},{"nom":"Škoda Octavia WRC","asp":82,"ter":82,"nei":80,"sec":81,"plu":80,"rap":81,"sin":82,"fib":0.81}],
+  "2000":[{"nom":"Seat Cordoba WRC Evo3","asp":89,"ter":85,"nei":82,"sec":86,"plu":84,"rap":85,"sin":89,"fib":0.83},{"nom":"Škoda Octavia WRC Evo2","asp":83,"ter":83,"nei":81,"sec":82,"plu":81,"rap":82,"sin":83,"fib":0.82},{"nom":"Subaru Impreza S5 WRC '99","asp":89,"ter":91,"nei":85,"sec":89,"plu":88,"rap":92,"sin":86,"fib":0.84}],
+  "2001":[{"nom":"Mitsubishi Lancer WRC","asp":85,"ter":91,"nei":93,"sec":90,"plu":89,"rap":90,"sin":86,"fib":0.88},{"nom":"Hyundai Accent WRC","asp":83,"ter":82,"nei":80,"sec":81,"plu":80,"rap":81,"sin":83,"fib":0.8}],
+};
+
+// ─── Données pour Course au Titre / Solo Carrière ────────────────────────────
+// Source UNIQUE des notes par saison : le serveur sert /solo-data.js à partir de
+// DATA + VOITURES_SUPP (voir server.js). Ne plus créer de fichier public/solo-data.js.
+const NOTES=["asp","ter","nei","sec","plu","rap","sin","fib"];
+function construireSoloData(){
+  const out={};
+  for(const annee of Object.keys(DATA)){
+    const drivers=[],cars=[],vues=new Set();
+    DATA[annee].forEach((e,i)=>{
+      const d={pos:i+1,nom:e.pilote,cop:e.copilote,voiture:e.voiture};
+      for(const k of NOTES)d[k]=e[k];
+      for(const k of NOTES)d["c"+k]=e["c"+k];
+      drivers.push(d);
+      if(e.voiture&&!vues.has(e.voiture)){vues.add(e.voiture);const c={nom:e.voiture};for(const k of NOTES)c[k]=e["v"+k];cars.push(c);}
+    });
+    for(const c of (VOITURES_SUPP[annee]||[]))if(!vues.has(c.nom)){vues.add(c.nom);cars.push(c);}
+    out[annee]={drivers,cars};
+  }
+  return "window.SOLO_DATA="+JSON.stringify(out)+";window.SOLO_RALLYES="+JSON.stringify(RALLYES)+";";
+}
+
+module.exports={RALLYES,DATA,VOITURES_SUPP,construireSoloData};

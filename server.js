@@ -5,7 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const mailer = require('./mailer.js');
-const { RALLYES, DATA } = require('./wrc-data.js');
+const { RALLYES, DATA, construireSoloData } = require('./wrc-data.js');
+const SOLO_DATA_JS = construireSoloData(); // notes par saison servies au navigateur (source unique : wrc-data.js)
 // Moteur du contre-la-montre (pour recalculer les temps côté serveur = anti-triche)
 let RECORD = null;
 try { RECORD = require('./record-data.js'); }
@@ -14,6 +15,10 @@ catch (e) { console.error('record-data.js manquant → anti-triche inactif :', e
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
+// Notes par saison pour Course au Titre / Solo Carrière, générées depuis wrc-data.js
+app.get('/solo-data.js', (req, res) => {
+  res.type('application/javascript').set('Cache-Control', 'no-cache').send(SOLO_DATA_JS);
+});
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json({ limit: '200kb' }));
 
