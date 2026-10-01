@@ -24,7 +24,7 @@ const RALLYES=[
   {name:"Chili",surface:"Terre",asp:0,ter:1,nei:0,sec:0.7,plu:0.3,rap:0.65,sin:0.35,cas:0.35},
   {name:"Chine",surface:"Terre",asp:0,ter:1,nei:0,sec:0.65,plu:0.35,rap:0.5,sin:0.5,cas:0.35},
   {name:"Chypre",surface:"Terre",asp:0,ter:1,nei:0,sec:0.9,plu:0.1,rap:0.3,sin:0.7,cas:0.45},
-  {name:"Estoine",surface:"Terre",asp:0,ter:1,nei:0,sec:0.75,plu:0.25,rap:0.8,sin:0.2,cas:0.225},
+  {name:"Estonie",surface:"Terre",asp:0,ter:1,nei:0,sec:0.75,plu:0.25,rap:0.8,sin:0.2,cas:0.225},
   {name:"Finlande",surface:"Terre",asp:0,ter:1,nei:0,sec:0.8,plu:0.2,rap:0.85,sin:0.15,cas:0.225},
   {name:"Grande-Bretagne",surface:"Terre",asp:0.1,ter:0.9,nei:0,sec:0.3,plu:0.7,rap:0.45,sin:0.55,cas:0.325},
   {name:"Indonésie",surface:"Terre",asp:0,ter:1,nei:0,sec:0.7,plu:0.3,rap:0.6,sin:0.4,cas:0.375},
