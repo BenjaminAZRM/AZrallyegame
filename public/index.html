@@ -54,6 +54,7 @@
   footer{border-top:1px solid var(--line);padding:16px 24px;text-align:center;color:var(--fog);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
   .card{background:rgba(18,21,26,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 20px 50px -20px rgba(0,0,0,.7)}
 </style>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e1013"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="ChronoRallye">
 </head>
 <body>
 
@@ -142,5 +143,6 @@
     };
   })();
 </script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 </body>
 </html>

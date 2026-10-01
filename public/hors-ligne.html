@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0e1013">
+<title>ChronoRallyeRace — Hors ligne</title>
+<link rel="stylesheet" href="/theme.css">
+<style>
+  body{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+  .off-card{
+    max-width:420px;width:100%;text-align:center;
+    background:rgba(18,21,26,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px solid var(--line);border-radius:var(--radius);padding:34px 26px;
+  }
+  .off-logo{height:110px;width:auto;display:block;margin:0 auto 18px}
+  .off-title{font-family:var(--font-titre);font-size:22px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px;color:#f97316}
+  .off-txt{font-family:var(--font-corps);font-size:14px;line-height:1.6;color:var(--fog);margin:0 0 24px}
+  .off-btn{
+    font-family:var(--font-titre);font-size:15px;letter-spacing:.06em;text-transform:uppercase;
+    background:#f97316;color:#141414;border:1px solid #f97316;border-radius:var(--radius);
+    padding:12px 26px;cursor:pointer;transition:transform .12s ease;
+  }
+  .off-btn:hover{transform:translateY(-1px)}
+</style>
+</head>
+<body>
+  <div class="off-card">
+    <img src="/logo.svg" alt="ChronoRallyeRace" class="off-logo">
+    <h1 class="off-title">Pas de réseau</h1>
+    <p class="off-txt">ChronoRallyeRace a besoin d'une connexion internet pour jouer. Vérifie ton réseau puis réessaie.</p>
+    <button class="off-btn" onclick="location.reload()">Réessayer</button>
+  </div>
+  <script>window.addEventListener('online',function(){location.reload();});</script>
+</body>
+</html>
