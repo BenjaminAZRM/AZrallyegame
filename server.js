@@ -247,8 +247,10 @@ async function dbSetEmail(key, email) {
 }
 // RGPD : supprimer un compte et tous ses scores (contre-la-montre + Course au Titre)
 let crrRgpd = null; // renseigné au montage de crr-routes.js (plus bas)
+let catRgpd = null; // renseigné au montage de cat-routes.js (championnats de championnat.html)
 async function dbDeleteAccount(key, name) {
   if (crrRgpd) await crrRgpd.supprimerJoueur(name);
+  if (catRgpd) await catRgpd.supprimerJoueur(name);
   if (dbReady) {
     await pool.query('DELETE FROM records WHERE name=$1', [name]);
     await pool.query('DELETE FROM accounts WHERE key=$1', [key]);
@@ -272,6 +274,11 @@ async function dbExportUser(key, name) {
     try { courseAuTitre = await crrRgpd.exporterJoueur(name); }
     catch (e) { console.error('export CRR:', e.message); }
   }
+  let championnats = [];
+  if (catRgpd) {
+    try { championnats = await catRgpd.exporterJoueur(name); }
+    catch (e) { console.error('export championnats:', e.message); }
+  }
   return {
     compte: {
       identifiant: acc ? acc.name : name,
@@ -282,7 +289,8 @@ async function dbExportUser(key, name) {
       note: "Le mot de passe et la réponse secrète ne sont pas exportables : ils sont chiffrés et illisibles, y compris par l'administrateur."
     },
     parties_contre_la_montre: mine,
-    course_au_titre: courseAuTitre
+    course_au_titre: courseAuTitre,
+    championnats_termines: championnats
   };
 }
 
@@ -1081,6 +1089,18 @@ crrRgpd = require('./crr-routes.js')({
   tokenFrom,
   rateLimit,
   DATA_DIR,
+});
+
+// Course au Titre (championnat.html) : draft + simulation côté serveur, top 10 par saison
+catRgpd = require('./cat-routes.js')({
+  app,
+  pool,
+  isDbReady: () => dbReady,
+  tokenFrom,
+  rateLimit,
+  DATA_DIR,
+  SOLO_DATA_JS,
+  dbGetAccount,
 });
 
 const PORT = process.env.PORT || 3000;
