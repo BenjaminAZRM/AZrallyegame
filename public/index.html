@@ -52,6 +52,21 @@
   .wip .badge{font-family:var(--font-titre,'Chakra Petch');text-transform:uppercase;letter-spacing:.14em;font-size:10px;color:var(--accent-soft,#fdba74);border:1px solid rgba(253,186,116,.35);background:rgba(253,186,116,.06);border-radius:999px;padding:5px 12px}
   .wip .note{color:var(--fog);font-size:11px;margin-top:12px;max-width:22ch}
   footer{border-top:1px solid var(--line);padding:16px 24px;text-align:center;color:var(--fog);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+  .install-bar{display:none;align-items:center;gap:16px;margin-bottom:28px;padding:16px 20px;border-radius:var(--radius,12px);flex-wrap:wrap}
+  .install-bar.show{display:flex}
+  .install-ico{width:46px;height:46px;border-radius:11px;flex-shrink:0;border:1px solid var(--line)}
+  .install-txt{flex:1;min-width:180px}
+  .install-txt strong{display:block;font-family:var(--font-titre,'Chakra Petch');text-transform:uppercase;letter-spacing:.08em;font-size:14px;color:var(--paper,#e8e6e1);margin-bottom:3px}
+  .install-txt span{font-size:12px;color:var(--fog);line-height:1.5}
+  .install-bar .rules-link{cursor:pointer;font-size:12px}
+  .install-close{background:none;border:0;color:var(--fog);font-size:20px;line-height:1;cursor:pointer;padding:4px 6px;opacity:.7}
+  .install-close:hover{opacity:1}
+  .install-ios{display:none;width:100%;border-top:1px solid var(--line);padding-top:14px;margin-top:2px;font-size:12px;color:var(--fog);line-height:1.9}
+  .install-ios.show{display:block}
+  @media(max-width:520px){.install-ios{order:5}}
+  .install-ios b{color:var(--accent)}
+  .install-ios svg{width:15px;height:15px;vertical-align:-3px;color:var(--accent)}
+  @media(max-width:520px){.install-bar .rules-link{width:100%;justify-content:center;order:4}}
   .card{background:rgba(18,21,26,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 20px 50px -20px rgba(0,0,0,.7)}
 </style>
 <link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e1013"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="ChronoRallye">
@@ -64,6 +79,18 @@
   </header>
 
   <main>
+    <div class="card install-bar" id="installBar">
+      <img src="/apple-touch-icon.png" alt="" class="install-ico">
+      <div class="install-txt"><strong>Installe l'appli</strong><span>Lance ChronoRallyeRace directement depuis ton écran d'accueil.</span></div>
+      <button class="rules-link" id="installBtn" type="button">📲 Installer l'appli</button>
+      <button class="install-close" id="installClose" type="button" aria-label="Masquer">×</button>
+      <div class="install-ios" id="installIos">
+        <b>1.</b> Touche le bouton Partager <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> de ton navigateur<br>
+        <b>2.</b> Choisis « Sur l'écran d'accueil »<br>
+        <b>3.</b> Touche « Ajouter »
+      </div>
+    </div>
+
     <div class="eyebrow">Prêt à faire des choix ?</div>
     <h1>Prends le<br>volant</h1>
     <p class="sub">Grâce à tes connaissances du rallye, constitue ton équipage, choisis tes millésimes et vise le titre de Champion du Monde. D'autres modes de jeu arrivent bientôt.</p>
@@ -141,6 +168,36 @@
         location.reload();
       }catch(e){ alert('Suppression impossible pour le moment.'); }
     };
+  })();
+</script>
+<script>
+  // Bouton « Installer l'appli » : Android/ordinateur = installation directe ; iPhone/iPad = marche à suivre
+  (function(){
+    var bar=document.getElementById('installBar'); if(!bar) return;
+    var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
+    if(standalone) return;
+    try{ if(localStorage.getItem('crr_install_hidden')) return; }catch(e){}
+    var btn=document.getElementById('installBtn'), ios=document.getElementById('installIos'), deferred=null;
+    var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    function hide(){ bar.classList.remove('show'); }
+    document.getElementById('installClose').onclick=function(){
+      try{ localStorage.setItem('crr_install_hidden','1'); }catch(e){}
+      hide();
+    };
+    if(isIOS){
+      bar.classList.add('show');
+      btn.onclick=function(){ ios.classList.toggle('show'); };
+      return;
+    }
+    window.addEventListener('beforeinstallprompt',function(e){
+      e.preventDefault(); deferred=e; bar.classList.add('show');
+    });
+    btn.onclick=function(){
+      if(!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.then(function(){ deferred=null; hide(); });
+    };
+    window.addEventListener('appinstalled',hide);
   })();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
