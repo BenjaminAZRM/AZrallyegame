@@ -1132,6 +1132,23 @@ module.exports = function mountCRR(deps) {
     }
   });
 
+  // ── Liste des joueurs (onglet « Joueurs » de l'administration) ────────────
+  // Pseudo, e-mail, statut de vérification et date d'inscription. Réservé à l'admin.
+  app.get('/api/admin/joueurs', async (req, res) => {
+    if (!estAdmin(req)) return res.status(403).json({ ok: false, error: 'Accès refusé' });
+    if (!pool) return res.json({ ok: true, joueurs: [] });
+    try {
+      const q = await pool.query(
+        'SELECT name, email, email_verifie, created FROM accounts ORDER BY created DESC');
+      res.set('Cache-Control', 'no-store');
+      res.json({ ok: true, joueurs: q.rows.map(r => ({
+        pseudo: r.name, email: r.email || '', verifie: !!r.email_verifie,
+        inscrit: r.created ? Number(r.created) : null })) });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
   // ── RGPD : export et effacement des données Course au Titre d'un joueur ────
   // Appelés par /api/me/export et /api/me/delete (server.js). Comparaison sans
   // tenir compte de la casse : le pseudo est unique quelle que soit la casse.
