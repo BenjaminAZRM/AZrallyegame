@@ -1,0 +1,21 @@
+# ChronoRallyeRace — consignes pour les moteurs de recherche
+User-agent: *
+Allow: /
+
+# Pages techniques ou réservées aux joueurs connectés : inutiles dans les résultats
+Disallow: /api/
+Disallow: /socket.io/
+Disallow: /crr-admin.html
+Disallow: /connexion.html
+Disallow: /ajouter-email.html
+Disallow: /verifier.html
+Disallow: /reinitialiser.html
+Disallow: /hors-ligne.html
+Disallow: /menu.html
+Disallow: /championnat.html
+Disallow: /solo.html
+Disallow: /crr.html
+Disallow: /multi.html
+Disallow: /record.html
+
+Sitemap: https://chronorallyerace.com/sitemap.xml
