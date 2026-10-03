@@ -134,6 +134,15 @@
   .st-bar i{display:block;height:100%;background:var(--amber);width:0}
   @media(max-width:640px){.st-grid{grid-template-columns:1fr 1fr}.st-card .st-n{font-size:34px}.st-card.st-secondary .st-n{font-size:26px}}
   @media(max-width:420px){.st-grid{grid-template-columns:1fr}}
+
+  /* ── Joueurs ── */
+  .jo-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .jo-bar input{flex:1;min-width:200px}
+  .jo-wrap{overflow-x:auto}
+  .jo-wrap td{white-space:nowrap}
+  .jo-ok{color:var(--amber)}
+  .jo-non{color:var(--fog)}
+  .jo-vide{color:var(--fog);text-align:center;padding:18px 8px}
 </style>
 </head>
 <body>
@@ -160,6 +169,7 @@
     <div class="ongl ongl-top">
       <div class="og on" data-top="gestion">Gestion</div>
       <div class="og" data-top="stats">Statistiques</div>
+      <div class="og" data-top="joueurs">Joueurs</div>
     </div>
 
     <div id="top-stats" class="hide">
@@ -178,6 +188,23 @@
       </div>
     </div>
     </div><!-- /top-stats -->
+
+    <div id="top-joueurs" class="hide">
+      <h2 class="sec">Joueurs inscrits <span class="jeu" id="jo_total"></span></h2>
+      <div class="panel">
+        <div class="jo-bar">
+          <input type="text" id="jo_rech" placeholder="Rechercher un pseudo ou un e-mail…">
+          <button class="btn ghost" id="jo_csv">Télécharger (Excel / CSV)</button>
+        </div>
+        <div class="jo-wrap">
+          <table>
+            <thead><tr><th>Pseudo</th><th>E-mail</th><th>Vérifié</th><th>Inscrit le</th></tr></thead>
+            <tbody id="jo_liste"><tr><td colspan="4" class="jo-vide">Chargement…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="hint">Données personnelles : à utiliser uniquement pour la gestion de la plateforme. Le fichier téléchargé est à conserver en lieu sûr et à ne pas partager.</div>
+      </div>
+    </div><!-- /top-joueurs -->
 
     <div id="top-gestion">
     <div class="ongl">
@@ -393,6 +420,51 @@ function chargerStats(){
     var bar=el('st_bar'); if(bar)bar.style.width = taux+'%';
   });
 }
+// ── Onglet Joueurs : liste des comptes + export CSV ──
+var JOUEURS=[];
+function joDate(ms){
+  if(!ms)return '\u2014';
+  var d=new Date(ms),p=function(n){return (n<10?'0':'')+n;};
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();
+}
+function joFiltres(){
+  var q=(el('jo_rech').value||'').trim().toLowerCase();
+  if(!q)return JOUEURS;
+  return JOUEURS.filter(function(j){
+    return (j.pseudo||'').toLowerCase().indexOf(q)>=0||(j.email||'').toLowerCase().indexOf(q)>=0;});
+}
+function afficherJoueurs(){
+  var l=joFiltres();
+  el('jo_liste').innerHTML=l.length?l.map(function(j){
+    return '<tr><td><b>'+esc(j.pseudo)+'</b></td><td>'+(j.email?esc(j.email):'<span class="jo-non">\u2014</span>')+
+      '</td><td>'+(j.email?(j.verifie?'<span class="jo-ok">Oui</span>':'<span class="jo-non">Non</span>'):'<span class="jo-non">\u2014</span>')+
+      '</td><td>'+joDate(j.inscrit)+'</td></tr>';}).join('')
+    :'<tr><td colspan="4" class="jo-vide">Aucun joueur</td></tr>';
+}
+function chargerJoueurs(){
+  H('/api/admin/joueurs').then(function(d){
+    if(!d||!d.ok){
+      el('jo_liste').innerHTML='<tr><td colspan="4" class="jo-vide">'+esc((d&&d.error)||'Chargement impossible')+'</td></tr>';
+      return;
+    }
+    JOUEURS=d.joueurs||[];
+    el('jo_total').textContent='· '+JOUEURS.length;
+    afficherJoueurs();
+  });
+}
+el('jo_rech').oninput=afficherJoueurs;
+el('jo_csv').onclick=function(){
+  var l=joFiltres(); if(!l.length)return;
+  // Protège contre les formules Excel et échappe les guillemets
+  var c=function(v){v=String(v==null?'':v);if(/^[=+\-@]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"';};
+  var lignes=['Pseudo;E-mail;Vérifié;Inscrit le'].concat(l.map(function(j){
+    return [c(j.pseudo),c(j.email),c(j.email?(j.verifie?'Oui':'Non'):''),c(j.inscrit?joDate(j.inscrit):'')].join(';');}));
+  var blob=new Blob(['\ufeff'+lignes.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='chronorallyerace-joueurs.csv';a.click();
+  URL.revokeObjectURL(a.href);
+};
+
 function charger(){
   H('/api/crr/admin/rallyes').then(function(d){
     if(!d.ok){el('retour').innerHTML='<div class="msg err">'+esc(d.error)+'</div>';return;}
@@ -507,7 +579,9 @@ Array.prototype.forEach.call(document.querySelectorAll('.ongl-top .og'),function
     var t=o.getAttribute('data-top');
     el('top-gestion').classList.toggle('hide',t!=='gestion');
     el('top-stats').classList.toggle('hide',t!=='stats');
+    el('top-joueurs').classList.toggle('hide',t!=='joueurs');
     if(t==='stats')chargerStats();
+    if(t==='joueurs')chargerJoueurs();
   };
 });
 // Sous-onglets de Gestion : Résultats / Calendrier
