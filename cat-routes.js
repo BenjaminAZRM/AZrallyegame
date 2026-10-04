@@ -6,7 +6,7 @@
 // À la fin du 10e rallye, le total de points est enregistré automatiquement.
 // Classement : top 10 de tous les joueurs par saison WRC jouée (année de la voiture)
 // + record perso du joueur sur cette saison.
-// Palmarès : meilleur résultat du joueur sur chaque saison (classement + points).
+// Palmarès : sur chaque saison, meilleure place au championnat et meilleur total de points du joueur.
 'use strict';
 
 const fs = require('fs');
@@ -193,18 +193,13 @@ module.exports = function mountCourseAuTitre(deps) {
     return store.resultats.filter(x => x.saison === saison);
   }
 
-  // Meilleur total de chaque joueur sur chaque saison (une ligne par joueur et par saison)
-  async function meilleursParSaison() {
+  // Tous les championnats terminés d'un joueur (saison, points, place au championnat)
+  async function resultatsJoueur(key) {
     if (pg()) {
-      const r = await pool.query('SELECT saison, joueur_key, MAX(pts)::int AS pts FROM cat_resultats GROUP BY saison, joueur_key');
-      return r.rows.map(x => ({ saison: Number(x.saison), joueur_key: x.joueur_key, pts: Number(x.pts) }));
+      const r = await pool.query('SELECT saison, pts, rang FROM cat_resultats WHERE joueur_key=$1', [key]);
+      return r.rows.map(x => ({ saison: Number(x.saison), pts: Number(x.pts), rang: Number(x.rang) }));
     }
-    const m = {};
-    store.resultats.forEach(x => {
-      const k = x.saison + '|' + x.joueur_key;
-      if (!m[k] || x.pts > m[k].pts) m[k] = { saison: Number(x.saison), joueur_key: x.joueur_key, pts: x.pts };
-    });
-    return Object.values(m);
+    return store.resultats.filter(x => x.joueur_key === key).map(x => ({ saison: Number(x.saison), pts: x.pts, rang: x.rang }));
   }
 
   // Ménage : parties abandonnées depuis plus de 7 jours
@@ -255,16 +250,19 @@ module.exports = function mountCourseAuTitre(deps) {
   }
 
   // ── Palmarès du joueur : toutes les saisons, de la plus récente à la plus ancienne ──
-  // Saison jamais terminée : pts = null. Le classement suit la même règle que le record perso
-  // (rang = 1 + nombre de joueurs ayant un meilleur total strictement supérieur sur la saison).
+  // Pour chaque saison, deux records indépendants sur l'ensemble de ses championnats terminés :
+  // sa meilleure place au championnat et son meilleur total de points (pas forcément la même partie).
+  // Saison jamais terminée : pts = null.
   async function palmares(key) {
-    const parSaison = {};
-    (await meilleursParSaison()).forEach(x => { (parSaison[x.saison] = parSaison[x.saison] || []).push(x); });
+    const meilleur = {};
+    (await resultatsJoueur(key)).forEach(x => {
+      const m = meilleur[x.saison];
+      if (!m) meilleur[x.saison] = { pts: x.pts, rang: x.rang };
+      else { if (x.pts > m.pts) m.pts = x.pts; if (x.rang < m.rang) m.rang = x.rang; }
+    });
     const saisons = YEARS.slice().sort((a, b) => b - a).map(saison => {
-      const liste = parSaison[saison] || [];
-      const mien = liste.find(x => x.joueur_key === key);
-      if (!mien) return { saison, pts: null, rang: null, nbJoueurs: liste.length };
-      return { saison, pts: mien.pts, rang: 1 + liste.filter(x => x.pts > mien.pts).length, nbJoueurs: liste.length };
+      const m = meilleur[saison];
+      return m ? { saison, pts: m.pts, rang: m.rang } : { saison, pts: null, rang: null };
     });
     return { ok: true, saisons };
   }
