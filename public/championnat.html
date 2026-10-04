@@ -545,8 +545,10 @@ function goToRally(idx){
   ST.phase="launch";ST.riskLevel=null;render();
 }
 
+let phaseAffichee=null;
 function render(){
   const app=document.getElementById("app");
+  const nouvelEcran=ST.phase!==phaseAffichee;phaseAffichee=ST.phase;
   if(ST.phase==="rules"){app.innerHTML=rRules();attachRulesEv();}
   else if(ST.phase==="draft"){app.innerHTML=rDraft();attachDraftEv();}
   else if(ST.phase==="recap"){app.innerHTML=rRecap();attachRecapEv();}
@@ -554,6 +556,8 @@ function render(){
   else if(ST.phase==="sim"){app.innerHTML=rSim();attachSimEv();}
   else if(ST.phase==="champ"){app.innerHTML=rChamp();attachChampEv();}
   else{app.innerHTML=rResults();attachEv();}
+  // Changement d'écran : on repart toujours du haut de la page
+  if(nouvelEcran)window.scrollTo(0,0);
 }
 
 function rRules(){
@@ -939,7 +943,7 @@ function attachChampEv(){
 function escH(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function rangTxt(n){return n===1?"1er":n+"e";}
 // ── Palmarès : meilleur résultat du joueur sur chaque saison (accueil + fin de championnat) ──
-// ST.palmares = null (pas encore chargé) | {erreur:true} | {saisons:[{saison,pts,rang,nbJoueurs}]} — pts null = saison jamais terminée
+// ST.palmares = null (pas encore chargé) | {erreur:true} | {saisons:[{saison,pts,rang}]} — rang = sa meilleure place au championnat, pts = son meilleur total (records indépendants) ; pts null = saison jamais terminée
 // 8 saisons affichées à la fois ; les flèches font défiler les suivantes / précédentes.
 // saisonCourante : saison qui vient d'être jouée (repère orange), uniquement sur l'écran final
 const PAL_NB=8;
@@ -963,7 +967,7 @@ function rPalmares(saisonCourante){
     return s.pts===null
       ?`<tr class="${cls.join(" ")}"><td>${s.saison}</td><td>–</td><td>–</td></tr>`
       :`<tr class="${cls.join(" ")}"><td>${s.saison}</td>
-        <td><span class="pal-rk">${rangTxt(s.rang)}<small>/ ${s.nbJoueurs}</small></span></td>
+        <td><span class="pal-rk">${s.rang===1?"1er":s.rang+"ème"}</span></td>
         <td><span class="pal-pts">${s.pts}<small>pts</small></span></td></tr>`;
   }).join("");
   const nav=P.saisons.length>PAL_NB?`<div class="pal-nav">
