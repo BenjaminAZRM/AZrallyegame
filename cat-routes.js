@@ -6,6 +6,7 @@
 // À la fin du 10e rallye, le total de points est enregistré automatiquement.
 // Classement : top 10 de tous les joueurs par saison WRC jouée (année de la voiture)
 // + record perso du joueur sur cette saison.
+// Palmarès : meilleur résultat du joueur sur chaque saison (classement + points).
 'use strict';
 
 const fs = require('fs');
@@ -192,6 +193,20 @@ module.exports = function mountCourseAuTitre(deps) {
     return store.resultats.filter(x => x.saison === saison);
   }
 
+  // Meilleur total de chaque joueur sur chaque saison (une ligne par joueur et par saison)
+  async function meilleursParSaison() {
+    if (pg()) {
+      const r = await pool.query('SELECT saison, joueur_key, MAX(pts)::int AS pts FROM cat_resultats GROUP BY saison, joueur_key');
+      return r.rows.map(x => ({ saison: Number(x.saison), joueur_key: x.joueur_key, pts: Number(x.pts) }));
+    }
+    const m = {};
+    store.resultats.forEach(x => {
+      const k = x.saison + '|' + x.joueur_key;
+      if (!m[k] || x.pts > m[k].pts) m[k] = { saison: Number(x.saison), joueur_key: x.joueur_key, pts: x.pts };
+    });
+    return Object.values(m);
+  }
+
   // Ménage : parties abandonnées depuis plus de 7 jours
   setInterval(async () => {
     const limite = Date.now() - 7 * 24 * 3600000;
@@ -237,6 +252,21 @@ module.exports = function mountCourseAuTitre(deps) {
       perso = { pts: mien, rang, nbJoueurs: Object.keys(meilleurs).length, nouveau };
     }
     return { ok: true, saison, top, perso, partie };
+  }
+
+  // ── Palmarès du joueur : toutes les saisons, de la plus récente à la plus ancienne ──
+  // Saison jamais terminée : pts = null. Le classement suit la même règle que le record perso
+  // (rang = 1 + nombre de joueurs ayant un meilleur total strictement supérieur sur la saison).
+  async function palmares(key) {
+    const parSaison = {};
+    (await meilleursParSaison()).forEach(x => { (parSaison[x.saison] = parSaison[x.saison] || []).push(x); });
+    const saisons = YEARS.slice().sort((a, b) => b - a).map(saison => {
+      const liste = parSaison[saison] || [];
+      const mien = liste.find(x => x.joueur_key === key);
+      if (!mien) return { saison, pts: null, rang: null, nbJoueurs: liste.length };
+      return { saison, pts: mien.pts, rang: 1 + liste.filter(x => x.pts > mien.pts).length, nbJoueurs: liste.length };
+    });
+    return { ok: true, saisons };
   }
 
   // ── Garde-fous communs ──────────────────────────────────────────────────────
@@ -350,6 +380,13 @@ module.exports = function mountCourseAuTitre(deps) {
     const partieId = /^\d+$/.test(String(req.query.partie || '')) ? String(req.query.partie) : null;
     try { res.json(await classement(saison, J.key, partieId)); }
     catch (e) { console.error('GET /api/cat/classement', e.message); erreur(res, 500, 'Classement indisponible.'); }
+  });
+
+  // 6) Palmarès du joueur connecté : son meilleur résultat sur chaque saison
+  app.get('/api/cat/palmares', async (req, res) => {
+    const J = await joueurAutorise(req, res); if (!J) return;
+    try { res.json(await palmares(J.key)); }
+    catch (e) { console.error('GET /api/cat/palmares', e.message); erreur(res, 500, 'Palmarès indisponible.'); }
   });
 
   // ── RGPD : export et effacement (appelés par server.js) ─────────────────────
