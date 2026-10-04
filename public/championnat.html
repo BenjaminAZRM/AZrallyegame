@@ -186,6 +186,28 @@ body::before{
 .t10-row.you .t10-pts{color:#c4b5fd}
 .t10-empty{font-size:12px;color:var(--fog);padding:12px 2px}
 @media(max-width:480px){.rec-card{flex-wrap:wrap;gap:10px 14px}.rec-pts{font-size:30px}.rec-mid{flex:1 1 170px}}
+/* ── Palmarès du joueur : meilleur résultat sur chaque saison (accueil + fin de championnat) ── */
+.sc-stage{flex-direction:column;gap:18px}
+.pal-card{position:relative;z-index:3;width:100%;max-width:468px;border-radius:var(--radius);background:rgba(18,21,26,.82);border:1px solid var(--line);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 24px 60px -18px rgba(0,0,0,.7);padding:18px 18px 10px}
+.pal-card.fin{max-width:none;box-shadow:none}
+.pal-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.pal-h{font-family:var(--font-titre);font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:14px;color:var(--paper)}
+.pal-n{font-size:11px;color:var(--fog)}
+.pal-n b{color:var(--accent);font-weight:700}
+.pal-tb{width:100%;border-collapse:collapse}
+.pal-tb th{font-size:10px;font-weight:400;color:#b6bcc4;text-transform:uppercase;letter-spacing:.1em;text-align:right;padding:0 10px 8px;border-bottom:1px solid var(--line)}
+.pal-tb th:first-child{text-align:left}
+.pal-tb td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06);font-family:var(--font-titre);font-variant-numeric:tabular-nums}
+.pal-tb tr:last-child td{border-bottom:none}
+.pal-tb td:first-child{text-align:left;font-weight:700;font-size:15px;color:var(--paper)}
+.pal-rk{font-weight:600;font-size:14px;color:#eceef1}
+.pal-rk small{font-size:11px;color:var(--fog);font-weight:400;margin-left:4px}
+.pal-tb tr.lead .pal-rk{color:var(--accent);font-weight:700}
+.pal-pts{font-weight:700;font-size:15px;color:#fdba74}
+.pal-pts small{font-size:11px;color:var(--fog);font-weight:600;margin-left:3px}
+.pal-tb tr.vide td{color:#4b5563}
+.pal-tb tr.vide td:first-child{color:#6b7280;font-weight:600}
+.pal-tb tr.cur td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .cat-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:50;max-width:min(92vw,420px);background:rgba(18,21,26,.95);border:1px solid #dc2626;border-radius:10px;padding:11px 16px;font-size:13px;color:#eceef1;box-shadow:0 12px 32px -10px rgba(0,0,0,.7)}
 </style><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e1013"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="ChronoRallye"></head><body>
 <div id="app"></div>
@@ -241,6 +263,7 @@ function init(){
   if(!_u){location.replace('/connexion.html?next=/championnat.html');return;}
   ST.playerName=_u;ST.phase="rules";ST.draftRound=0;ST.draftOffers=[];ST.rerollUsed=false;ST.riskLevel=null;ST.sel={};
   render();
+  chargerPalmares();
   // Un compte dont l'e-mail n'est pas vérifié ne peut pas lancer de partie
   try{
     fetch('/api/me',{headers:{'Authorization':_t?('Bearer '+_t):''}})
@@ -291,6 +314,16 @@ function chargerClassement(){
   apiCat('/api/cat/classement?saison='+encodeURIComponent(ST.sel.carYear)+'&partie='+encodeURIComponent(fin.id))
     .then(d=>{if(ST.fin!==fin)return;ST.classement=d;if(ST.phase==="results")render();})
     .catch(()=>{if(ST.fin!==fin)return;ST.classement={erreur:true};if(ST.phase==="results")render();});
+}
+
+// Charge le palmarès du joueur (accueil + écran final)
+let palmaresEnCours=false;
+function chargerPalmares(){
+  if(ST.palmares||palmaresEnCours)return;
+  palmaresEnCours=true;
+  apiCat('/api/cat/palmares')
+    .then(d=>{palmaresEnCours=false;ST.palmares=d;if(ST.phase==="rules"||ST.phase==="results")render();})
+    .catch(()=>{palmaresEnCours=false;ST.palmares={erreur:true};});
 }
 
 function champSoFar(){
@@ -543,6 +576,7 @@ function rRules(){
         <div class="st"><span class="n">03</span><span class="l">Victoire</span></div>
       </div>
     </section>
+    ${rPalmares()}
   </div>`;
 }
 
@@ -803,7 +837,7 @@ function attachLaunchEv(){
           ST.busy=false;
           ST.results[num].sorted=d.sorted.map(e=>({...e,gap:e.gap===null?Infinity:e.gap}));
           ST.champ=d.champ||{};
-          if(d.resultatId){ST.fin={id:d.resultatId};ST.classement=null;}
+          if(d.resultatId){ST.fin={id:d.resultatId};ST.classement=null;ST.palmares=null;}
           ST.phase="sim";render();startReveal(false);
         })
         .catch(e=>{ST.busy=false;render();toastCat(e.message);});
@@ -892,13 +926,33 @@ function attachChampEv(){
   const next=document.getElementById("toNext");
   if(next)next.addEventListener("click",()=>goToRally(ST.cur+1));
   const fin=document.getElementById("toResults");
-  if(fin)fin.addEventListener("click",()=>{if(!ST._finEnvoye){ST._finEnvoye=true;statEvent('fin');}ST.phase="results";render();chargerClassement();});
+  if(fin)fin.addEventListener("click",()=>{if(!ST._finEnvoye){ST._finEnvoye=true;statEvent('fin');}ST.phase="results";render();chargerClassement();chargerPalmares();});
 }
 
 // ── Fin de championnat : record perso + top 10 de la saison ──
 // ST.classement = null (chargement) | {erreur:true} | {saison, top:[{pseudo,pts,moi,cettePartie}], perso:{pts,rang,nbJoueurs,nouveau}, partie:{pts}}
 function escH(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function rangTxt(n){return n===1?"1er":n+"e";}
+// ── Palmarès : meilleur résultat du joueur sur chaque saison (accueil + fin de championnat) ──
+// ST.palmares = null (pas encore chargé) | {erreur:true} | {saisons:[{saison,pts,rang,nbJoueurs}]} — pts null = saison jamais terminée
+// saisonCourante : saison qui vient d'être jouée (repère orange), uniquement sur l'écran final
+function rPalmares(saisonCourante){
+  const P=ST.palmares;
+  if(!P||P.erreur||!P.saisons)return"";
+  const nb=P.saisons.filter(s=>s.pts!==null).length;
+  const rows=P.saisons.map(s=>{
+    const cls=[];if(s.pts===null)cls.push("vide");else if(s.rang===1)cls.push("lead");if(saisonCourante&&s.saison===saisonCourante)cls.push("cur");
+    return s.pts===null
+      ?`<tr class="${cls.join(" ")}"><td>${s.saison}</td><td>–</td><td>–</td></tr>`
+      :`<tr class="${cls.join(" ")}"><td>${s.saison}</td>
+        <td><span class="pal-rk">${rangTxt(s.rang)}<small>/ ${s.nbJoueurs}</small></span></td>
+        <td><span class="pal-pts">${s.pts}<small>pts</small></span></td></tr>`;
+  }).join("");
+  return`<section class="pal-card${saisonCourante?" fin":""}">
+    <div class="pal-top"><span class="pal-h">Ton palmarès</span><span class="pal-n"><b>${nb}</b> saison${nb>1?"s":""} jouée${nb>1?"s":""} sur ${P.saisons.length}</span></div>
+    <table class="pal-tb"><thead><tr><th>Saison</th><th>Classement</th><th>Meilleur total</th></tr></thead><tbody>${rows}</tbody></table>
+  </section>`;
+}
 function rRecordPerso(){
   const C=ST.classement,saison=ST.sel.carYear;
   if(!C)return`<div class="cl-sec"><div class="cl-lbl">Ton record · Saison <b>${saison}</b></div><div class="t10-empty">Chargement…</div></div>`;
@@ -958,13 +1012,14 @@ function rResults(){
   <div class="rallye-grid">${summary}</div>
   <div style="padding:0 20px"><div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Classement final championnat ${ST.sel.carYear}</div>${fullChamp}</div>
   ${rTop10()}
+  ${ST.palmares&&ST.palmares.saisons?`<div class="cl-sec">${rPalmares(ST.sel.carYear)}</div>`:""}
   <div style="padding:16px 20px 32px"><button id="restart" style="width:100%;background:#f97316;border:none;border-radius:8px;padding:13px;color:#141414;font-size:14px;font-weight:700;cursor:pointer">🔄 Nouvelle saison</button></div>`;
 }
 
 function attachEv(){
   const tb=document.getElementById("tirageBtn");if(tb)tb.addEventListener("click",()=>{ST.tirageState="spinning";render();setTimeout(()=>{ST.tirageState="revealed";render();},800);});
   const cb=document.getElementById("chooseBtn");if(cb)cb.addEventListener("click",()=>{if(ST.verrou){render();return;}ST.phase="draft";render();});
-  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{stopReveal();ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:ST.playerName||"",aEmail:ST.aEmail,emailVerifie:ST.emailVerifie,verrou:ST.verrou,busy:false,fin:null,classement:null};render();});
+  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{stopReveal();ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:ST.playerName||"",aEmail:ST.aEmail,emailVerifie:ST.emailVerifie,verrou:ST.verrou,busy:false,fin:null,classement:null,palmares:ST.palmares};render();chargerPalmares();});
 }
 init();
 </script>
