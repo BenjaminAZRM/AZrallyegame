@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="theme.css">
 <script src="/socket.io/socket.io.js"></script>
+<script src="solo-data.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;min-height:100vh}
@@ -400,7 +401,8 @@ const socket = io();
 
 
 
-const ANNEES = [1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+// Saisons proposées : lues dans la même base que les autres jeux (wrc-data.js, servie par /solo-data.js)
+const ANNEES = Object.keys(window.SOLO_DATA||{}).map(Number).sort((a,b)=>a-b);
 const PTS_SCALE = [25,18,15,12,10,8,6,4,2,1];
 
 let G = { monId:null, monNom:'', roomCode:null, room:null, stratChoisie:null, avecRivaux:true, nbRallyes:10, tourActuel:null, historiqueResultats:[] };
@@ -439,7 +441,7 @@ function updateSlider(){
   document.querySelectorAll('.annee-lbl').forEach((el,i)=>el.classList.toggle('active',i>=a&&i<=b));
   const sel=ANNEES.slice(a,b+1);
   document.getElementById('annee-result').textContent=
-    sel.length===ANNEES.length?'Toutes les saisons (1997 → 2025)':
+    sel.length===ANNEES.length?`Toutes les saisons (${ANNEES[0]} → ${ANNEES[ANNEES.length-1]})`:
     sel.length===1?`Saison ${sel[0]} uniquement`:
     `De ${sel[0]} à ${sel[sel.length-1]} (${sel.length} saisons)`;
 }
