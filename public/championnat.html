@@ -208,6 +208,11 @@ body::before{
 .pal-tb tr.vide td{color:#4b5563}
 .pal-tb tr.vide td:first-child{color:#6b7280;font-weight:600}
 .pal-tb tr.cur td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.pal-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;padding:10px 0 4px;border-top:1px solid var(--line)}
+.pal-rg{font-family:var(--font-titre);font-weight:600;font-size:12px;letter-spacing:.08em;color:var(--fog);font-variant-numeric:tabular-nums}
+.pal-ar{width:44px;height:36px;display:inline-flex;align-items:center;justify-content:center;background:#15181d;border:1px solid #2a2f37;border-radius:10px;color:#eceef1;font-size:16px;cursor:pointer;transition:border-color .18s,color .18s,transform .12s}
+.pal-ar:hover:not(:disabled){border-color:#f97316;color:#f97316;transform:translateY(-1px)}
+.pal-ar:disabled{opacity:.3;cursor:default}
 .cat-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:50;max-width:min(92vw,420px);background:rgba(18,21,26,.95);border:1px solid #dc2626;border-radius:10px;padding:11px 16px;font-size:13px;color:#eceef1;box-shadow:0 12px 32px -10px rgba(0,0,0,.7)}
 </style><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e1013"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="ChronoRallye"></head><body>
 <div id="app"></div>
@@ -935,12 +940,25 @@ function escH(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;"
 function rangTxt(n){return n===1?"1er":n+"e";}
 // ── Palmarès : meilleur résultat du joueur sur chaque saison (accueil + fin de championnat) ──
 // ST.palmares = null (pas encore chargé) | {erreur:true} | {saisons:[{saison,pts,rang,nbJoueurs}]} — pts null = saison jamais terminée
+// 8 saisons affichées à la fois ; les flèches font défiler les suivantes / précédentes.
 // saisonCourante : saison qui vient d'être jouée (repère orange), uniquement sur l'écran final
+const PAL_NB=8;
+let palDebut=0,palEcran=null;
+function palMax(){return Math.max(0,ST.palmares.saisons.length-PAL_NB);}
 function rPalmares(saisonCourante){
   const P=ST.palmares;
   if(!P||P.erreur||!P.saisons)return"";
+  // À l'arrivée sur un écran : l'accueil démarre aux saisons les plus récentes, l'écran final sur la saison jouée
+  const ecran=saisonCourante?"fin"+saisonCourante:"accueil";
+  if(palEcran!==ecran){
+    palEcran=ecran;
+    const i=saisonCourante?P.saisons.findIndex(s=>s.saison===saisonCourante):0;
+    palDebut=Math.min(palMax(),Math.floor(Math.max(0,i)/PAL_NB)*PAL_NB);
+  }
+  palDebut=Math.max(0,Math.min(palMax(),palDebut));
   const nb=P.saisons.filter(s=>s.pts!==null).length;
-  const rows=P.saisons.map(s=>{
+  const vue=P.saisons.slice(palDebut,palDebut+PAL_NB);
+  const rows=vue.map(s=>{
     const cls=[];if(s.pts===null)cls.push("vide");else if(s.rang===1)cls.push("lead");if(saisonCourante&&s.saison===saisonCourante)cls.push("cur");
     return s.pts===null
       ?`<tr class="${cls.join(" ")}"><td>${s.saison}</td><td>–</td><td>–</td></tr>`
@@ -948,11 +966,27 @@ function rPalmares(saisonCourante){
         <td><span class="pal-rk">${rangTxt(s.rang)}<small>/ ${s.nbJoueurs}</small></span></td>
         <td><span class="pal-pts">${s.pts}<small>pts</small></span></td></tr>`;
   }).join("");
-  return`<section class="pal-card${saisonCourante?" fin":""}">
+  const nav=P.saisons.length>PAL_NB?`<div class="pal-nav">
+      <button type="button" class="pal-ar" data-pal="-1" aria-label="Saisons plus récentes"${palDebut<=0?" disabled":""}>←</button>
+      <span class="pal-rg">${vue[0].saison} – ${vue[vue.length-1].saison}</span>
+      <button type="button" class="pal-ar" data-pal="1" aria-label="Saisons plus anciennes"${palDebut>=palMax()?" disabled":""}>→</button>
+    </div>`:"";
+  return`<section class="pal-card${saisonCourante?" fin":""}" data-saison="${saisonCourante||""}">
     <div class="pal-top"><span class="pal-h">Ton palmarès</span><span class="pal-n"><b>${nb}</b> saison${nb>1?"s":""} jouée${nb>1?"s":""} sur ${P.saisons.length}</span></div>
     <table class="pal-tb"><thead><tr><th>Saison</th><th>Classement</th><th>Meilleur total</th></tr></thead><tbody>${rows}</tbody></table>
+    ${nav}
   </section>`;
 }
+// Clic sur une flèche : seule la carte du palmarès est redessinée (le reste de l'écran ne bouge pas)
+document.addEventListener("click",ev=>{
+  const btn=ev.target.closest?ev.target.closest(".pal-ar"):null;
+  if(!btn||btn.disabled||!ST.palmares||!ST.palmares.saisons)return;
+  const card=btn.closest(".pal-card");if(!card)return;
+  // Pages fixes de 8 saisons ; la dernière page est calée sur la saison la plus ancienne
+  const cible=Number(btn.dataset.pal)<0?Math.floor((palDebut-1)/PAL_NB)*PAL_NB:Math.floor(palDebut/PAL_NB)*PAL_NB+PAL_NB;
+  palDebut=Math.max(0,Math.min(palMax(),cible));
+  card.outerHTML=rPalmares(Number(card.dataset.saison)||0);
+});
 function rRecordPerso(){
   const C=ST.classement,saison=ST.sel.carYear;
   if(!C)return`<div class="cl-sec"><div class="cl-lbl">Ton record · Saison <b>${saison}</b></div><div class="t10-empty">Chargement…</div></div>`;
