@@ -135,6 +135,7 @@ body::before{
 /* ── Page classement du championnat (rChamp) ── */
 .champ-wrap{max-width:620px;margin:0 auto;padding:22px 20px 40px}
 .champ-eyebrow{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.16em;margin-bottom:6px}
+.champ-eyebrow.fin{color:#f97316;font-weight:700}
 .champ-title{font-family:'Chakra Petch',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:26px;color:#fff;margin-bottom:22px}
 .champ-board{display:flex;flex-direction:column;gap:7px;margin-bottom:26px}
 .crow{display:flex;align-items:center;gap:12px;background:#0f1117;border:1px solid #1f2937;border-radius:9px;padding:12px 15px}
@@ -213,6 +214,23 @@ body::before{
 .pal-ar{width:44px;height:36px;display:inline-flex;align-items:center;justify-content:center;background:#15181d;border:1px solid #2a2f37;border-radius:10px;color:#eceef1;font-size:16px;cursor:pointer;transition:border-color .18s,color .18s,transform .12s}
 .pal-ar:hover:not(:disabled){border-color:#f97316;color:#f97316;transform:translateY(-1px)}
 .pal-ar:disabled{opacity:.3;cursor:default}
+/* ── Fin de championnat : carte « Ta saison » (résultat de la partie + rang parmi les joueurs) ── */
+.ts-card{position:relative;background:rgba(18,21,26,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:var(--radius);padding:18px;overflow:hidden}
+.ts-card.new{border-color:var(--accent);box-shadow:0 12px 36px -14px rgba(249,115,22,.45)}
+.ts-card.new::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.ts-main{display:flex;align-items:center;gap:16px}
+.ts-pts{font-family:var(--font-titre);font-weight:700;font-size:40px;line-height:1;color:var(--paper);flex-shrink:0}
+.ts-pts small{font-size:13px;color:var(--fog);margin-left:3px;font-weight:600}
+.ts-mid{flex:1;min-width:0}
+.ts-t{font-family:var(--font-titre);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:17px;color:var(--paper)}
+.ts-t.champ{color:var(--accent)}
+.ts-s{font-size:12px;color:var(--fog);margin-top:4px}
+.ts-rec{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--fog)}
+.ts-rec b{color:var(--paper);font-weight:600}
+.ts-go{margin-top:12px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.09em;font-weight:600;font-size:15px;padding:15px 24px;border-radius:var(--radius);background:var(--accent);border:1px solid var(--accent);color:#141414;cursor:pointer;box-shadow:0 10px 30px -8px rgba(249,115,22,.5);transition:background .18s,transform .12s}
+.ts-go:hover{background:#fdba74;transform:translateY(-1px)}
+@media(max-width:480px){.ts-main{flex-wrap:wrap;gap:10px 14px}.ts-pts{font-size:34px}.ts-mid{flex:1 1 170px}}
+.t10-sep{text-align:center;color:#6b7280;font-size:12px;letter-spacing:.3em;line-height:1;padding:2px 0}
 .cat-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:50;max-width:min(92vw,420px);background:rgba(18,21,26,.95);border:1px solid #dc2626;border-radius:10px;padding:11px 16px;font-size:13px;color:#eceef1;box-shadow:0 12px 32px -10px rgba(0,0,0,.7)}
 </style><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0e1013"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="ChronoRallye"></head><body>
 <div id="app"></div>
@@ -910,7 +928,7 @@ function rChamp(){
     return`<div class="crow${isP?" you":""}${isLead?" lead":""}"><span class="crk">${i+1}</span><span class="cnm">${nom}</span><span class="cpts">${e.pts}</span></div>`;
   }).join("");
   const nextBtn=isLast
-    ?`<button class="cbtn-next" id="toResults">🏆 Résultats finaux</button>`
+    ?`<button class="cbtn-next" id="toResults">Bilan de la saison →</button>`
     :`<button class="cbtn-next" id="toNext">Rallye suivant →</button>`;
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -919,8 +937,11 @@ function rChamp(){
     <div style="display:flex;gap:5px">${bars}</div>
   </div>
   <div class="champ-wrap">
-    <div class="champ-eyebrow">Après ${ST.cur+1} rallye${ST.cur>0?"s":""} sur ${ST.results.length}</div>
-    <div class="champ-title">Classement du <span style="color:#f97316">championnat</span></div>
+    ${isLast
+      ?`<div class="champ-eyebrow fin">Saison ${ST.sel.carYear} terminée · ${ST.results.length} rallyes sur ${ST.results.length}</div>
+    <div class="champ-title">Classement <span style="color:#f97316">final</span> du championnat</div>`
+      :`<div class="champ-eyebrow">Après ${ST.cur+1} rallye${ST.cur>0?"s":""} sur ${ST.results.length}</div>
+    <div class="champ-title">Classement du <span style="color:#f97316">championnat</span></div>`}
     <div class="champ-board">${rows}</div>
     <div class="champ-actions">
       <button class="cbtn-back" id="backSim">← Revoir le rallye</button>
@@ -938,8 +959,8 @@ function attachChampEv(){
   if(fin)fin.addEventListener("click",()=>{if(!ST._finEnvoye){ST._finEnvoye=true;statEvent('fin');}ST.phase="results";render();chargerClassement();chargerPalmares();});
 }
 
-// ── Fin de championnat : record perso + top 10 de la saison ──
-// ST.classement = null (chargement) | {erreur:true} | {saison, top:[{pseudo,pts,moi,cettePartie}], perso:{pts,rang,nbJoueurs,nouveau}, partie:{pts}}
+// ── Fin de championnat : carte « Ta saison » + top 10 de la saison + palmarès ──
+// ST.classement = null (chargement) | {erreur:true} | {saison, top:[{pseudo,pts,moi,cettePartie}] (une ligne par joueur), perso:{pts,rang,nbJoueurs,nouveau}, partie:{pts,rang}}
 function escH(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function rangTxt(n){return n===1?"1er":n+"e";}
 // ── Palmarès : meilleur résultat du joueur sur chaque saison (accueil + fin de championnat) ──
@@ -991,19 +1012,24 @@ document.addEventListener("click",ev=>{
   palDebut=Math.max(0,Math.min(palMax(),cible));
   card.outerHTML=rPalmares(Number(card.dataset.saison)||0);
 });
-function rRecordPerso(){
-  const C=ST.classement,saison=ST.sel.carYear;
-  if(!C)return`<div class="cl-sec"><div class="cl-lbl">Ton record · Saison <b>${saison}</b></div><div class="t10-empty">Chargement…</div></div>`;
-  if(C.erreur||!C.perso)return"";
-  const P=C.perso;
-  const droite=P.nouveau?`<span class="rec-badge">Nouveau record</span>`:"";
-  return`<div class="cl-sec"><div class="cl-lbl">Ton record · Saison <b>${saison}</b></div>
-  <div class="rec-card${P.nouveau?" new":""}">
-    <div class="rec-pts">${P.pts}<small>pts</small></div>
-    <div class="rec-mid"><div class="rec-t">Meilleur total sur cette saison</div>
-      <div class="rec-s"><b>${rangTxt(P.rang)}</b> sur ${P.nbJoueurs} joueur${P.nbJoueurs>1?"s":""}</div></div>
-    ${droite}
-  </div></div>`;
+// Résultat de la partie qui vient de finir : points, place au championnat, équipage,
+// puis rang de cette partie parmi tous les joueurs de la saison (dès que le classement est chargé)
+function rTaSaison(){
+  const ca=champFinal(),pRank=ca.findIndex(e=>e.id==="JOUEUR")+1,pPts=ST.champ["JOUEUR"]||0,saison=ST.sel.carYear;
+  const C=ST.classement,ok=C&&!C.erreur,P=ok?C.perso:null,R=ok?C.partie:null,nouveau=!!(P&&P.nouveau);
+  const titre=pRank===1?"Champion du monde":(pRank+"ème au championnat");
+  const rec=P&&R&&R.rang?`<div class="ts-rec">Cette partie : <b>${rangTxt(R.rang)}</b> sur ${P.nbJoueurs} joueur${P.nbJoueurs>1?"s":""}</div>`:"";
+  return`<div class="cl-sec"><div class="cl-lbl">Ta saison <b>${saison}</b></div>
+  <div class="ts-card${nouveau?" new":""}">
+    <div class="ts-main">
+      <div class="ts-pts">${pPts}<small>pts</small></div>
+      <div class="ts-mid"><div class="ts-t${pRank===1?" champ":""}">${titre}</div>
+        <div class="ts-s">${escH(ST.sel.driver.nom)} / ${escH(ST.sel.codr.nom)} — ${escH(ST.sel.car.nom)}</div></div>
+      ${nouveau?`<span class="rec-badge">Nouveau record</span>`:""}
+    </div>
+    ${rec}
+  </div>
+  <button id="restart" class="ts-go">Nouvelle saison <span>→</span></button></div>`;
 }
 function rTop10(){
   const C=ST.classement,saison=ST.sel.carYear;
@@ -1019,39 +1045,23 @@ function rTop10(){
 </div>
       <span class="t10-pts">${e.pts}</span></div>`;
   }).join("");
-  return`<div class="cl-sec">${lbl}<div class="t10">${rows||`<div class="t10-empty">Aucun résultat pour cette saison.</div>`}</div></div>`;
+  // Joueur hors du top 10 : son record (rang + points) est rappelé sous la liste
+  const horsTop=C.perso&&!C.top.some(e=>e.moi);
+  const mien=horsTop?`<div class="t10-sep">· · ·</div><div class="t10-row you"><span class="t10-rk">${C.perso.rang}</span>
+      <div class="t10-mid"><div class="t10-nm"><span class="p">Ton record</span></div></div>
+      <span class="t10-pts">${C.perso.pts}</span></div>`:"";
+  return`<div class="cl-sec">${lbl}<div class="t10">${rows||`<div class="t10-empty">Aucun résultat pour cette saison.</div>`}${mien}</div></div>`;
 }
 function rResults(){
-  const ca=champFinal(),pRank=ca.findIndex(e=>e.id==="JOUEUR")+1,isChamp=pRank===1,pPts=ST.champ["JOUEUR"]||0;
-  const summary=ST.results.map(rr=>{const pr=rr.sorted.find(e=>e.isP),dnf=pr?.isDNF;
-    return`<div class="rally-card"><div style="font-size:10px;color:#6b7280;margin-bottom:2px">${rr.r.name}</div>
-    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;font-size:14px;color:${dnf?"#ef4444":pr?.rank===1?"#f59e0b":"#e5e7eb"}">${dnf?"DNF":"P"+pr?.rank}</span><span style="font-size:12px;color:#60a5fa;font-weight:600">${pr?.pts||0} pts</span></div>
-    ${pr?.inc?.type&&pr.inc.type!=="OK"?`<div style="font-size:9px;color:${dnf?"#ef4444":"#fbbf24"}">${pr.inc.type}</div>`:""}</div>`;
-  }).join("");
-  const fullChamp=ca.map((e,i)=>`
-    <div class="fc-row" style="background:${e.id==="JOUEUR"?"#1a1020":i===0?"#0f1200":"#0f1117"};border-color:${e.id==="JOUEUR"?"#7c3aed":i===0?"#92400e":"#1f2937"}">
-      <span style="width:18px;text-align:right;font-size:12px;font-weight:700;color:#4b5563">${i+1}</span>
-      <span style="flex:1;font-size:12px;font-weight:${e.id==="JOUEUR"?700:400};color:${e.id==="JOUEUR"?"#c4b5fd":"#e5e7eb"}">${e.id==="JOUEUR"?(ST.playerName||"Joueur"):e.id}</span>
-      <span style="font-size:13px;font-weight:700;color:${e.id==="JOUEUR"?"#c4b5fd":"#60a5fa"}">${e.pts}</span>
-    </div>`).join("");
   return`<div class="hdr">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <a href="/" class="mark"><img src="/logo.svg" alt="" class="brand-logo"><span class="brand-txt"><span class="c1">CHRONO</span><span class="c2">RALLYE</span><span class="c3">RACE</span></span></a>
     </div>
   </div>
-  <div style="background:${isChamp?"linear-gradient(135deg,#78350f,#1a1a0a)":"linear-gradient(135deg,#1a0a0a,#0a0a1a)"};border-bottom:2px solid #dc2626;padding:28px 20px;text-align:center">
-    <div style="font-size:44px;margin-bottom:8px">${isChamp?"🏆":pRank<=3?"🥈":"🏁"}</div>
-    <div style="font-weight:900;font-size:24px;color:${isChamp?"#fbbf24":"#fff"}">${isChamp?"CHAMPION DU MONDE !":pRank<=3?pRank+"ème — Podium !":pRank+"ème au championnat"}</div>
-    <div style="color:#9ca3af;font-size:12px;margin-top:6px">${ST.sel.driver.nom} / ${ST.sel.codr.nom} — ${ST.sel.car.nom}</div>
-    <div style="display:inline-block;background:#1f2937;border-radius:8px;padding:6px 20px;margin-top:14px"><span style="color:#6b7280;font-size:11px">Total </span><span style="font-weight:900;font-size:26px;color:#60a5fa">${pPts} pts</span></div>
-  </div>
-  ${rRecordPerso()}
-  <div style="padding:12px 20px 0"><div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Résumé des rallyes</div></div>
-  <div class="rallye-grid">${summary}</div>
-  <div style="padding:0 20px"><div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Classement final championnat ${ST.sel.carYear}</div>${fullChamp}</div>
+  ${rTaSaison()}
   ${rTop10()}
   ${ST.palmares&&ST.palmares.saisons?`<div class="cl-sec">${rPalmares(ST.sel.carYear)}</div>`:""}
-  <div style="padding:16px 20px 32px"><button id="restart" style="width:100%;background:#f97316;border:none;border-radius:8px;padding:13px;color:#141414;font-size:14px;font-weight:700;cursor:pointer">🔄 Nouvelle saison</button></div>`;
+  <div style="height:32px"></div>`;
 }
 
 function attachEv(){
