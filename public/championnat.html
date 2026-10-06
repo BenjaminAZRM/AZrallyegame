@@ -201,8 +201,8 @@ body::before{
 .pal-tb td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06);font-family:var(--font-titre);font-variant-numeric:tabular-nums}
 .pal-tb tr:last-child td{border-bottom:none}
 .pal-tb td:first-child{text-align:left;font-weight:700;font-size:15px;color:var(--paper)}
-.pal-rk{font-weight:600;font-size:14px;color:#eceef1}
-.pal-rk small{font-size:11px;color:var(--fog);font-weight:400;margin-left:4px}
+.pal-rk{font-weight:700;font-size:15px;color:#eceef1}
+.pal-rk small{font-size:11px;color:var(--fog);font-weight:600;margin-left:2px}
 .pal-tb tr.lead .pal-rk{color:var(--accent);font-weight:700}
 .pal-pts{font-weight:700;font-size:15px;color:#fdba74}
 .pal-pts small{font-size:11px;color:var(--fog);font-weight:600;margin-left:3px}
@@ -988,7 +988,7 @@ function rPalmares(saisonCourante){
     return s.pts===null
       ?`<tr class="${cls.join(" ")}"><td>${s.saison}</td><td>–</td><td>–</td></tr>`
       :`<tr class="${cls.join(" ")}"><td>${s.saison}</td>
-        <td><span class="pal-rk">${s.rang===1?"1er":s.rang+"ème"}</span></td>
+        <td><span class="pal-rk">${s.rang}<small>${s.rang===1?"er":"ème"}</small></span></td>
         <td><span class="pal-pts">${s.pts}<small>pts</small></span></td></tr>`;
   }).join("");
   const nav=P.saisons.length>PAL_NB?`<div class="pal-nav">
