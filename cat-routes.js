@@ -4,8 +4,8 @@
 // Le navigateur n'envoie que des choix (n° de carte, stratégie) : il ne peut donc
 // ni choisir ses propositions ni inventer un score.
 // À la fin du 10e rallye, le total de points est enregistré automatiquement.
-// Classement : top 10 de tous les joueurs par saison WRC jouée (année de la voiture)
-// + record perso du joueur sur cette saison.
+// Classement : top 10 des joueurs par saison WRC jouée (année de la voiture, meilleur total de chacun)
+// + record perso du joueur sur cette saison + rang de la partie qui vient de finir.
 // Palmarès : sur chaque saison, meilleure place au championnat et meilleur total de points du joueur.
 'use strict';
 
@@ -223,28 +223,30 @@ module.exports = function mountCourseAuTitre(deps) {
     finally { liberer(); if (verrous.get(key) === chaine) verrous.delete(key); }
   }
 
-  // ── Classement d'une saison (top 10 + record perso) ─────────────────────────
+  // ── Classement d'une saison (top 10 + record perso + rang de la partie) ──────
+  // Une seule ligne par joueur : son meilleur total sur la saison.
   // Égalité de points : le premier à avoir réalisé le score passe devant.
   async function classement(saison, key, partieId) {
     const tous = await resultatsSaison(saison);
     tous.sort((a, b) => b.pts - a.pts || a.date - b.date || Number(a.id) - Number(b.id));
-    const top = tous.slice(0, 10).map(x => ({ pseudo: x.joueur, pts: x.pts, moi: x.joueur_key === key, cettePartie: !!partieId && x.id === partieId }));
-    // Meilleur total de chaque joueur sur la saison
-    const meilleurs = {};
-    tous.forEach(x => { if (meilleurs[x.joueur_key] === undefined || x.pts > meilleurs[x.joueur_key]) meilleurs[x.joueur_key] = x.pts; });
+    // Meilleur championnat de chaque joueur (le premier rencontré, la liste étant triée)
+    const vus = new Set(), meilleurs = [];
+    tous.forEach(x => { if (!vus.has(x.joueur_key)) { vus.add(x.joueur_key); meilleurs.push(x); } });
+    const top = meilleurs.slice(0, 10).map(x => ({ pseudo: x.joueur, pts: x.pts, moi: x.joueur_key === key, cettePartie: !!partieId && x.id === partieId }));
     let perso = null, partie = null;
-    if (meilleurs[key] !== undefined) {
-      const mien = meilleurs[key];
-      const rang = 1 + Object.values(meilleurs).filter(v => v > mien).length;
+    const mien = meilleurs.find(x => x.joueur_key === key);
+    if (mien) {
+      const rang = 1 + meilleurs.filter(x => x.pts > mien.pts).length;
       let nouveau = false;
       const cette = partieId ? tous.find(x => x.id === partieId && x.joueur_key === key) : null;
       if (cette) {
-        partie = { pts: cette.pts };
+        // Rang de CETTE partie : ses points comparés au meilleur total de chaque autre joueur
+        partie = { pts: cette.pts, rang: 1 + meilleurs.filter(x => x.joueur_key !== key && x.pts > cette.pts).length };
         // Nouveau record si cette partie dépasse strictement toutes les précédentes du joueur sur la saison
         const avant = tous.filter(x => x.joueur_key === key && Number(x.id) < Number(cette.id));
-        nouveau = cette.pts === mien && avant.every(x => x.pts < cette.pts);
+        nouveau = cette.pts === mien.pts && avant.every(x => x.pts < cette.pts);
       }
-      perso = { pts: mien, rang, nbJoueurs: Object.keys(meilleurs).length, nouveau };
+      perso = { pts: mien.pts, rang, nbJoueurs: meilleurs.length, nouveau };
     }
     return { ok: true, saison, top, perso, partie };
   }
@@ -370,7 +372,7 @@ module.exports = function mountCourseAuTitre(deps) {
     } catch (e) { console.error('POST /api/cat/rallye', e.message); erreur(res, 500, 'Serveur indisponible. Réessaie.'); }
   });
 
-  // 5) Classement d'une saison : top 10 + record perso (+ marque « cette partie »)
+  // 5) Classement d'une saison : top 10 + record perso + rang de la partie (+ marque « cette partie »)
   app.get('/api/cat/classement', async (req, res) => {
     const J = await joueurAutorise(req, res); if (!J) return;
     const saison = Number(req.query.saison);
