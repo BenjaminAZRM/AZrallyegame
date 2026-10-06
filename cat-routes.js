@@ -240,8 +240,8 @@ module.exports = function mountCourseAuTitre(deps) {
       let nouveau = false;
       const cette = partieId ? tous.find(x => x.id === partieId && x.joueur_key === key) : null;
       if (cette) {
-        // Rang de CETTE partie : ses points comparés au meilleur total de chaque autre joueur
-        partie = { pts: cette.pts, rang: 1 + meilleurs.filter(x => x.joueur_key !== key && x.pts > cette.pts).length };
+        // Rang de CETTE partie parmi TOUTES les parties terminées sur la saison (tous joueurs, les siennes comprises)
+        partie = { pts: cette.pts, rang: 1 + tous.filter(x => x.pts > cette.pts).length, nbParties: tous.length };
         // Nouveau record si cette partie dépasse strictement toutes les précédentes du joueur sur la saison
         const avant = tous.filter(x => x.joueur_key === key && Number(x.id) < Number(cette.id));
         nouveau = cette.pts === mien.pts && avant.every(x => x.pts < cette.pts);
