@@ -960,7 +960,7 @@ function attachChampEv(){
 }
 
 // ── Fin de championnat : carte « Ta saison » + top 10 de la saison + palmarès ──
-// ST.classement = null (chargement) | {erreur:true} | {saison, top:[{pseudo,pts,moi,cettePartie}] (une ligne par joueur), perso:{pts,rang,nbJoueurs,nouveau}, partie:{pts,rang}}
+// ST.classement = null (chargement) | {erreur:true} | {saison, top:[{pseudo,pts,moi,cettePartie}] (une ligne par joueur), perso:{pts,rang,nbJoueurs,nouveau}, partie:{pts,rang,nbParties} (rang parmi toutes les parties de la saison)}
 function escH(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function rangTxt(n){return n===1?"1er":n+"e";}
 // ── Palmarès : meilleur résultat du joueur sur chaque saison (accueil + fin de championnat) ──
@@ -1013,12 +1013,12 @@ document.addEventListener("click",ev=>{
   card.outerHTML=rPalmares(Number(card.dataset.saison)||0);
 });
 // Résultat de la partie qui vient de finir : points, place au championnat, équipage,
-// puis rang de cette partie parmi tous les joueurs de la saison (dès que le classement est chargé)
+// puis rang de cette partie parmi toutes les parties jouées sur la saison (dès que le classement est chargé)
 function rTaSaison(){
   const ca=champFinal(),pRank=ca.findIndex(e=>e.id==="JOUEUR")+1,pPts=ST.champ["JOUEUR"]||0,saison=ST.sel.carYear;
   const C=ST.classement,ok=C&&!C.erreur,P=ok?C.perso:null,R=ok?C.partie:null,nouveau=!!(P&&P.nouveau);
   const titre=pRank===1?"Champion du monde":(pRank+"ème au championnat");
-  const rec=P&&R&&R.rang?`<div class="ts-rec">Cette partie : <b>${rangTxt(R.rang)}</b> sur ${P.nbJoueurs} joueur${P.nbJoueurs>1?"s":""}</div>`:"";
+  const rec=R&&R.rang&&R.nbParties?`<div class="ts-rec">Cette partie : <b>${rangTxt(R.rang)}</b> sur ${R.nbParties} partie${R.nbParties>1?"s":""} jouée${R.nbParties>1?"s":""} sur cette saison</div>`:"";
   return`<div class="cl-sec"><div class="cl-lbl">Ta saison <b>${saison}</b></div>
   <div class="ts-card${nouveau?" new":""}">
     <div class="ts-main">
