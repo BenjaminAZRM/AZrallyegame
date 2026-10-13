@@ -111,6 +111,15 @@ body::before{
 .sc-reroll .rr-main .ic{font-size:16px;line-height:1}
 .sc-reroll .rr-sub{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog)}
 .sc-reroll-used{margin-top:26px;text-align:center;font-size:11px;color:var(--fog);font-style:italic}
+/* Draft revu avec le bouton retour : choix verrouillés */
+.sc-dc.ro{cursor:default}
+.sc-dc.ro:hover,.sc-dc.ro:focus-visible{border-color:var(--line);transform:none;box-shadow:none}
+.sc-dc.ro:hover::before{opacity:0}
+.sc-dc.ro .pick{display:none}
+.sc-dc.ro.off{opacity:.35}
+.sc-dc.ro.pris,.sc-dc.ro.pris:hover{border-color:var(--accent)}
+.sc-dc.ro.pris::before,.sc-dc.ro.pris:hover::before{opacity:1}
+.sc-dc .pris-tag{margin-top:auto;padding-top:14px;font-family:var(--font-titre);text-transform:uppercase;letter-spacing:.09em;font-size:12px;color:var(--accent)}
 @media(max-width:680px){.sc-cards{grid-template-columns:1fr}.sc-dc{min-height:0}.sc-dc .pick{opacity:1;transform:none}}
 
 /* ── Bandeau projecteur de révélation (rSim) ── */
@@ -262,7 +271,7 @@ function scolBg(s){
 function vCol(v){return v>=90?"#f59e0b":v>=85?"#60a5fa":"#9ca3af";}
 function coS(d){if(!d)return{asp:80,ter:80,nei:80,sec:80,plu:80,rap:80,sin:80,fib:0.85,nom:""};return{asp:d.casp||80,ter:d.cter||80,nei:d.cnei||80,sec:d.csec||80,plu:d.cplu||80,rap:d.crap||80,sin:d.csin||80,fib:d.cfib||0.85,nom:d.cop||""};}
 
-let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:"",aEmail:false,emailVerifie:true,verrou:false,busy:false,fin:null,classement:null};
+let ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:"",aEmail:false,emailVerifie:true,verrou:false,busy:false,fin:null,classement:null,draftHist:[]};
 function statEvent(type){
   try{
     var tok='';try{tok=localStorage.getItem('azr_token')||'';}catch(e){}
@@ -540,9 +549,10 @@ function startReveal(instant){
 
 function selectDraft(idx){
   if(ST.busy)return;ST.busy=true;
+  const tour=ST.draftRound,offres=ST.draftOffers.slice();
   apiCat('/api/cat/draft/choix',{idx:idx})
     .then(d=>{
-      ST.busy=false;appliquerDraft(d);
+      ST.busy=false;ST.draftHist[tour]={offers:offres,idx:idx};appliquerDraft(d);
       // Les 3 éléments sont choisis → la saison est tirée par le serveur
       if(d.rallyes){
         ST._finEnvoye=false;statEvent('draft');
@@ -569,6 +579,7 @@ function render(){
   const nouvelEcran=ST.phase!==phaseAffichee;phaseAffichee=ST.phase;
   if(ST.phase==="rules"){app.innerHTML=rRules();attachRulesEv();}
   else if(ST.phase==="draft"){app.innerHTML=rDraft();attachDraftEv();}
+  else if(ST.phase==="draftView"){app.innerHTML=rDraft(true);attachDraftViewEv();}
   else if(ST.phase==="recap"){app.innerHTML=rRecap();attachRecapEv();}
   else if(ST.phase==="launch"){app.innerHTML=rLaunch();attachLaunchEv();}
   else if(ST.phase==="sim"){app.innerHTML=rSim();attachSimEv();}
@@ -576,7 +587,41 @@ function render(){
   else{app.innerHTML=rResults();attachEv();}
   // Changement d'écran : on repart toujours du haut de la page
   if(nouvelEcran)window.scrollTo(0,0);
+  // Partie en cours : le bouton retour reste dans le jeu
+  if(ST.phase!=="rules")armerRetour();
 }
+
+// ── Bouton retour (navigateur / téléphone) ──
+// Pendant une partie, une entrée d'historique « tampon » intercepte le retour :
+// on revient à l'étape précédente du jeu, sans pouvoir modifier les choix.
+function armerRetour(){
+  try{if(!(history.state&&history.state.crrJeu))history.pushState({crrJeu:1},"");}catch(e){}
+}
+function retourJeu(){
+  if(ST.busy)return;
+  const p=ST.phase,H=ST.draftHist||[];
+  if(p==="draft"){
+    if(ST.draftRound>0&&H[ST.draftRound-1]){ST.viewRound=ST.draftRound-1;ST.viewRet="draft";ST.phase="draftView";render();}
+  }else if(p==="draftView"){
+    if(ST.viewRound>0&&H[ST.viewRound-1]){ST.viewRound--;render();}
+  }else if(p==="recap"){
+    if(H[2]){ST.viewRound=2;ST.viewRet="recap";ST.phase="draftView";render();}
+  }else if(p==="launch"||p==="sim"){
+    stopReveal();
+    if(ST.cur>0)goToRally(ST.cur-1);
+    else{ST.phase="recap";render();}
+  }else if(p==="champ"){
+    stopReveal();ST.phase="sim";render();startReveal(true);
+  }else if(p==="results"){
+    ST.cur=ST.results.length-1;ST.phase="champ";render();
+  }
+}
+window.addEventListener("popstate",e=>{
+  if(e.state&&e.state.crrJeu)return;            // bouton « suivant » du navigateur : rien à faire
+  if(ST.phase==="rules"){history.back();return;} // pas de partie en cours : retour normal
+  armerRetour();
+  retourJeu();
+});
 
 function rRules(){
   return`<div class="hdr">
@@ -626,24 +671,34 @@ function attachRulesEv(){
     btn.addEventListener("click",()=>{
       if(ST.busy)return;ST.busy=true;btn.disabled=true;
       apiCat('/api/cat/draft/debut',{})
-        .then(d=>{ST.busy=false;appliquerDraft(d);ST.phase="draft";render();})
+        .then(d=>{ST.busy=false;ST.draftHist=[];appliquerDraft(d);ST.phase="draft";render();})
         .catch(e=>{ST.busy=false;btn.disabled=false;toastCat(e.message);});
     });
   }
 }
 
-function rDraft(){
-  const round=ST.draftRound;
-  const offers=ST.draftOffers;
+function rDraft(ro){
+  const h=ro?(ST.draftHist||[])[ST.viewRound]:null;
+  const round=ro?ST.viewRound:ST.draftRound;
+  const offers=ro?(h?h.offers:[]):ST.draftOffers;
   const consigne=round===0?"Choisis ton pilote":round===1?"Choisis ton copilote":"Choisis ta voiture";
   const bars=[0,1,2].map(i=>`<div class="pbar ${i<round?"sc-pb-done":i===round?"sc-pb-cur":"sc-pb-todo"}"></div>`).join("");
 
   // Tags des choix déjà faits
   const tags=[];
-  if(ST.sel.driver) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Pilote · </span>${ST.sel.driver.nom}</div>`);
-  if(ST.sel.codr) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Copilote · </span>${ST.sel.codr.nom}</div>`);
+  if(ST.sel.driver&&round>0) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Pilote · </span>${ST.sel.driver.nom}</div>`);
+  if(ST.sel.codr&&round>1) tags.push(`<div style="background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 10px;font-size:11px;color:#e5e7eb"><span style="color:#6b7280">Copilote · </span>${ST.sel.codr.nom}</div>`);
 
   const cards=offers.map((o,i)=>{
+    if(ro){
+      const pris=h&&i===h.idx;
+      return`<div class="sc-dc ro ${pris?"pris":"off"}">
+      <span class="idx">${String(i+1).padStart(2,"0")}</span>
+      <div class="nom">${o.nom}</div>
+      <div class="saison">Saison ${o.annee}</div>
+      ${pris?`<span class="pris-tag">Ton choix ✓</span>`:""}
+    </div>`;
+    }
     return`<div class="sc-dc" data-idx="${i}" tabindex="0">
       <span class="idx">${String(i+1).padStart(2,"0")}</span>
       <div class="nom">${o.nom}</div>
@@ -662,11 +717,16 @@ function rDraft(){
   <div class="sc-draft-body">
     <div class="sc-tour">Tour ${round+1} / 3</div>
     <div class="sc-consigne">${consigne}</div>
-    <div class="sc-sub">3 propositions tirées au hasard dans toute l'histoire du WRC${round===2?" — ton choix fixe l'année des concurrents":""}.</div>
+    <div class="sc-sub">${ro?"Choix verrouillé — il ne peut plus être modifié.":`3 propositions tirées au hasard dans toute l'histoire du WRC${round===2?" — ton choix fixe l'année des concurrents":""}.`}</div>
     <div class="sc-cards">
       ${cards}
     </div>
-    ${!ST.rerollUsed?`
+    ${ro?`
+    <div class="sc-reroll-wrap">
+      <button id="roBack" class="sc-reroll">
+        <span class="rr-main">${ST.viewRet==="recap"?"Revenir à ton équipage":"Revenir au tour en cours"} <span class="ic">→</span></span>
+      </button>
+    </div>`:!ST.rerollUsed?`
     <div class="sc-reroll-wrap">
       <button id="rerollBtn" class="sc-reroll">
         <span class="rr-main"><span class="ic">🔀</span> Relancer les propositions</span>
@@ -693,6 +753,11 @@ function attachDraftEv(){
         .catch(e=>{ST.busy=false;rerollBtn.disabled=false;toastCat(e.message);});
     });
   }
+}
+
+function attachDraftViewEv(){
+  const b=document.getElementById("roBack");
+  if(b)b.addEventListener("click",()=>{ST.phase=ST.viewRet||"draft";render();});
 }
 
 const KEYS=["asp","ter","nei","sec","plu","rap","sin"];
@@ -777,7 +842,7 @@ function rRecap(){
     </div>
 
     <button id="startSeason" style="width:100%;background:#f97316;border:2px solid #fdba74;border-radius:12px;padding:15px;font-size:16px;font-weight:900;color:#141414;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;box-shadow:0 0 24px rgba(249,115,22,.5)">
-      Démarrer la saison
+      ${ST.results.some(x=>x.sorted)?"Reprendre la saison":"Démarrer la saison"}
     </button>
   </div>`;
 }
@@ -787,7 +852,11 @@ function attachRecapEv(){
   if(btn){
     btn.addEventListener("mouseenter",()=>{btn.style.background="#ef4444";});
     btn.addEventListener("mouseleave",()=>{btn.style.background="#dc2626";});
-    btn.addEventListener("click",()=>{ST.phase="launch";render();});
+    btn.addEventListener("click",()=>{
+      const nx=ST.results.findIndex(x=>!x.sorted);
+      if(nx===-1){ST.cur=ST.results.length-1;ST.phase="champ";render();return;}
+      goToRally(nx);
+    });
   }
 }
 
@@ -1067,7 +1136,7 @@ function rResults(){
 function attachEv(){
   const tb=document.getElementById("tirageBtn");if(tb)tb.addEventListener("click",()=>{ST.tirageState="spinning";render();setTimeout(()=>{ST.tirageState="revealed";render();},800);});
   const cb=document.getElementById("chooseBtn");if(cb)cb.addEventListener("click",()=>{if(ST.verrou){render();return;}ST.phase="draft";render();});
-  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{stopReveal();ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:ST.playerName||"",aEmail:ST.aEmail,emailVerifie:ST.emailVerifie,verrou:ST.verrou,busy:false,fin:null,classement:null,palmares:ST.palmares};render();chargerPalmares();});
+  const res=document.getElementById("restart");if(res)res.addEventListener("click",()=>{stopReveal();ST={phase:"rules",draftRound:0,draftOffers:[],rerollUsed:false,riskLevel:null,sel:{},drawn:[],results:[],cur:0,champ:{},showNotes:false,revealed:0,revealing:false,maxReached:0,launching:false,playerName:ST.playerName||"",aEmail:ST.aEmail,emailVerifie:ST.emailVerifie,verrou:ST.verrou,busy:false,fin:null,classement:null,palmares:ST.palmares,draftHist:[]};render();chargerPalmares();});
 }
 init();
 </script>
