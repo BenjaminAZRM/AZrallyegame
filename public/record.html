@@ -468,7 +468,6 @@ function screenResult(r){
     <div class="card">
       <div class="small">${r.st.rallye} · ${r.st.nom} (${r.st.km.toFixed(1)} km)</div>
       <div class="big-time">${fmtTime(r.stageTime)}</div>
-      <div class="small">${r.c.vitesse.toFixed(1)} km/h de moyenne</div>
       ${r.tier.pen>0?`<div style="margin-top:10px"><span class="pill" style="background:${r.tier.col}22;color:${r.tier.col}">⚠ ${r.tier.name} +${r.tier.pen}s</span></div>`:''}
       <div class="small" style="margin-top:10px">${r.crew.nom.split(' - ')[0]} · ${r.car.nom} · ${ENG.tyres[r.tyre].label}</div>
     </div>
