@@ -44,8 +44,7 @@
   .hero-actions{position:relative;z-index:2;display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:24px}
   .rules-link{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-titre,'Chakra Petch');text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:12px;color:var(--accent-soft,#fdba74);background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.4);border-radius:8px;padding:11px 20px;text-decoration:none;transition:background .18s,border-color .18s,color .18s,transform .12s}
   .rules-link:hover{background:rgba(249,115,22,.16);border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
-  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-  @media(max-width:720px){.grid-3{grid-template-columns:1fr}}
+  .wip.wip-wide .note{max-width:none}
   .card.wip{background:rgba(18,21,26,.6);border:1px dashed var(--line);cursor:default;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:190px;padding:28px 22px;box-shadow:none}
   .card.wip:hover{transform:none;border-color:var(--line)}
   .wip .lock{width:26px;height:26px;color:var(--fog);opacity:.7;margin-bottom:14px}
@@ -106,18 +105,26 @@
       </div>
     </div>
 
-    <div class="grid-3">
-      <div class="card wip"><svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div class="badge">Work in progress</div><div class="note">Nouveau jeu disponible bientôt</div></div>
-      <div class="card wip"><svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div class="badge">Work in progress</div><div class="note">Nouveau jeu disponible bientôt</div></div>
-      <div class="card wip"><svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div class="badge">Work in progress</div><div class="note">Nouveau jeu disponible bientôt</div></div>
+    <div class="featured">
+      <div class="card card-hero">
+        <h2>Temps Scratch</h2>
+        <p>Dispute un rallye composé de plusieurs spéciales. Avant chaque spéciale, choisis ton équipage, ta voiture, tes pneus, ton rythme et tes réglages&nbsp;: chaque équipage et chaque voiture ne servent qu'une seule fois. Signeras-tu des temps scratch&nbsp;?</p>
+        <a href="/connexion.html?next=/record.html" class="card-link" id="recordLink" aria-label="Jouer à Temps Scratch"></a>
+        <div class="hero-actions">
+          <a class="rules-link" href="/regles-temps-scratch.html">📖 Règles du jeu</a>
+        </div>
+      </div>
     </div>
+
+    <div class="card wip wip-wide"><svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div class="badge">Work in progress</div><div class="note">Nouveau jeu disponible bientôt</div></div>
   </main>
 
   <footer>
     CHRONORALLYERACE — Simulation amateur, non officielle<br>
     <span id="footerLinks" style="text-transform:none;letter-spacing:normal;font-size:11px">
       <a href="/connexion.html" style="color:var(--accent)">Se connecter</a> ·
-      <a href="/regles-championnat.html" style="color:var(--accent)">Règles du jeu</a> ·
+      <a href="/regles-championnat.html" style="color:var(--accent)">Règles Course au Titre</a> ·
+      <a href="/regles-temps-scratch.html" style="color:var(--accent)">Règles Temps Scratch</a> ·
       <a href="/confidentialite.html" style="color:var(--accent)">Confidentialité</a>
     </span>
   </footer>
@@ -126,20 +133,24 @@
   (function(){
     var u,t; try{ u=localStorage.getItem('azr_user'); t=localStorage.getItem('azr_token'); }catch(e){}
     var playLink=document.getElementById('playLink');
+    var recordLink=document.getElementById('recordLink');
     if(!u){
       // Non connecté : jouer passe par la connexion (retour au jeu ensuite)
       if(playLink) playLink.setAttribute('href','/connexion.html?next=/championnat.html');
+      if(recordLink) recordLink.setAttribute('href','/connexion.html?next=/record.html');
       return;
     }
     // Connecté : header + accès direct au jeu + options RGPD
     if(playLink) playLink.setAttribute('href','/championnat.html');
+    if(recordLink) recordLink.setAttribute('href','/record.html');
     document.getElementById('authArea').innerHTML=
       '<span style="font-size:12px;color:var(--fog);letter-spacing:.06em;text-transform:uppercase">Connecté : '+u+
       ' <b id="logout" style="color:var(--accent);cursor:pointer;margin-left:10px">Déconnexion</b></span>';
     document.getElementById('footerLinks').innerHTML=
       '<b id="export" style="color:var(--accent);cursor:pointer">Télécharger mes données</b> · '+
       '<b id="delete" style="color:var(--accent);cursor:pointer">Supprimer mon compte</b> · '+
-      '<a href="/regles-championnat.html" style="color:var(--accent)">Règles du jeu</a> · '+
+      '<a href="/regles-championnat.html" style="color:var(--accent)">Règles Course au Titre</a> · '+
+      '<a href="/regles-temps-scratch.html" style="color:var(--accent)">Règles Temps Scratch</a> · '+
       '<a href="/confidentialite.html" style="color:var(--accent)">Confidentialité</a>';
 
     document.getElementById('logout').onclick=function(){
